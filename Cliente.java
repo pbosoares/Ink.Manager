@@ -1,12 +1,11 @@
 	class Cliente {
 
+private int id;
 private String nome;
 private String telefone;
 private int idade;
 private String instagram;
-private int id;
 	
-}
 
 	public Cliente() {
 
@@ -34,7 +33,7 @@ private int id;
   		return telefone;
   }
 
-  public void setTelefone(String nome) {
+  public void setTelefone(String telefone) {
   		this.telefone = telefone;
   }
 
@@ -60,5 +59,8 @@ private int id;
 
   public void setId(int id) {
   		this.id = id;
-  		
+    }
+
   }
+  		
+  
