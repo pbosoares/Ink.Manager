@@ -4,30 +4,37 @@ Sistema de gerenciamento para tatuadores desenvolvido em Java.
 
 ## Objetivo
 
-O Ink.Manager tem como objetivo auxiliar tatuadores no controle de clientes e futuramente no gerenciamento de agendamentos, pagamentos e histórico de tatuagens.
+O Ink.Manager tem como objetivo auxiliar tatuadores no controle de clientes, organizando informações importantes como nome, telefone, idade e Instagram.
+
+O projeto será evoluído futuramente para incluir gerenciamento de agendamentos, pagamentos e histórico de tatuagens.
 
 ## Tecnologias utilizadas
 
 - Java
-- Programação Orientada a Objetos
-- Git/GitHub
+- Programação Orientada a Objetos (POO)
+- Git
+- GitHub
 
 ## Versão atual
 
-### v0.1
+**v0.1 - Estrutura inicial do sistema**
 
-Implementado:
+## Funcionalidades implementadas
 
-- Classe Cliente
-- Encapsulamento com atributos privados
-- Construtores
-- Getters e Setters
-- Serviço de cadastro de clientes utilizando ArrayList
+✅ Criação da classe Cliente  
+✅ Encapsulamento utilizando atributos privados  
+✅ Construtores para criação de objetos  
+✅ Getters e Setters  
+✅ Classe ClienteService para gerenciamento dos clientes  
+✅ Cadastro de clientes utilizando ArrayList  
+✅ Listagem de clientes cadastrados  
+✅ Menu inicial de interação no console  
 
-## Próximas versões
+## Estrutura atual do projeto
 
-- [ ] Listagem de clientes
-- [ ] Menu de interação
-- [ ] Agendamento de sessões
-- [ ] Controle financeiro
-- [ ] Banco de dados
+```text
+Ink.Manager
+│
+├── MainMaster.java
+├── Cliente.java
+└── ClienteService.java
