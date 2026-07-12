@@ -2,14 +2,19 @@ import java.util.ArrayList;
 
 public class ClienteService {
 private ArrayList<Cliente> clientes;
+private int proximoId = 1;
 
 public ClienteService() {
 	clientes = new ArrayList<>();
 
 }
 
-public void cadastrarCliente(Cliente cliente) {
-	clientes.add(cliente);
+	public void cadastrarCliente(Cliente cliente) {
+
+    cliente.setId(proximoId);
+    proximoId++;
+
+    clientes.add(cliente);
 }
 
 	public void listarClientes() {

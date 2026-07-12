@@ -11,9 +11,8 @@ private String instagram;
 
 	}
 
-	public Cliente(int id, String nome, String telefone, int idade, String instagram) {
+	public Cliente(String nome, String telefone, int idade, String instagram) {
 
-	this.id = id;
 	this.nome = nome;
 	this.telefone = telefone;
 	this.idade = idade;

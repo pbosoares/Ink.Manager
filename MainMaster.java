@@ -19,10 +19,53 @@ public class MainMaster {
 
 			opcao = scanner.nextInt();
 
+		switch (opcao) {
+
+		case 1: 
+			System.out.println("Cadastrar Cliente ");
+			scanner.nextLine();
+
+			System.out.print("Nome: ");
+			String nome = scanner.nextLine();
+
+            System.out.print("Telefone: ");
+			
+			String telefone = scanner.nextLine();
+
+			System.out.print("Idade: ");
+			int idade = scanner.nextInt();
+			scanner.nextLine();
+
+			System.out.print("Instagram: ");
+			String instagram = scanner.nextLine();
+
+			Cliente cliente = new Cliente(
+    			nome,
+    			telefone,
+    			idade,
+    			instagram
+			);
+
+		service.cadastrarCliente(cliente);
+
+		System.out.println("Cliente cadastrado com sucesso!");
+
+			break;
+
+        case 2:
+    		service.listarClientes();
+    		break;
+
+        case 0:
+        	System.out.println("Saindo...");
+        	break;
+
+		}
+
 		} while (opcao != 0);
 
 		scanner.close();
 
 	}
 
-		}
+}
