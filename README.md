@@ -1,144 +1,85 @@
-# 🎨 Ink.Manager
+🎨 Ink.Manager
 
-Sistema de gerenciamento para estúdios de tatuagem, desenvolvido em **Java**, com o objetivo de auxiliar tatuadores no controle de clientes e organização dos atendimentos.
+Sistema de gerenciamento desenvolvido em Java com o objetivo de auxiliar tatuadores no controle de clientes e organização dos seus atendimentos.
 
-O projeto foi criado a partir de uma necessidade real: desenvolver uma solução simples que ajude profissionais da área de tatuagem a gerenciarem seus clientes de forma organizada.
+O projeto faz parte da minha evolução em Engenharia de Software, aplicando conceitos de Programação Orientada a Objetos, organização de código e boas práticas de desenvolvimento.
 
----
+🚀 Versão atual
 
-## 📌 Sobre o projeto
+v0.2
 
-O **Ink.Manager** é um sistema em desenvolvimento criado para aplicar na prática conceitos de **Engenharia de Software** e **Programação Orientada a Objetos (POO)**.
-
-A primeira versão do projeto foi desenvolvida utilizando Java no console, com foco em:
-
-* Criação e organização de classes;
-* Manipulação de objetos;
-* Encapsulamento;
-* Controle de informações;
-* Boas práticas de desenvolvimento;
-* Versionamento utilizando Git e GitHub.
-
----
-
-## 🚀 Funcionalidades atuais (v0.1)
-
-### 👤 Gerenciamento de clientes
+📌 Funcionalidades
 
 ✅ Cadastro de clientes
+✅ Geração automática de ID para cada cliente
 ✅ Listagem de clientes cadastrados
-✅ Geração automática de ID dos clientes
-✅ Armazenamento dos clientes durante a execução do sistema
-✅ Menu de navegação via console
+✅ Busca de clientes por ID
+✅ Validação de cliente existente através do retorno do Service
 
----
+🛠️ Tecnologias utilizadas:
 
-## 🖥️ Funcionamento do sistema
+Java
+Programação Orientada a Objetos (POO)
+ArrayList
+Encapsulamento
+Classes e Objetos
+Git e GitHub
 
-O usuário pode acessar um menu inicial e escolher as opções disponíveis:
+🏗️ Estrutura do projeto
+Ink.Manager
+│
+├── Cliente.java
+│
+├── ClienteService.java
+│
+└── MainMaster.java
+💡 Como funciona
 
-Exemplo:
+O sistema possui uma separação simples de responsabilidades:
 
-```
-=========================
-      INK.MANAGER
-=========================
+Cliente.java
+
+Responsável pelo modelo do cliente, contendo seus atributos e métodos de acesso.
+
+ClienteService.java
+
+Responsável pelas regras de negócio:
+
+Cadastro de clientes
+Geração automática de IDs
+Listagem dos clientes
+Busca de clientes pelo ID
+MainMaster.java
+
+Responsável pela interação com o usuário através do menu do sistema.
+
+📋 Exemplo de uso
+
+Menu principal:
+
+===== INK.MANAGER =====
 
 1 - Cadastrar cliente
 2 - Listar clientes
+3 - Buscar cliente
 0 - Sair
-```
 
-Ao cadastrar um cliente, o sistema gera automaticamente um identificador único para facilitar o controle dos registros.
+Exemplo de busca:
 
----
+Buscar cliente
+Id: 1
 
-## 🛠️ Tecnologias utilizadas
+ID: 1
+Nome: Pablo Soares
+Telefone: 21 9999-9999
 
-* ☕ Java 25
-* 📚 Programação Orientada a Objetos (POO)
-* 🖥️ Aplicação Console
-* 🔧 Git
-* 🌐 GitHub
-* 💻 Visual Studio Code
+🔄 Próximas melhorias
+Editar informações de clientes
+Remover clientes pelo ID
+Persistência de dados em banco de dados
+Implementação de API REST com Spring Boot
+Interface gráfica ou aplicação web
 
----
+👨‍💻 Desenvolvedor
 
-## 📂 Estrutura do projeto
-
-```
-Ink.Manager
-│
-├── src
-│   │
-│   ├── Main.java
-│   ├── Cliente.java
-│   └── outras classes do sistema
-│
-├── README.md
-└── .gitignore
-```
-
----
-
-## 🧠 Conceitos aplicados
-
-Durante o desenvolvimento foram utilizados conceitos importantes da linguagem Java:
-
-* Classes e objetos;
-* Atributos e métodos;
-* Construtores;
-* Encapsulamento;
-* Listas e coleções;
-* Controle de fluxo;
-* Entrada de dados pelo usuário;
-* Versionamento de código com Git.
-
----
-
-## 🔮 Próximas versões
-
-Funcionalidades planejadas para evolução do projeto:
-
-### Versão 0.2
-
-* [ ] Buscar cliente por ID
-* [ ] Atualizar cadastro de clientes
-* [ ] Remover clientes
-* [ ] Melhorar validações do sistema
-
-### Versão 0.3
-
-* [ ] Cadastro de tatuadores
-* [ ] Agendamento de sessões
-* [ ] Controle de horários
-* [ ] Histórico de trabalhos realizados
-
-### Futuro
-
-* [ ] Persistência de dados
-* [ ] Banco de dados
-* [ ] API REST com Spring Boot
-* [ ] Interface gráfica ou aplicação web
-
----
-
-## 👨‍💻 Desenvolvedor
-
-**Pablo Soares**
-
-Estudante de Engenharia de Software com foco em desenvolvimento Backend Java.
-
-Projeto desenvolvido para colocar em prática conhecimentos adquiridos durante a formação e criar uma solução real para o mercado.
-
----
-
-## 📌 Status do projeto
-
-🟢 Em desenvolvimento
-
-Versão atual: **v0.1**
-
----
-
-⭐ Desenvolvido com Java e muita dedicação.
+Projeto desenvolvido por Pablo Soares como parte da jornada de aprendizado em Engenharia de Software e desenvolvimento Backend Java.
