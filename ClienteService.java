@@ -9,6 +9,18 @@ public ClienteService() {
 
 }
 
+public Cliente buscarClientePorId(int id) {
+
+     for (Cliente cliente : clientes) {
+        if (id == cliente.getId()) {
+            return cliente;
+        }
+    }
+
+    return null;
+
+}
+
 	public void cadastrarCliente(Cliente cliente) {
 
     cliente.setId(proximoId);

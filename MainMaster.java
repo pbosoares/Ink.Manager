@@ -14,6 +14,7 @@ public class MainMaster {
 			System.out.println("\n===== INK.MANAGER ===== ");
 			System.out.println("1 - Cadastrar cliente");
 			System.out.println("2 - Listar clientes");
+			System.out.println("3 - Buscar cliente");
 			System.out.println("0 - Sair");
 			System.out.println("Escolha uma opção: ");
 
@@ -55,6 +56,28 @@ public class MainMaster {
         case 2:
     		service.listarClientes();
     		break;
+
+    	case 3:
+    		System.out.println("Buscar cliente");
+    		System.out.print("Id: ");
+			int id = scanner.nextInt();
+
+			Cliente clienteEncontrado = service.buscarClientePorId(id);
+
+			if (clienteEncontrado != null){
+				System.out.println("ID: " + clienteEncontrado.getId());
+				System.out.println("Nome: " + clienteEncontrado.getNome());
+				System.out.println("Telefone: " + clienteEncontrado.getTelefone());
+				System.out.println("Idade: " + clienteEncontrado.getIdade());
+				System.out.println("Instagram: " + clienteEncontrado.getInstagram());
+
+			} else {
+				System.out.println("Cliente nao encontrado. ");
+			}
+
+
+
+			break;
 
         case 0:
         	System.out.println("Saindo...");
