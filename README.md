@@ -6,7 +6,7 @@ O projeto faz parte da minha evolução em Engenharia de Software, aplicando con
 
 🚀 Versão atual
 
-v0.2
+v0.4
 
 📌 Funcionalidades
 
@@ -33,16 +33,15 @@ Ink.Manager
 ├── ClienteService.java
 │
 └── MainMaster.java
-💡 Como funciona
+
+💡 Como funciona:
 
 O sistema possui uma separação simples de responsabilidades:
 
 Cliente.java
-
 Responsável pelo modelo do cliente, contendo seus atributos e métodos de acesso.
 
 ClienteService.java
-
 Responsável pelas regras de negócio:
 
 Cadastro de clientes
@@ -51,35 +50,38 @@ Listagem dos clientes
 Busca de clientes pelo ID
 MainMaster.java
 
-Responsável pela interação com o usuário através do menu do sistema.
+# 🎨 Ink.Manager
 
-📋 Exemplo de uso
+Sistema de gerenciamento para estúdios de tatuagem desenvolvido em **Java**.
 
-Menu principal:
+O projeto foi criado com o objetivo de praticar conceitos fundamentais de programação e desenvolvimento Backend, evoluindo gradualmente através da implementação de novas funcionalidades.
 
-===== INK.MANAGER =====
+---
 
-1 - Cadastrar cliente
-2 - Listar clientes
-3 - Buscar cliente
-0 - Sair
+## 🚀 Funcionalidades
 
-Exemplo de busca:
+- 👤 Cadastro de clientes
+- 📋 Listagem de clientes
+- 🔍 Busca de cliente por ID
+- ✏️ Atualização de dados do cliente
+- 🗑️ Remoção de cliente
+- 🆔 Geração automática de ID
 
-Buscar cliente
-Id: 1
+---
 
-ID: 1
-Nome: Pablo Soares
-Telefone: 21 9999-9999
+## 🛠️ Tecnologias utilizadas
 
-🔄 Próximas melhorias
-Editar informações de clientes
-Remover clientes pelo ID
-Persistência de dados em banco de dados
-Implementação de API REST com Spring Boot
-Interface gráfica ou aplicação web
+- ☕ Java
+- 📦 ArrayList
+- 🧱 Programação Orientada a Objetos (POO)
+- 🖥️ Java Console Application
 
-👨‍💻 Desenvolvedor
+---
 
-Projeto desenvolvido por Pablo Soares como parte da jornada de aprendizado em Engenharia de Software e desenvolvimento Backend Java.
+## 📂 Estrutura do projeto
+
+```text
+src/
+├── Cliente.java
+├── ClienteService.java
+└── MainMaster.java
