@@ -21,6 +21,26 @@ public Cliente buscarClientePorId(int id) {
 
 }
 
+    public boolean removerCliente(int id) {
+    return clientes.removeIf(cliente -> cliente.getId() == id);
+}
+
+    public boolean atualizarCliente(int id, String nome, String telefone, int idade, String instagram) {
+
+    Cliente cliente = buscarClientePorId(id);
+
+    if (cliente != null) {
+        cliente.setNome(nome);
+        cliente.setTelefone(telefone);
+        cliente.setIdade(idade);
+        cliente.setInstagram(instagram);
+
+        return true;
+    }
+
+    return false;
+}
+
 	public void cadastrarCliente(Cliente cliente) {
 
     cliente.setId(proximoId);

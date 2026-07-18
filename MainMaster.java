@@ -15,6 +15,8 @@ public class MainMaster {
 			System.out.println("1 - Cadastrar cliente");
 			System.out.println("2 - Listar clientes");
 			System.out.println("3 - Buscar cliente");
+			System.out.println("4 - Remover cliente");
+			System.out.println("5 - Atualizar cliente");
 			System.out.println("0 - Sair");
 			System.out.println("Escolha uma opção: ");
 
@@ -59,7 +61,7 @@ public class MainMaster {
 
     	case 3:
     		System.out.println("Buscar cliente");
-    		System.out.print("Id: ");
+    		System.out.print("Digite o ID: ");
 			int id = scanner.nextInt();
 
 			Cliente clienteEncontrado = service.buscarClientePorId(id);
@@ -75,9 +77,66 @@ public class MainMaster {
 				System.out.println("Cliente nao encontrado. ");
 			}
 
+			case 4:
+
+   				System.out.println("Remover cliente");
+    			System.out.print("Digite o ID do cliente: ");
+
+    		int idRemover = scanner.nextInt();
+			boolean removido = service.removerCliente(idRemover);
+
+			if (removido) {
+        		System.out.println("Cliente removido com sucesso!");
+
+	    	} else {
+	       		System.out.println("Cliente não encontrado.");
+   			}
 
 
-			break;
+   			case 5:
+    	System.out.println("Atualizar cliente");
+		System.out.print("Digite o ID do cliente: ");
+
+    	int idAtualizar = scanner.nextInt();
+    		scanner.nextLine();
+
+    		Cliente clienteAtualizar = service.buscarClientePorId(idAtualizar);
+
+    	if (clienteAtualizar != null) {
+
+        System.out.print("Novo nome: ");
+        String novoNome = scanner.nextLine();
+
+        System.out.print("Novo telefone: ");
+        String novoTelefone = scanner.nextLine();
+
+        System.out.print("Nova idade: ");
+        int novaIdade = scanner.nextInt();
+        scanner.nextLine();
+
+        System.out.print("Novo Instagram: ");
+        String novoInstagram = scanner.nextLine();
+
+        boolean atualizado = service.atualizarCliente(
+                idAtualizar,
+                novoNome,
+                novoTelefone,
+                novaIdade,
+                novoInstagram
+        );
+
+        if (atualizado) {
+            System.out.println("Cliente atualizado com sucesso!");
+        }
+
+    } else {
+        System.out.println("Cliente não encontrado.");
+    }
+
+    break;
+
+    	 
+
 
         case 0:
         	System.out.println("Saindo...");
