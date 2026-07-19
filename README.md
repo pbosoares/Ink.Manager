@@ -1,87 +1,75 @@
-🎨 Ink.Manager
-
-Sistema de gerenciamento desenvolvido em Java com o objetivo de auxiliar tatuadores no controle de clientes e organização dos seus atendimentos.
-
-O projeto faz parte da minha evolução em Engenharia de Software, aplicando conceitos de Programação Orientada a Objetos, organização de código e boas práticas de desenvolvimento.
-
-🚀 Versão atual
-
-v0.4
-
-📌 Funcionalidades
-
-✅ Cadastro de clientes
-✅ Geração automática de ID para cada cliente
-✅ Listagem de clientes cadastrados
-✅ Busca de clientes por ID
-✅ Validação de cliente existente através do retorno do Service
-
-🛠️ Tecnologias utilizadas:
-
-Java
-Programação Orientada a Objetos (POO)
-ArrayList
-Encapsulamento
-Classes e Objetos
-Git e GitHub
-
-🏗️ Estrutura do projeto
-Ink.Manager
-│
-├── Cliente.java
-│
-├── ClienteService.java
-│
-└── MainMaster.java
-
-💡 Como funciona:
-
-O sistema possui uma separação simples de responsabilidades:
-
-Cliente.java
-Responsável pelo modelo do cliente, contendo seus atributos e métodos de acesso.
-
-ClienteService.java
-Responsável pelas regras de negócio:
-
-Cadastro de clientes
-Geração automática de IDs
-Listagem dos clientes
-Busca de clientes pelo ID
-MainMaster.java
-
 # 🎨 Ink.Manager
 
-Sistema de gerenciamento para estúdios de tatuagem desenvolvido em **Java**.
+Sistema de gerenciamento desenvolvido em **Java** para auxiliar tatuadores no controle de clientes e marcações.
 
-O projeto foi criado com o objetivo de praticar conceitos fundamentais de programação e desenvolvimento Backend, evoluindo gradualmente através da implementação de novas funcionalidades.
+> Projeto desenvolvido com o objetivo de praticar conceitos de Java, Programação Orientada a Objetos e persistência de dados.
 
 ---
 
 ## 🚀 Funcionalidades
 
-- 👤 Cadastro de clientes
-- 📋 Listagem de clientes
-- 🔍 Busca de cliente por ID
-- ✏️ Atualização de dados do cliente
-- 🗑️ Remoção de cliente
-- 🆔 Geração automática de ID
+### 👤 Gerenciamento de Clientes
+
+- ✅ Cadastrar clientes
+- 🔍 Buscar cliente por ID
+- ✏️ Atualizar dados do cliente
+- 🗑️ Remover clientes
+- 📋 Listar clientes cadastrados
+
+### 📅 Gerenciamento de Marcações
+
+- ✅ Criar marcações vinculadas a clientes
+- 📅 Definir data da marcação
+- ⏰ Definir horário
+- 📝 Adicionar descrição
+- 🔄 Definir status da marcação
+
+### 💾 Persistência de Dados
+
+Os dados são salvos em arquivos .txt, permitindo que o sistema:
+
+- 💾 Salve clientes e marcações
+- 🔄 Carregue os dados automaticamente ao iniciar
+- 📁 Mantenha os dados mesmo após o encerramento do programa
 
 ---
 
 ## 🛠️ Tecnologias utilizadas
 
 - ☕ Java
-- 📦 ArrayList
 - 🧱 Programação Orientada a Objetos (POO)
-- 🖥️ Java Console Application
+- 📦 ArrayList
+- 📄 Manipulação de arquivos
+- 💾 Persistência de dados em arquivos .txt
+- 🔀 Git e GitHub
 
 ---
 
-## 📂 Estrutura do projeto
+## 🏗️ Estrutura do projeto
 
 ```text
-src/
+Ink.Manager/
+│
 ├── Cliente.java
 ├── ClienteService.java
-└── MainMaster.java
+├── Marcacao.java
+├── MarcacaoService.java
+├── MainMaster.java
+│
+├── clientes.txt
+├── marcacoes.txt
+│
+├── .gitignore
+└── README.md
+
+📌 Status do projeto
+
+🚧 Em desenvolvimento
+
+Novas funcionalidades serão implementadas gradualmente conforme avanço nos estudos de Java e desenvolvimento Backend.
+
+👨‍💻 Autor
+
+Pablo Soares
+
+Estudante de Engenharia de Software e desenvolvedor em formação com foco em Backend Java.
