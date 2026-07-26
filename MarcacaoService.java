@@ -1,90 +1,30 @@
-import java.util.ArrayList;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.util.List;
 
 public class MarcacaoService {
 
-    private ArrayList<Marcacao> marcacoes;
-    private int proximoId = 1;
-
-    private final String ARQUIVO = "marcacoes.txt";
+    private MarcacaoRepository repository;
 
     public MarcacaoService() {
-        marcacoes = new ArrayList<>();
-        carregarMarcacoes();
+        repository = new MarcacaoRepository();
     }
 
     public void cadastrarMarcacao(Marcacao marcacao) {
-
-        marcacao.setId(proximoId);
-        proximoId++;
-
-        marcacoes.add(marcacao);
-
-        salvarMarcacoes();
+        repository.salvar(marcacao);
     }
 
-    private void salvarMarcacoes() {
+    public void listarMarcacoes() {
 
-        try (BufferedWriter writer =
-                new BufferedWriter(new FileWriter(ARQUIVO))) {
+        List<Marcacao> marcacoes = repository.listarTodas();
 
-            for (Marcacao marcacao : marcacoes) {
+        for (Marcacao marcacao : marcacoes) {
 
-                writer.write(
-                    marcacao.getId() + ";" +
-                    marcacao.getClienteId() + ";" +
-                    marcacao.getData() + ";" +
-                    marcacao.getHorario() + ";" +
-                    marcacao.getDescricao() + ";" +
-                    marcacao.getStatus()
-                );
-
-                writer.newLine();
-            }
-
-        } catch (IOException e) {
-
-            System.out.println("Erro ao salvar as marcações.");
-        }
-    }
-
-    private void carregarMarcacoes() {
-
-        try (BufferedReader reader =
-                new BufferedReader(new FileReader(ARQUIVO))) {
-
-            String linha;
-
-            while ((linha = reader.readLine()) != null) {
-
-                String[] dados = linha.split(";");
-
-                Marcacao marcacao = new Marcacao();
-
-                marcacao.setId(Integer.parseInt(dados[0]));
-                marcacao.setClienteId(Integer.parseInt(dados[1]));
-                marcacao.setData(dados[2]);
-                marcacao.setHorario(dados[3]);
-                marcacao.setDescricao(dados[4]);
-                marcacao.setStatus(dados[5]);
-
-                marcacoes.add(marcacao);
-
-                if (marcacao.getId() >= proximoId) {
-                    proximoId = marcacao.getId() + 1;
-                }
-            }
-
-        } catch (IOException e) {
-
-            System.out.println(
-                "Nenhum arquivo de marcações encontrado. "
-                + "Iniciando sistema vazio."
-            );
+            System.out.println("-----------------------");
+            System.out.println("ID: " + marcacao.getId());
+            System.out.println("ID do Cliente: " + marcacao.getClienteId());
+            System.out.println("Data: " + marcacao.getData());
+            System.out.println("Horário: " + marcacao.getHorario());
+            System.out.println("Descrição: " + marcacao.getDescricao());
+            System.out.println("Status: " + marcacao.getStatus());
         }
     }
 }

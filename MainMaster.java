@@ -19,6 +19,7 @@ public class MainMaster {
 			System.out.println("4 - Remover cliente");
 			System.out.println("5 - Atualizar cliente");
 			System.out.println("6 - Cadastrar Marcação");
+			System.out.println("7 - Listar Marcações");
 			System.out.println("0 - Sair");
 			System.out.println("Escolha uma opção: ");
 
@@ -173,6 +174,12 @@ public class MainMaster {
     marcacaoService.cadastrarMarcacao(marcacao);
 
     System.out.println("Marcação cadastrada com sucesso!");
+
+    break;
+
+    case 7:
+
+    marcacaoService.listarMarcacoes();
 
     break;
 
