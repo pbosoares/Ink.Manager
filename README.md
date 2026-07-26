@@ -1,75 +1,86 @@
-# 🎨 Ink.Manager
+# Ink.Manager 🎨
 
-Sistema de gerenciamento desenvolvido em **Java** para auxiliar tatuadores no controle de clientes e marcações.
+Sistema de gerenciamento para estúdios de tatuagem, desenvolvido em Java.
 
-> Projeto desenvolvido com o objetivo de praticar conceitos de Java, Programação Orientada a Objetos e persistência de dados.
+O projeto começou como uma aplicação simples utilizando arquivos `.txt` para armazenar os dados. Durante o desenvolvimento, evoluiu para utilizar PostgreSQL como banco de dados, com integração através do JDBC.
 
----
+## 🚀 Tecnologias utilizadas
 
-## 🚀 Funcionalidades
+- Java
+- JDBC
+- PostgreSQL
+- SQL
+- Git e GitHub
 
-### 👤 Gerenciamento de Clientes
+## 📌 Funcionalidades
 
-- ✅ Cadastrar clientes
-- 🔍 Buscar cliente por ID
-- ✏️ Atualizar dados do cliente
-- 🗑️ Remover clientes
-- 📋 Listar clientes cadastrados
+### Clientes
 
-### 📅 Gerenciamento de Marcações
+- Cadastrar cliente
+- Listar clientes
+- Buscar cliente por ID
+- Atualizar dados do cliente
+- Remover cliente
 
-- ✅ Criar marcações vinculadas a clientes
-- 📅 Definir data da marcação
-- ⏰ Definir horário
-- 📝 Adicionar descrição
-- 🔄 Definir status da marcação
+### Marcações
 
-### 💾 Persistência de Dados
+- Cadastrar marcação
+- Listar marcações
+- Associar uma marcação a um cliente
+- Definir data, horário, descrição e status da marcação
 
-Os dados são salvos em arquivos .txt, permitindo que o sistema:
+## 🗄️ Banco de dados
 
-- 💾 Salve clientes e marcações
-- 🔄 Carregue os dados automaticamente ao iniciar
-- 📁 Mantenha os dados mesmo após o encerramento do programa
+O projeto utiliza PostgreSQL para persistência dos dados.
 
----
+O banco possui as seguintes tabelas:
 
-## 🛠️ Tecnologias utilizadas
+### clientes
 
-- ☕ Java
-- 🧱 Programação Orientada a Objetos (POO)
-- 📦 ArrayList
-- 📄 Manipulação de arquivos
-- 💾 Persistência de dados em arquivos .txt
-- 🔀 Git e GitHub
+- id
+- nome
+- telefone
+- idade
+- instagram
 
----
+### marcacoes
+
+- id
+- cliente_id
+- data
+- horario
+- descricao
+- status
+
+A tabela `marcacoes` possui um relacionamento com a tabela `clientes` através da chave estrangeira `cliente_id`.
 
 ## 🏗️ Estrutura do projeto
 
 ```text
-Ink.Manager/
-│
-├── Cliente.java
-├── ClienteService.java
-├── Marcacao.java
-├── MarcacaoService.java
-├── MainMaster.java
-│
-├── clientes.txt
-├── marcacoes.txt
-│
-├── .gitignore
-└── README.md
+MainMaster
+     ↓
+Service
+     ↓
+Repository
+     ↓
+JDBC
+     ↓
+PostgreSQL
 
-📌 Status do projeto
+📚 Objetivo do projeto
 
-🚧 Em desenvolvimento
+O Ink.Manager é um projeto desenvolvido para praticar e consolidar conhecimentos em:
 
-Novas funcionalidades serão implementadas gradualmente conforme avanço nos estudos de Java e desenvolvimento Backend.
+Programação Orientada a Objetos com Java
+SQL
+JDBC
+PostgreSQL
+Persistência de dados
+Relacionamento entre tabelas
+Organização de código.
 
-👨‍💻 Autor
-
-Pablo Soares
-
-Estudante de Engenharia de Software e desenvolvedor em formação com foco em Backend Java.
+🚧 Próximos passos
+Melhorar as validações dos dados
+Criar novas funcionalidades para as marcações
+Melhorar a interface do sistema
+Migrar o projeto para uma API REST utilizando Spring Boot
