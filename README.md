@@ -1,86 +1,145 @@
 # Ink.Manager 🎨
 
-Sistema de gerenciamento para estúdios de tatuagem, desenvolvido em Java.
+Sistema de gerenciamento para estúdios de tatuagem, desenvolvido em **Java**, com persistência de dados em **PostgreSQL** utilizando **JDBC**.
 
-O projeto começou como uma aplicação simples utilizando arquivos `.txt` para armazenar os dados. Durante o desenvolvimento, evoluiu para utilizar PostgreSQL como banco de dados, com integração através do JDBC.
+O projeto começou utilizando arquivos `.txt` e evoluiu para uma aplicação com banco de dados e arquitetura em camadas.
 
-## 🚀 Tecnologias utilizadas
+## 🚀 Tecnologias
 
-- Java
-- JDBC
-- PostgreSQL
-- SQL
-- Git e GitHub
+* Java
+* JDBC
+* PostgreSQL
+* SQL
+* Git e GitHub
 
 ## 📌 Funcionalidades
 
 ### Clientes
 
-- Cadastrar cliente
-- Listar clientes
-- Buscar cliente por ID
-- Atualizar dados do cliente
-- Remover cliente
+* Cadastrar
+* Listar
+* Buscar por ID
+* Atualizar
+* Remover
 
 ### Marcações
 
-- Cadastrar marcação
-- Listar marcações
-- Associar uma marcação a um cliente
-- Definir data, horário, descrição e status da marcação
+* Cadastrar
+* Listar
+* Associar a um cliente
+* Definir data, horário, descrição e status
 
 ## 🗄️ Banco de dados
 
-O projeto utiliza PostgreSQL para persistência dos dados.
+O projeto utiliza PostgreSQL com duas tabelas principais:
 
-O banco possui as seguintes tabelas:
+```text
+clientes
+├── id
+├── nome
+├── telefone
+├── idade
+└── instagram
 
-### clientes
+marcacoes
+├── id
+├── cliente_id → clientes.id
+├── data
+├── horario
+├── descricao
+└── status
+```
 
-- id
-- nome
-- telefone
-- idade
-- instagram
-
-### marcacoes
-
-- id
-- cliente_id
-- data
-- horario
-- descricao
-- status
-
-A tabela `marcacoes` possui um relacionamento com a tabela `clientes` através da chave estrangeira `cliente_id`.
-
-## 🏗️ Estrutura do projeto
+## 🏗️ Estrutura
 
 ```text
 MainMaster
-     ↓
+    ↓
 Service
-     ↓
+    ↓
 Repository
-     ↓
+    ↓
 JDBC
-     ↓
+    ↓
 PostgreSQL
+```
 
-📚 Objetivo do projeto
+## ⚙️ Como executar
 
-O Ink.Manager é um projeto desenvolvido para praticar e consolidar conhecimentos em:
+### 1. Pré-requisitos
 
-Programação Orientada a Objetos com Java
-SQL
-JDBC
-PostgreSQL
-Persistência de dados
-Relacionamento entre tabelas
-Organização de código.
+* JDK 25+
+* PostgreSQL
+* Git
 
-🚧 Próximos passos
-Melhorar as validações dos dados
-Criar novas funcionalidades para as marcações
-Melhorar a interface do sistema
-Migrar o projeto para uma API REST utilizando Spring Boot
+### 2. Criar o banco
+
+```sql
+CREATE DATABASE ink_manager;
+```
+
+Depois, crie as tabelas `clientes` e `marcacoes`.
+
+### 3. Configurar a conexão
+
+No arquivo `ConnectionFactory.java`:
+
+```java
+private static final String URL =
+        "jdbc:postgresql://localhost:5432/ink_manager";
+
+private static final String USUARIO = "postgres";
+private static final String SENHA = "SUA_SENHA";
+```
+
+> Não envie sua senha real para o GitHub.
+
+### 4. Compilar
+
+Com o driver PostgreSQL dentro da pasta `lib`:
+
+```bash
+javac -cp "lib/postgresql-42.7.13.jar" -d out *.java
+```
+
+### 5. Executar
+
+**Windows:**
+
+```bash
+java -cp "out;lib/postgresql-42.7.13.jar" MainMaster
+```
+
+**Linux/macOS:**
+
+```bash
+java -cp "out:lib/postgresql-42.7.13.jar" MainMaster
+```
+
+## 📚 Objetivo
+
+Projeto desenvolvido para praticar:
+
+* Programação Orientada a Objetos
+* CRUD
+* SQL e PostgreSQL
+* JDBC
+* Persistência de dados
+* Relacionamento entre tabelas
+* Arquitetura em camadas
+* Git e GitHub
+
+## 🚧 Próximos passos
+
+* Melhorar validações e tratamento de erros
+* Criar novas funcionalidades
+* Implementar testes
+* Migrar para **API REST com Spring Boot**
+* Documentar a API com Swagger
+* Utilizar Docker
+
+## 👨‍💻 Autor
+
+**Pablo Soares**
+
+Projeto desenvolvido para estudos e evolução prática em **Backend Java**.
