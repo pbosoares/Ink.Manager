@@ -1,4 +1,8 @@
 import java.util.Scanner;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 public class MainMaster {
 	
@@ -80,6 +84,8 @@ public class MainMaster {
 				System.out.println("Cliente nao encontrado. ");
 			}
 
+			break;
+
 			case 4:
 
    				System.out.println("Remover cliente");
@@ -95,6 +101,7 @@ public class MainMaster {
 	       		System.out.println("Cliente não encontrado.");
    			}
 
+   			break;
 
    			case 5:
     	System.out.println("Atualizar cliente");
@@ -151,18 +158,68 @@ public class MainMaster {
         break;
     }
 
-    System.out.println("Data da marcação:");
-    String data = scanner.nextLine();
+   	System.out.println("Data da marcação:");
+	String dataTexto = scanner.nextLine();
 
-    System.out.println("Horário da marcação:");
-    String horario = scanner.nextLine();
+LocalDate data;
 
+try {
+    DateTimeFormatter formatoData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    data = LocalDate.parse(dataTexto, formatoData);
+} catch (DateTimeParseException e) {
+    System.out.println("Data inválida. Use o formato DD/MM/AAAA.");
+    break;
+}
+
+System.out.println("Horário da marcação:");
+String horarioTexto = scanner.nextLine();
+
+LocalTime horario;
+
+try {
+    DateTimeFormatter formatoHorario = DateTimeFormatter.ofPattern("HH:mm");
+    horario = LocalTime.parse(horarioTexto, formatoHorario);
+} catch (DateTimeParseException e) {
+    System.out.println("Horário inválido. Use o formato HH:MM.");
+    break;
+}
     System.out.println("Descrição da tatuagem:");
     String descricao = scanner.nextLine();
 
     System.out.println("Status da marcação:");
-    String status = scanner.nextLine();
+System.out.println("1 - AGENDADA");
+System.out.println("2 - CONFIRMADA");
+System.out.println("3 - CONCLUIDA");
+System.out.println("4 - CANCELADA");
+System.out.print("Escolha o status: ");
 
+int opcaoStatus = scanner.nextInt();
+scanner.nextLine();
+
+StatusMarcacao status;
+
+switch (opcaoStatus) {
+
+    case 1:
+        status = StatusMarcacao.AGENDADA;
+        break;
+
+    case 2:
+        status = StatusMarcacao.CONFIRMADA;
+        break;
+
+    case 3:
+        status = StatusMarcacao.CONCLUIDA;
+        break;
+
+    case 4:
+        status = StatusMarcacao.CANCELADA;
+        break;
+
+    default:
+        System.out.println("Status inválido.");
+        continue;
+}
     Marcacao marcacao = new Marcacao(
         clienteId,
         data,

@@ -19,10 +19,10 @@ public class MarcacaoRepository {
              PreparedStatement comando = conexao.prepareStatement(sql)) {
 
             comando.setInt(1, marcacao.getClienteId());
-            comando.setDate(2, java.sql.Date.valueOf(marcacao.getData()));
-            comando.setTime(3, java.sql.Time.valueOf(marcacao.getHorario()));
+            comando.setObject(2, marcacao.getData());
+            comando.setObject(3, marcacao.getHorario());
             comando.setString(4, marcacao.getDescricao());
-            comando.setString(5, marcacao.getStatus());
+            comando.setString(5, marcacao.getStatus().name());
 
             comando.executeUpdate();
 
@@ -50,10 +50,20 @@ public class MarcacaoRepository {
 
                 marcacao.setId(resultado.getInt("id"));
                 marcacao.setClienteId(resultado.getInt("cliente_id"));
-                marcacao.setData(resultado.getString("data"));
-                marcacao.setHorario(resultado.getString("horario"));
+
+                marcacao.setData(
+                    resultado.getObject("data", java.time.LocalDate.class)
+                );
+
+                marcacao.setHorario(
+                    resultado.getObject("horario", java.time.LocalTime.class)
+                );
+
                 marcacao.setDescricao(resultado.getString("descricao"));
-                marcacao.setStatus(resultado.getString("status"));
+
+                marcacao.setStatus(
+                    StatusMarcacao.valueOf(resultado.getString("status"))
+                );
 
                 marcacoes.add(marcacao);
             }

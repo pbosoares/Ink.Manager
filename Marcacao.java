@@ -1,17 +1,20 @@
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 public class Marcacao {
 
     private int id;
     private int clienteId;
-    private String data;
-    private String horario;
+    private LocalDate data;
+    private LocalTime horario;
     private String descricao;
-    private String status;
+    private StatusMarcacao status;
 
     public Marcacao() {
     }
 
-    public Marcacao(int clienteId, String data, String horario,
-            String descricao, String status) {
+    public Marcacao(int clienteId, LocalDate data, LocalTime horario,
+            String descricao, StatusMarcacao status) {
         this.clienteId = clienteId;
         this.data = data;
         this.horario = horario;
@@ -35,19 +38,19 @@ public class Marcacao {
         this.clienteId = clienteId;
     }
 
-    public String getData() {
+    public LocalDate getData() {
         return data;
     }
 
-    public void setData(String data) {
+    public void setData(LocalDate data) {
         this.data = data;
     }
 
-    public String getHorario() {
+    public LocalTime getHorario() {
         return horario;
     }
 
-    public void setHorario(String horario) {
+    public void setHorario(LocalTime horario) {
         this.horario = horario;
     }
 
@@ -59,11 +62,11 @@ public class Marcacao {
         this.descricao = descricao;
     }
 
-    public String getStatus() {
+    public StatusMarcacao getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(StatusMarcacao status) {
         this.status = status;
     }
 }
