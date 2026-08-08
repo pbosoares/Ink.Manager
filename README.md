@@ -1,145 +1,327 @@
-# Ink.Manager 🎨
+# 🎨 Ink.Manager
 
-Sistema de gerenciamento para estúdios de tatuagem, desenvolvido em **Java**, com persistência de dados em **PostgreSQL** utilizando **JDBC**.
+Sistema de gerenciamento para tatuadores desenvolvido em **Java**, com evolução de uma aplicação Java tradicional para uma **API REST utilizando Spring Boot, Spring Data JPA, Hibernate e PostgreSQL**.
 
-O projeto começou utilizando arquivos `.txt` e evoluiu para uma aplicação com banco de dados e arquitetura em camadas.
+O projeto tem como objetivo facilitar o gerenciamento de **clientes e marcações**, permitindo cadastrar, consultar, atualizar e excluir informações de forma persistente.
+
+---
 
 ## 🚀 Tecnologias
 
-* Java
-* JDBC
+* Java 25
+* Spring Boot 4
+* Spring Data JPA
+* Hibernate
 * PostgreSQL
-* SQL
+* Maven
+* JDBC
+* REST API
 * Git e GitHub
 
-## 📌 Funcionalidades
+---
 
-### Clientes
-
-* Cadastrar
-* Listar
-* Buscar por ID
-* Atualizar
-* Remover
-
-### Marcações
-
-* Cadastrar
-* Listar
-* Associar a um cliente
-* Definir data, horário, descrição e status
-
-## 🗄️ Banco de dados
-
-O projeto utiliza PostgreSQL com duas tabelas principais:
+## 📂 Estrutura do projeto
 
 ```text
-clientes
-├── id
-├── nome
-├── telefone
-├── idade
-└── instagram
-
-marcacoes
-├── id
-├── cliente_id → clientes.id
-├── data
-├── horario
-├── descricao
-└── status
+Ink.Manager/
+│
+├── ink-manager-api/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/
+│   │   │   │   └── ink/manager/api/
+│   │   │   │       ├── controller/
+│   │   │   │       │   └── ClienteController.java
+│   │   │   │       │
+│   │   │   │       ├── exception/
+│   │   │   │       │   └── GlobalExceptionHandler.java
+│   │   │   │       │
+│   │   │   │       ├── model/
+│   │   │   │       │   └── Cliente.java
+│   │   │   │       │
+│   │   │   │       ├── repository/
+│   │   │   │       │   └── ClienteRepository.java
+│   │   │   │       │
+│   │   │   │       ├── service/
+│   │   │   │       │   └── ClienteService.java
+│   │   │   │       │
+│   │   │   │       └── ApiApplication.java
+│   │   │   │
+│   │   │   └── resources/
+│   │   │       └── application.properties
+│   │   │
+│   │   └── test/
+│   │
+│   ├── pom.xml
+│   ├── mvnw
+│   └── mvnw.cmd
+│
+├── Cliente.java
+├── ClienteRepository.java
+├── ClienteService.java
+├── Marcacao.java
+├── MarcacaoRepository.java
+├── MarcacaoService.java
+├── StatusMarcacao.java
+├── MainMaster.java
+└── README.md
 ```
 
-## 🏗️ Estrutura
+---
+
+## 🏗️ Arquitetura da API
+
+A API utiliza uma arquitetura em camadas:
 
 ```text
-MainMaster
-    ↓
-Service
-    ↓
-Repository
-    ↓
-JDBC
-    ↓
+ClienteController
+       ↓
+ClienteService
+       ↓
+ClienteRepository
+       ↓
+Spring Data JPA
+       ↓
+Hibernate
+       ↓
 PostgreSQL
 ```
 
-## ⚙️ Como executar
+### Controller
 
-### 1. Pré-requisitos
+Responsável por receber as requisições HTTP e disponibilizar os endpoints da API.
 
-* JDK 25+
-* PostgreSQL
-* Git
+### Service
 
-### 2. Criar o banco
+Responsável pelas operações e regras relacionadas aos clientes.
 
-```sql
-CREATE DATABASE ink_manager;
+### Repository
+
+Utiliza `JpaRepository` do Spring Data JPA para realizar as operações de persistência.
+
+### Model
+
+Representa as entidades utilizadas pela aplicação.
+
+---
+
+## 👤 CRUD de Clientes
+
+A API possui atualmente um CRUD completo para clientes.
+
+| Método   | Endpoint         | Descrição               |
+| -------- | ---------------- | ----------------------- |
+| `GET`    | `/clientes`      | Lista todos os clientes |
+| `GET`    | `/clientes/{id}` | Busca cliente por ID    |
+| `POST`   | `/clientes`      | Cadastra cliente        |
+| `PUT`    | `/clientes/{id}` | Atualiza cliente        |
+| `DELETE` | `/clientes/{id}` | Remove cliente          |
+
+### GET — Listar clientes
+
+```http
+GET http://localhost:8080/clientes
 ```
 
-Depois, crie as tabelas `clientes` e `marcacoes`.
+Exemplo de resposta:
 
-### 3. Configurar a conexão
-
-No arquivo `ConnectionFactory.java`:
-
-```java
-private static final String URL =
-        "jdbc:postgresql://localhost:5432/ink_manager";
-
-private static final String USUARIO = "postgres";
-private static final String SENHA = "SUA_SENHA";
+```json
+[
+  {
+    "nome": "Maria Souza",
+    "telefone": "21988887777",
+    "idade": 32,
+    "instagram": "@mariasouza",
+    "id": 2
+  }
+]
 ```
 
-> Não envie sua senha real para o GitHub.
+### GET — Buscar por ID
 
-### 4. Compilar
-
-Com o driver PostgreSQL dentro da pasta `lib`:
-
-```bash
-javac -cp "lib/postgresql-42.7.13.jar" -d out *.java
+```http
+GET http://localhost:8080/clientes/2
 ```
 
-### 5. Executar
+### POST — Cadastrar cliente
 
-**Windows:**
-
-```bash
-java -cp "out;lib/postgresql-42.7.13.jar" MainMaster
+```http
+POST http://localhost:8080/clientes
+Content-Type: application/json
 ```
 
-**Linux/macOS:**
-
-```bash
-java -cp "out:lib/postgresql-42.7.13.jar" MainMaster
+```json
+{
+  "nome": "João Silva",
+  "telefone": "21999999999",
+  "idade": 25,
+  "instagram": "@joaosilva"
+}
 ```
 
-## 📚 Objetivo
+### PUT — Atualizar cliente
 
-Projeto desenvolvido para praticar:
+```http
+PUT http://localhost:8080/clientes/3
+Content-Type: application/json
+```
 
-* Programação Orientada a Objetos
-* CRUD
-* SQL e PostgreSQL
+```json
+{
+  "nome": "João Silva",
+  "telefone": "21911112222",
+  "idade": 25,
+  "instagram": "@joaosilva"
+}
+```
+
+### DELETE — Excluir cliente
+
+```http
+DELETE http://localhost:8080/clientes/3
+```
+
+---
+
+## 🗄️ Banco de dados
+
+O projeto utiliza **PostgreSQL** para persistência dos dados.
+
+Configuração utilizada no ambiente local:
+
+```text
+Banco: ink_manager
+Host: localhost
+Porta: 5432
+Schema: public
+```
+
+A API utiliza **Spring Data JPA + Hibernate** para realizar a comunicação com o banco.
+
+---
+
+## ▶️ Como executar a API
+
+Entre na pasta da API:
+
+```cmd
+cd ink-manager-api
+```
+
+Execute utilizando o Maven Wrapper:
+
+```cmd
+mvnw.cmd spring-boot:run
+```
+
+A aplicação será iniciada em:
+
+```text
+http://localhost:8080
+```
+
+### Testando pelo terminal
+
+Listar clientes:
+
+```cmd
+curl http://localhost:8080/clientes
+```
+
+Buscar cliente:
+
+```cmd
+curl http://localhost:8080/clientes/1
+```
+
+---
+
+## 🧪 Testes realizados
+
+O CRUD de clientes foi validado através de requisições HTTP diretamente na API.
+
+* ✅ `GET /clientes`
+* ✅ `GET /clientes/{id}`
+* ✅ `POST /clientes`
+* ✅ `PUT /clientes/{id}`
+* ✅ `DELETE /clientes/{id}`
+* ✅ Persistência no PostgreSQL
+* ✅ Consulta de dados persistidos
+* ✅ Retorno `404 Not Found` para cliente inexistente
+* ✅ Aplicação executando na porta `8080`
+
+---
+
+## 📈 Evolução do projeto
+
+### v0.1 — Java
+
+* Estrutura inicial do sistema
+* Cadastro de clientes
+* Listagem de clientes
+* Busca de cliente por ID
+
+### v0.2 — Persistência em arquivos
+
+* Persistência utilizando arquivos `.txt`
+* Implementação de marcações
+* Gerenciamento de status das marcações
+
+### v0.3 — PostgreSQL
+
+* Integração com PostgreSQL
 * JDBC
-* Persistência de dados
-* Relacionamento entre tabelas
-* Arquitetura em camadas
-* Git e GitHub
+* `ConnectionFactory`
+* Repositories
+* Persistência de clientes
+* Persistência de marcações
 
-## 🚧 Próximos passos
+### v0.4 — API REST
 
-* Melhorar validações e tratamento de erros
-* Criar novas funcionalidades
-* Implementar testes
-* Migrar para **API REST com Spring Boot**
-* Documentar a API com Swagger
-* Utilizar Docker
+* Spring Boot
+* Spring Data JPA
+* Hibernate
+* Arquitetura Controller / Service / Repository
+* CRUD completo de clientes
+* Integração com PostgreSQL
+* Tratamento global de exceções
 
-## 👨‍💻 Autor
+---
 
-**Pablo Soares**
+## 🔮 Próximos passos
 
-Projeto desenvolvido para estudos e evolução prática em **Backend Java**.
+* [ ] Criar CRUD de marcações na API
+* [ ] Relacionar clientes e marcações
+* [ ] Melhorar validações
+* [ ] Aprimorar tratamento de exceções
+* [ ] Documentar endpoints com Swagger/OpenAPI
+* [ ] Implementar autenticação e autorização
+* [ ] Criar frontend para consumo da API
+* [ ] Dockerizar a aplicação
+* [ ] Realizar deploy
+
+---
+
+## 🎯 Objetivo
+
+O **Ink.Manager** é um projeto de estudo e portfólio focado no desenvolvimento **Backend Java**.
+
+O projeto está sendo desenvolvido de forma incremental, acompanhando a evolução das tecnologias utilizadas:
+
+```text
+Java
+  ↓
+JDBC
+  ↓
+PostgreSQL
+  ↓
+Spring Boot
+  ↓
+Spring Data JPA
+  ↓
+Hibernate
+  ↓
+API REST
+```
+
+A proposta é continuar evoluindo o sistema até transformá-lo em uma aplicação backend completa para gerenciamento de tatuadores, clientes e marcações.
