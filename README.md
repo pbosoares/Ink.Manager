@@ -1,327 +1,240 @@
-# 🎨 Ink.Manager
+# Ink.Manager
 
-Sistema de gerenciamento para tatuadores desenvolvido em **Java**, com evolução de uma aplicação Java tradicional para uma **API REST utilizando Spring Boot, Spring Data JPA, Hibernate e PostgreSQL**.
+Sistema para gerenciamento de clientes e marcações de um estúdio de tatuagem.
 
-O projeto tem como objetivo facilitar o gerenciamento de **clientes e marcações**, permitindo cadastrar, consultar, atualizar e excluir informações de forma persistente.
+O projeto começou como uma aplicação Java em linha de comando, utilizando JDBC e PostgreSQL, e atualmente está sendo migrado para uma API REST com Spring Boot e Spring Data JPA.
 
----
+## 🚀 Versão atual
 
-## 🚀 Tecnologias
-
-* Java 25
-* Spring Boot 4
-* Spring Data JPA
-* Hibernate
-* PostgreSQL
-* Maven
-* JDBC
-* REST API
-* Git e GitHub
-
----
-
-## 📂 Estrutura do projeto
+A versão atual do projeto está localizada em:
 
 ```text
-Ink.Manager/
-│
-├── ink-manager-api/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/
-│   │   │   │   └── ink/manager/api/
-│   │   │   │       ├── controller/
-│   │   │   │       │   └── ClienteController.java
-│   │   │   │       │
-│   │   │   │       ├── exception/
-│   │   │   │       │   └── GlobalExceptionHandler.java
-│   │   │   │       │
-│   │   │   │       ├── model/
-│   │   │   │       │   └── Cliente.java
-│   │   │   │       │
-│   │   │   │       ├── repository/
-│   │   │   │       │   └── ClienteRepository.java
-│   │   │   │       │
-│   │   │   │       ├── service/
-│   │   │   │       │   └── ClienteService.java
-│   │   │   │       │
-│   │   │   │       └── ApiApplication.java
-│   │   │   │
-│   │   │   └── resources/
-│   │   │       └── application.properties
-│   │   │
-│   │   └── test/
-│   │
-│   ├── pom.xml
-│   ├── mvnw
-│   └── mvnw.cmd
-│
-├── Cliente.java
-├── ClienteRepository.java
-├── ClienteService.java
-├── Marcacao.java
-├── MarcacaoRepository.java
-├── MarcacaoService.java
-├── StatusMarcacao.java
-├── MainMaster.java
-└── README.md
+ink-manager-api/
 ```
 
----
+### Tecnologias utilizadas
 
-## 🏗️ Arquitetura da API
+* Java
+* Spring Boot
+* Spring Web
+* Spring Data JPA
+* PostgreSQL
+* Maven
+* Git e GitHub
 
-A API utiliza uma arquitetura em camadas:
+## 📌 Funcionalidades
+
+### Clientes
+
+* Cadastrar cliente
+* Listar clientes
+* Buscar cliente por ID
+* Atualizar cliente
+* Remover cliente
+
+### Marcações
+
+* Cadastrar marcação
+* Listar marcações
+* Buscar marcação por ID
+* Atualizar marcação
+* Remover marcação
+* Relacionar uma marcação a um cliente
+* Gerenciar status da marcação
+
+Status disponíveis:
 
 ```text
-ClienteController
-       ↓
-ClienteService
-       ↓
-ClienteRepository
-       ↓
+AGENDADA
+CONFIRMADA
+CONCLUIDA
+CANCELADA
+```
+
+## 🏗️ Arquitetura
+
+A API está organizada em camadas:
+
+```text
+Controller
+    ↓
+Service
+    ↓
+Repository
+    ↓
 Spring Data JPA
-       ↓
-Hibernate
-       ↓
+    ↓
 PostgreSQL
 ```
 
-### Controller
+### Estrutura principal
 
-Responsável por receber as requisições HTTP e disponibilizar os endpoints da API.
-
-### Service
-
-Responsável pelas operações e regras relacionadas aos clientes.
-
-### Repository
-
-Utiliza `JpaRepository` do Spring Data JPA para realizar as operações de persistência.
-
-### Model
-
-Representa as entidades utilizadas pela aplicação.
-
----
-
-## 👤 CRUD de Clientes
-
-A API possui atualmente um CRUD completo para clientes.
-
-| Método   | Endpoint         | Descrição               |
-| -------- | ---------------- | ----------------------- |
-| `GET`    | `/clientes`      | Lista todos os clientes |
-| `GET`    | `/clientes/{id}` | Busca cliente por ID    |
-| `POST`   | `/clientes`      | Cadastra cliente        |
-| `PUT`    | `/clientes/{id}` | Atualiza cliente        |
-| `DELETE` | `/clientes/{id}` | Remove cliente          |
-
-### GET — Listar clientes
-
-```http
-GET http://localhost:8080/clientes
+```text
+ink-manager-api/
+└── src/
+    └── main/
+        └── java/
+            └── ink/
+                └── manager/
+                    └── api/
+                        ├── controller/
+                        ├── model/
+                        ├── repository/
+                        ├── service/
+                        └── ApiApplication.java
 ```
 
-Exemplo de resposta:
+## 🌐 Endpoints
+
+### Clientes
+
+```http
+GET /clientes
+POST /clientes
+GET /clientes/{id}
+PUT /clientes/{id}
+DELETE /clientes/{id}
+```
+
+### Marcações
+
+```http
+GET /marcacoes
+POST /marcacoes
+GET /marcacoes/{id}
+PUT /marcacoes/{id}
+DELETE /marcacoes/{id}
+```
+
+## 📝 Exemplo de cadastro de cliente
 
 ```json
-[
-  {
-    "nome": "Maria Souza",
-    "telefone": "21988887777",
-    "idade": 32,
-    "instagram": "@mariasouza",
+{
+  "nome": "Maria Souza",
+  "telefone": "21988887777",
+  "idade": 32,
+  "instagram": "@mariasouza"
+}
+```
+
+## 📅 Exemplo de cadastro de marcação
+
+```json
+{
+  "cliente": {
     "id": 2
-  }
-]
-```
-
-### GET — Buscar por ID
-
-```http
-GET http://localhost:8080/clientes/2
-```
-
-### POST — Cadastrar cliente
-
-```http
-POST http://localhost:8080/clientes
-Content-Type: application/json
-```
-
-```json
-{
-  "nome": "João Silva",
-  "telefone": "21999999999",
-  "idade": 25,
-  "instagram": "@joaosilva"
+  },
+  "data": "2026-08-25",
+  "horario": "14:30:00",
+  "descricao": "Tatuagem no braço",
+  "status": "AGENDADA"
 }
 ```
 
-### PUT — Atualizar cliente
-
-```http
-PUT http://localhost:8080/clientes/3
-Content-Type: application/json
-```
-
-```json
-{
-  "nome": "João Silva",
-  "telefone": "21911112222",
-  "idade": 25,
-  "instagram": "@joaosilva"
-}
-```
-
-### DELETE — Excluir cliente
-
-```http
-DELETE http://localhost:8080/clientes/3
-```
-
----
+O cliente informado é buscado no banco através do seu ID antes da marcação ser salva.
 
 ## 🗄️ Banco de dados
 
-O projeto utiliza **PostgreSQL** para persistência dos dados.
+O projeto utiliza PostgreSQL.
 
-Configuração utilizada no ambiente local:
+Principais tabelas:
 
 ```text
-Banco: ink_manager
-Host: localhost
-Porta: 5432
-Schema: public
+clientes
+marcacoes
 ```
 
-A API utiliza **Spring Data JPA + Hibernate** para realizar a comunicação com o banco.
+Uma marcação possui relacionamento com um cliente através da coluna:
 
----
+```text
+cliente_id
+```
 
-## ▶️ Como executar a API
+No Spring/JPA, esse relacionamento é representado com:
 
-Entre na pasta da API:
+```java
+@ManyToOne
+@JoinColumn(name = "cliente_id", nullable = false)
+private Cliente cliente;
+```
 
-```cmd
+## 🔄 Evolução do projeto
+
+O Ink.Manager foi desenvolvido inicialmente como uma aplicação Java em linha de comando.
+
+### Versão inicial
+
+```text
+Java CLI
+   ↓
+Service
+   ↓
+Repository JDBC
+   ↓
+PostgreSQL
+```
+
+Nesta versão, as operações com o banco eram feitas manualmente utilizando recursos como:
+
+```text
+Connection
+PreparedStatement
+ResultSet
+SQL
+```
+
+### Versão atual
+
+```text
+REST API
+   ↓
+Controller
+   ↓
+Service
+   ↓
+Repository
+   ↓
+Spring Data JPA
+   ↓
+PostgreSQL
+```
+
+A migração para Spring Boot reduziu o código necessário para acesso ao banco e permitiu disponibilizar as funcionalidades através de endpoints REST.
+
+## ▶️ Executando o projeto
+
+Entre na pasta:
+
+```bash
 cd ink-manager-api
 ```
 
-Execute utilizando o Maven Wrapper:
+No Windows:
 
-```cmd
+```bash
 mvnw.cmd spring-boot:run
 ```
 
-A aplicação será iniciada em:
+Após iniciar, a API estará disponível em:
 
 ```text
 http://localhost:8080
 ```
 
-### Testando pelo terminal
+Exemplo:
 
-Listar clientes:
-
-```cmd
+```bash
 curl http://localhost:8080/clientes
 ```
 
-Buscar cliente:
+ou:
 
-```cmd
-curl http://localhost:8080/clientes/1
+```bash
+curl http://localhost:8080/marcacoes
 ```
 
----
+## 📚 Objetivo do projeto
 
-## 🧪 Testes realizados
+O Ink.Manager está sendo desenvolvido como projeto de estudo e portfólio, aplicando conceitos de desenvolvimento backend com Java, orientação a objetos, API REST, persistência de dados, relacionamento entre entidades e arquitetura em camadas.
 
-O CRUD de clientes foi validado através de requisições HTTP diretamente na API.
-
-* ✅ `GET /clientes`
-* ✅ `GET /clientes/{id}`
-* ✅ `POST /clientes`
-* ✅ `PUT /clientes/{id}`
-* ✅ `DELETE /clientes/{id}`
-* ✅ Persistência no PostgreSQL
-* ✅ Consulta de dados persistidos
-* ✅ Retorno `404 Not Found` para cliente inexistente
-* ✅ Aplicação executando na porta `8080`
-
----
-
-## 📈 Evolução do projeto
-
-### v0.1 — Java
-
-* Estrutura inicial do sistema
-* Cadastro de clientes
-* Listagem de clientes
-* Busca de cliente por ID
-
-### v0.2 — Persistência em arquivos
-
-* Persistência utilizando arquivos `.txt`
-* Implementação de marcações
-* Gerenciamento de status das marcações
-
-### v0.3 — PostgreSQL
-
-* Integração com PostgreSQL
-* JDBC
-* `ConnectionFactory`
-* Repositories
-* Persistência de clientes
-* Persistência de marcações
-
-### v0.4 — API REST
-
-* Spring Boot
-* Spring Data JPA
-* Hibernate
-* Arquitetura Controller / Service / Repository
-* CRUD completo de clientes
-* Integração com PostgreSQL
-* Tratamento global de exceções
-
----
-
-## 🔮 Próximos passos
-
-* [ ] Criar CRUD de marcações na API
-* [ ] Relacionar clientes e marcações
-* [ ] Melhorar validações
-* [ ] Aprimorar tratamento de exceções
-* [ ] Documentar endpoints com Swagger/OpenAPI
-* [ ] Implementar autenticação e autorização
-* [ ] Criar frontend para consumo da API
-* [ ] Dockerizar a aplicação
-* [ ] Realizar deploy
-
----
-
-## 🎯 Objetivo
-
-O **Ink.Manager** é um projeto de estudo e portfólio focado no desenvolvimento **Backend Java**.
-
-O projeto está sendo desenvolvido de forma incremental, acompanhando a evolução das tecnologias utilizadas:
-
-```text
-Java
-  ↓
-JDBC
-  ↓
-PostgreSQL
-  ↓
-Spring Boot
-  ↓
-Spring Data JPA
-  ↓
-Hibernate
-  ↓
-API REST
-```
-
-A proposta é continuar evoluindo o sistema até transformá-lo em uma aplicação backend completa para gerenciamento de tatuadores, clientes e marcações.
+O projeto continuará evoluindo com novas funcionalidades e melhorias na arquitetura.
