@@ -34,7 +34,7 @@ No Windows, dentro de `ink-manager-api`:
 
 No Linux/macOS: `./mvnw spring-boot:run`.
 
-Abra **http://localhost:8080** e crie sua conta. Na nova marcação, preencha nome, telefone, data, horário e descrição e clique em **Salvar cliente e marcação**. Se a pessoa já estiver cadastrada, escolha **Cliente já cadastrado**. Cliente e marcação são gravados juntos em uma transação: se ocorrer um erro, nenhum cadastro parcial fica salvo. Clientes também podem ser cadastrados pela tela Clientes.
+Abra **http://localhost:8080** e crie sua conta. Na nova marcação, preencha nome, telefone, data, horário e descrição e clique em **Salvar marcação**. O registro aparece na agenda. Para mudar data, horário, descrição ou status, use **Editar** na própria agenda; o cliente vinculado é mantido. Cliente e marcação são gravados juntos em uma transação: se ocorrer um erro, nenhum cadastro parcial fica salvo. Clientes também podem ser cadastrados pela tela Clientes.
 
 Para Docker Compose, configure `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` e `JWT_SECRET` em um arquivo `.env` local (ignorado pelo Git), e execute `docker compose up --build`. A interface também abre na porta 8080. O PostgreSQL do Compose é exposto localmente na porta 5433.
 

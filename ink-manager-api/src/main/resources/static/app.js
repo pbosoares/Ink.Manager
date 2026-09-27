@@ -184,46 +184,33 @@ function renderClients() {
 
 function openEditor(type, id = null) {
   const item = (type === 'client' ? state.clients : state.appointments).find((entry) => entry.id === id) || {};
-  state.edit = { type, id };
+  state.edit = { type, id, clientId: item.cliente?.id };
   $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcação'}`;
   $('editor-error').textContent = '';
   if (type === 'client') {
     $('editor-fields').innerHTML = `<label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><div class="form-row"><label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label><label>Idade<input name="idade" type="number" min="0" max="150" step="1"></label></div><label>Instagram <span class="muted">Opcional</span><input name="instagram" maxlength="100" placeholder="@cliente"></label>`;
   } else {
-    $('editor-fields').innerHTML = `
-      <label>Cliente<select name="clienteModo"><option value="novo">Novo cliente</option><option value="existente">Cliente já cadastrado</option></select></label>
-      <div id="existing-client-fields"><label>Selecione o cliente<select name="clienteId" required><option value="">Selecione um cliente</option>${[...state.clients].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((client) => `<option value="${client.id}">${escapeHtml(client.nome)}</option>`).join('')}</select></label></div>
-      <div id="new-client-fields"><div class="form-row"><label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label></div><div class="form-row"><label>Idade (opcional)<input name="idade" type="number" min="0" max="150" step="1"></label><label>Instagram (opcional)<input name="instagram" maxlength="100" placeholder="@cliente"></label></div></div>
+    const clientFields = id
+      ? `<p class="muted">Marcação de <strong>${escapeHtml(item.cliente?.nome)}</strong><br>${escapeHtml(item.cliente?.telefone)}</p>`
+      : `<div class="form-row"><label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label></div><div class="form-row"><label>Idade (opcional)<input name="idade" type="number" min="0" max="150" step="1"></label><label>Instagram (opcional)<input name="instagram" maxlength="100" placeholder="@cliente"></label></div>`;
+    $('editor-fields').innerHTML = `${clientFields}
       <div class="form-row"><label>Data<input name="data" type="date" required></label><label>Horário<input name="horario" type="time" required></label></div><label>Descrição<textarea name="descricao" maxlength="255" placeholder="Ideia, local do corpo ou detalhes da sessão"></textarea></label><label>Status<select name="status">${Object.entries(statuses).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select></label>`;
   }
-  const values = type === 'client' ? item : { ...item, clienteModo: id ? 'existente' : 'novo', clienteId: item.cliente?.id, data: item.data || localDate(), horario: item.horario?.slice(0, 5), status: item.status || 'AGENDADA' };
+  const values = type === 'client' ? item : { ...item, data: item.data || localDate(), horario: item.horario?.slice(0, 5), status: item.status || 'AGENDADA' };
   for (const field of $('editor-fields').querySelectorAll('[name]')) field.value = values[field.name] ?? '';
-  if (type === 'appointment') {
-    const updateClientMode = () => {
-      const newClient = $('editor-form').elements.clienteModo.value === 'novo';
-      for (const [group, active] of [['new-client-fields', newClient], ['existing-client-fields', !newClient]]) {
-        $(group).hidden = !active;
-        $(group).querySelectorAll('input, select').forEach((field) => { field.disabled = !active; });
-      }
-      $('save-editor').textContent = newClient ? 'Salvar cliente e marcação' : 'Salvar marcação';
-    };
-    $('editor-form').elements.clienteModo.onchange = updateClientMode;
-    updateClientMode();
-  } else {
-    $('save-editor').textContent = 'Salvar cliente';
-  }
+  $('save-editor').textContent = type === 'client' ? 'Salvar cliente' : 'Salvar marcação';
   $('editor').showModal();
 }
 
 $('editor-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   if ($('save-editor').disabled) return;
-  const { type, id } = state.edit;
+  const { type, id, clientId } = state.edit;
   const values = Object.fromEntries(new FormData(event.currentTarget));
-  const newClient = type === 'appointment' && values.clienteModo === 'novo';
+  const newClient = type === 'appointment' && !id;
   const client = type === 'client' || newClient
     ? { nome: values.nome.trim(), telefone: values.telefone.trim(), idade: values.idade === '' ? null : Number(values.idade), instagram: values.instagram.trim() }
-    : { id: Number(values.clienteId) };
+    : { id: clientId };
   const body = type === 'client' ? client : { cliente: client, data: values.data, horario: values.horario, descricao: values.descricao.trim(), status: values.status };
   const buttons = ['save-editor', 'cancel-editor', 'close-editor'];
   buttons.forEach((key) => { $(key).disabled = true; });
@@ -233,6 +220,10 @@ $('editor-form').addEventListener('submit', async (event) => {
     $('editor').close();
     notify('Registro salvo. Tudo em ordem!');
     await loadData();
+    if (type === 'appointment' && state.token) {
+      ['agenda-search', 'agenda-date', 'agenda-status'].forEach((key) => { $(key).value = ''; });
+      setView('agenda');
+    }
   } catch (error) {
     $('editor-error').textContent = error.message;
   } finally {
