@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import ink.manager.api.exception.ApiException;
 
 import ink.manager.api.model.Cliente;
 import ink.manager.api.repository.ClienteRepository;
@@ -28,12 +30,13 @@ public class ClienteService {
     }
 
     public Cliente salvar(Cliente cliente) {
+        cliente.setId(null);
         return clienteRepository.save(cliente);
     }
 
     public Cliente atualizar(Long id, Cliente clienteAtualizado) {
         Cliente cliente = clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente não encontrado com id: " + id));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Cliente não encontrado com id: " + id));
 
         cliente.setNome(clienteAtualizado.getNome());
         cliente.setTelefone(clienteAtualizado.getTelefone());
@@ -44,6 +47,8 @@ public class ClienteService {
     }
 
     public void deletar(Long id) {
-        clienteRepository.deleteById(id);
+        Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Cliente não encontrado com id: " + id));
+        clienteRepository.delete(cliente);
     }
 }

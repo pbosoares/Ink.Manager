@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#242720">
+  <title>Ink.Manager — Seu estúdio, em ordem.</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <section id="auth" class="auth-layout">
+    <div class="auth-art">
+      <a class="wordmark" href="/">INK<span>✦</span>MANAGER</a>
+      <div class="auth-message"><span class="eyebrow">FEITO PARA QUEM VIVE DE ARTE</span><div class="flash-mark" aria-hidden="true">✦</div><h1>Arte na pele.<br>Ordem no<br><em>estúdio.</em></h1><p>Menos tempo organizando.<br>Mais tempo criando o próximo clássico.</p></div>
+      <span class="auth-foot">TATTOO STUDIO MANAGEMENT <span>EST. 2026</span></span>
+    </div>
+    <div class="auth-content">
+      <div class="auth-form-wrap"><span class="eyebrow accent">BEM-VINDO AO SEU ESTÚDIO</span><h2 id="auth-title">Bom te ver por aqui.</h2><p id="auth-description" class="muted">Entre para cuidar da sua agenda e dos seus clientes.</p>
+        <form id="auth-form">
+          <label id="name-field" hidden>Seu nome<input name="nome" autocomplete="name" maxlength="100"></label>
+          <label>E-mail<input name="email" type="email" autocomplete="username" placeholder="voce@estudio.com" required></label>
+          <label>Senha<input name="senha" type="password" autocomplete="current-password" required maxlength="72" placeholder="Sua senha"></label>
+          <p id="auth-error" class="form-error" role="alert"></p>
+          <button class="primary wide" id="auth-submit">Entrar no estúdio <span aria-hidden="true">↗</span></button>
+        </form>
+        <p class="auth-toggle"><span id="auth-question">Primeira vez aqui?</span> <button id="toggle-auth" class="text-button">Criar uma conta</button></p>
+        <div class="fine-print">✦ &nbsp; Cada grande trabalho começa com uma boa organização.</div>
+      </div>
+    </div>
+  </section>
+
+  <div id="workspace" class="workspace" hidden>
+    <aside class="sidebar">
+      <a href="/" class="wordmark">INK<span>✦</span><br>MANAGER<span class="brand-sub">SEU ESTÚDIO, EM ORDEM.</span></a>
+      <span class="nav-label">O ESTÚDIO</span>
+      <nav aria-label="Navegação principal">
+        <button data-view="overview" class="nav-item active"><span aria-hidden="true">◈</span> Visão geral <span class="nav-arrow">↗</span></button>
+        <button data-view="agenda" class="nav-item"><span aria-hidden="true">▦</span> Agenda <span class="nav-arrow">↗</span></button>
+        <button data-view="clients" class="nav-item"><span aria-hidden="true">♧</span> Clientes <span class="nav-arrow">↗</span></button>
+      </nav>
+      <div class="sidebar-stamp" aria-hidden="true"><span>GOOD ART</span><strong>✦</strong><span>GOOD COMPANY</span></div>
+      <div class="sidebar-bottom"><span id="account-name">Seu estúdio</span><button id="logout" class="text-button">Sair da conta ↗</button></div>
+    </aside>
+    <main>
+      <header class="topbar"><span>PAINEL DO ESTÚDIO</span><span id="today-label"></span></header>
+      <div class="page-content">
+        <section class="page-heading"><div><span class="eyebrow accent" id="page-kicker">A CASA ESTÁ ABERTA</span><h1 id="page-title">Cada dia, uma nova história.</h1><p class="muted" id="page-description">Sua rotina organizada. Sua arte em primeiro lugar.</p></div><button class="primary" id="main-action">+ Nova marcação</button></section>
+        <p id="page-error" class="form-error" role="alert"></p>
+        <div id="loading" class="loading" role="status" hidden>Buscando os dados do estúdio…</div>
+        <section id="overview-view">
+          <div class="stats"><article><span>NA AGENDA DE HOJE</span><strong id="stat-today">—</strong><small>Sessões não canceladas</small></article><article><span>PRÓXIMAS SESSÕES</span><strong id="stat-upcoming">—</strong><small>Agendadas ou confirmadas</small></article><article><span>CLIENTES DA CASA</span><strong id="stat-clients">—</strong><small>Histórias que passam por aqui</small></article></div>
+          <div class="overview-grid"><section class="panel"><div class="section-title"><h2>Hoje no estúdio</h2><button id="see-agenda" class="text-button">Ver agenda ↗</button></div><div id="today-list"></div></section><aside class="quote-card"><span class="eyebrow">LEMBRETE DA CASA</span><span class="quote-star" aria-hidden="true">✦</span><h2>O traço é seu.<br>O cuidado<br><em>também.</em></h2><p>Uma agenda em dia abre espaço para o que importa: fazer arte que fica.</p><span class="quote-sign">INK MANAGER &nbsp; / &nbsp; MADE FOR ARTISTS</span></aside></div>
+        </section>
+        <section id="agenda-view" hidden><div class="toolbar"><label class="search">Buscar marcação<input id="agenda-search" type="search" placeholder="Nome do cliente ou descrição"></label><label>Data<input id="agenda-date" type="date"></label><label>Status<select id="agenda-status"><option value="">Todos os status</option><option value="AGENDADA">Agendada</option><option value="CONFIRMADA">Confirmada</option><option value="CONCLUIDA">Concluída</option><option value="CANCELADA">Cancelada</option></select></label><button id="clear-filters" class="secondary">Limpar</button></div><section class="panel"><div class="section-title"><h2>Livro de marcações</h2><span id="agenda-count" class="muted"></span></div><div id="agenda-list"></div></section></section>
+        <section id="clients-view" hidden><div class="toolbar"><label class="search">Buscar cliente<input id="client-search" type="search" placeholder="Nome, telefone ou Instagram"></label></div><section class="panel"><div class="section-title"><h2>Quem faz parte da casa</h2><span id="client-count" class="muted"></span></div><div id="client-list"></div></section></section>
+        <footer class="page-footer"><span>FEITO DE TINTA, HISTÓRIAS E ORGANIZAÇÃO.</span><span>INK.MANAGER <b>✦</b></span></footer>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="editor"><form id="editor-form"><div class="dialog-heading"><div><span class="eyebrow accent">LIVRO DO ESTÚDIO</span><h2 id="editor-title"></h2></div><button type="button" class="icon-button" id="close-editor" aria-label="Fechar formulário">×</button></div><div id="editor-fields"></div><p id="editor-error" class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" id="cancel-editor">Cancelar</button><button class="primary" id="save-editor">Salvar</button></div></form></dialog>
+  <dialog id="confirmation"><div class="dialog-heading"><h2>Excluir registro?</h2></div><p id="confirmation-description"></p><p id="delete-error" class="form-error" role="alert"></p><div class="dialog-actions"><button id="cancel-delete" class="secondary">Manter registro</button><button id="confirm-delete" class="primary">Excluir</button></div></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

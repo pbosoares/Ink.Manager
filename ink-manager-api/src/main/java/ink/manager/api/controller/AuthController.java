@@ -7,6 +7,7 @@ import ink.manager.api.dto.LoginRequest;
 import ink.manager.api.dto.LoginResponse;
 import ink.manager.api.model.Usuario;
 import ink.manager.api.service.UsuarioService;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/auth")
@@ -19,7 +20,7 @@ public class AuthController {
     }
 
     @PostMapping("/cadastro")
-    public ResponseEntity<Usuario> cadastrar(@RequestBody Usuario usuario) {
+    public ResponseEntity<Usuario> cadastrar(@Valid @RequestBody Usuario usuario) {
 
         Usuario usuarioSalvo = usuarioService.cadastrar(usuario);
 
@@ -28,7 +29,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
-            @RequestBody LoginRequest request) {
+            @Valid @RequestBody LoginRequest request) {
 
         String token = usuarioService.login(
             request.email(),

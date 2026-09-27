@@ -51,12 +51,8 @@ public class ClienteController {
             @PathVariable Long id,
             @Valid @RequestBody Cliente cliente) {
 
-        try {
-            Cliente atualizado = clienteService.atualizar(id, cliente);
-            return ResponseEntity.ok(atualizado);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        Cliente atualizado = clienteService.atualizar(id, cliente);
+        return ResponseEntity.ok(atualizado);
     }
 
     @DeleteMapping("/{id}")

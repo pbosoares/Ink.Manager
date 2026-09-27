@@ -3,6 +3,8 @@ package ink.manager.api.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import ink.manager.api.exception.ApiException;
 
 import ink.manager.api.model.Cliente;
 import ink.manager.api.model.Marcacao;
@@ -30,16 +32,17 @@ public class MarcacaoService {
     public Marcacao buscarPorId(Long id) {
         return marcacaoRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Marcação não encontrada com id: " + id));
+                        new ApiException(HttpStatus.NOT_FOUND, "Marcação não encontrada com id: " + id));
     }
 
     public Marcacao salvar(Marcacao marcacao) {
 
-        Long clienteId = marcacao.getCliente().getId();
+        marcacao.setId(null);
+        Long clienteId = validarCliente(marcacao);
 
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() ->
-                        new RuntimeException("Cliente não encontrado com id: " + clienteId));
+                        new ApiException(HttpStatus.NOT_FOUND, "Cliente não encontrado com id: " + clienteId));
 
         marcacao.setCliente(cliente);
 
@@ -50,13 +53,13 @@ public class MarcacaoService {
 
         Marcacao marcacao = marcacaoRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Marcação não encontrada com id: " + id));
+                        new ApiException(HttpStatus.NOT_FOUND, "Marcação não encontrada com id: " + id));
 
-        Long clienteId = marcacaoAtualizada.getCliente().getId();
+        Long clienteId = validarCliente(marcacaoAtualizada);
 
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() ->
-                        new RuntimeException("Cliente não encontrado com id: " + clienteId));
+                        new ApiException(HttpStatus.NOT_FOUND, "Cliente não encontrado com id: " + clienteId));
 
         marcacao.setCliente(cliente);
         marcacao.setData(marcacaoAtualizada.getData());
@@ -67,7 +70,15 @@ public class MarcacaoService {
         return marcacaoRepository.save(marcacao);
     }
 
+    private Long validarCliente(Marcacao marcacao) {
+        if (marcacao.getCliente() == null || marcacao.getCliente().getId() == null
+                || marcacao.getCliente().getId() <= 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Informe um cliente válido.");
+        }
+        return marcacao.getCliente().getId();
+    }
+
     public void deletar(Long id) {
-        marcacaoRepository.deleteById(id);
+        marcacaoRepository.delete(buscarPorId(id));
     }
 }

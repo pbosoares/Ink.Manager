@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -22,11 +24,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(erros);
     }
 
-    // Cliente não encontrado ou outro erro de regra - retorna 404 com mensagem
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        Map<String, String> erro = new HashMap<>();
-        erro.put("erro", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(erro);
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<Map<String, String>> handleApiException(ApiException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(Map.of("erro", ex.getMessage()));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidBody(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest().body(Map.of("erro", "Dados inválidos. Confira datas, horários e status."));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleConflict(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("erro",
+                "Não foi possível salvar ou excluir: registro duplicado ou vinculado a outros dados."));
     }
 }

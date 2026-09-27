@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import ink.manager.api.model.Marcacao;
+import jakarta.validation.Valid;
 import ink.manager.api.service.MarcacaoService;
 
 @RestController
@@ -34,40 +35,28 @@ public class MarcacaoController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Marcacao> buscarPorId(@PathVariable Long id) {
-        try {
-            Marcacao marcacao = marcacaoService.buscarPorId(id);
-            return ResponseEntity.ok(marcacao);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        Marcacao marcacao = marcacaoService.buscarPorId(id);
+        return ResponseEntity.ok(marcacao);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Marcacao criar(@RequestBody Marcacao marcacao) {
+    public Marcacao criar(@Valid @RequestBody Marcacao marcacao) {
         return marcacaoService.salvar(marcacao);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Marcacao> atualizar(
             @PathVariable Long id,
-            @RequestBody Marcacao marcacao) {
+            @Valid @RequestBody Marcacao marcacao) {
 
-        try {
-            Marcacao atualizada = marcacaoService.atualizar(id, marcacao);
-            return ResponseEntity.ok(atualizada);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        Marcacao atualizada = marcacaoService.atualizar(id, marcacao);
+        return ResponseEntity.ok(atualizada);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        try {
-            marcacaoService.deletar(id);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        marcacaoService.deletar(id);
+        return ResponseEntity.noContent().build();
     }
 }
