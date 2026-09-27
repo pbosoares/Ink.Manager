@@ -3,6 +3,8 @@ package ink.manager.api.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ink.manager.api.dto.MarcacaoComClienteRequest;
 import org.springframework.http.HttpStatus;
 import ink.manager.api.exception.ApiException;
 
@@ -47,6 +49,18 @@ public class MarcacaoService {
         marcacao.setCliente(cliente);
 
         return marcacaoRepository.save(marcacao);
+    }
+
+    // Both writes commit together; a failed appointment must not leave an orphan client.
+    @Transactional
+    public Marcacao salvarComCliente(Long id, MarcacaoComClienteRequest request) {
+        if (id != null) buscarPorId(id);
+        Cliente cliente = request.cliente();
+        cliente.setId(null);
+        cliente = clienteRepository.save(cliente);
+        Marcacao marcacao = new Marcacao(cliente, request.data(), request.horario(),
+                request.descricao(), request.status());
+        return id == null ? salvar(marcacao) : atualizar(id, marcacao);
     }
 
     public Marcacao atualizar(Long id, Marcacao marcacaoAtualizada) {

@@ -57,6 +57,45 @@ class StudioIntegrationTest {
     }
 
     @Test
+    void salvaClienteEMarcacaoJuntosComStatusERollback() throws Exception {
+        String email = UUID.randomUUID() + "@example.com";
+        request("POST", "/auth/cadastro", """
+                {"nome":"Artista","email":"%s","senha":"SenhaTeste123"}
+                """.formatted(email), null);
+        String token = json(request("POST", "/auth/login", """
+                {"email":"%s","senha":"SenhaTeste123"}
+                """.formatted(email), null)).get("token").asText();
+        String body = """
+                {"cliente":{"nome":"Cliente único","telefone":"21999991111"},
+                 "data":"2026-10-15","horario":"16:45","descricao":"Rosa","status":"CONFIRMADA"}
+                """;
+        int before = json(request("GET", "/clientes", null, token)).size();
+        assertEquals(401, request("POST", "/marcacoes/com-cliente", body, null).statusCode());
+        assertEquals(400, request("POST", "/marcacoes/com-cliente", body.replace("21999991111", ""), token).statusCode());
+        assertEquals(400, request("POST", "/marcacoes/com-cliente", body.replace("CONFIRMADA", "INVALIDO"), token).statusCode());
+        assertEquals(before, json(request("GET", "/clientes", null, token)).size());
+
+        // A database failure after creating the client must roll back both writes.
+        var failure = request("POST", "/marcacoes/com-cliente", body.replace("Rosa", "x".repeat(300)), token);
+        assertEquals(409, failure.statusCode(), failure.body());
+        assertEquals(before, json(request("GET", "/clientes", null, token)).size());
+
+        var saved = request("POST", "/marcacoes/com-cliente", body, token);
+        assertEquals(201, saved.statusCode(), saved.body());
+        assertEquals("CONFIRMADA", json(saved).get("status").asText());
+        assertEquals("Cliente único", json(saved).get("cliente").get("nome").asText());
+        assertEquals("16:45:00", json(saved).get("horario").asText());
+        assertEquals(before + 1, json(request("GET", "/clientes", null, token)).size());
+        long id = json(saved).get("id").asLong();
+        var edited = request("PUT", "/marcacoes/" + id + "/com-cliente", body.replace("CONFIRMADA", "CANCELADA"), token);
+        assertEquals(200, edited.statusCode(), edited.body());
+        assertEquals("CANCELADA", json(edited).get("status").asText());
+        int after = json(request("GET", "/clientes", null, token)).size();
+        assertEquals(404, request("PUT", "/marcacoes/999999/com-cliente", body, token).statusCode());
+        assertEquals(after, json(request("GET", "/clientes", null, token)).size());
+    }
+
+    @Test
     void fluxoCompletoDoEstudio() throws Exception {
         String email = UUID.randomUUID() + "@example.com";
         String account = """

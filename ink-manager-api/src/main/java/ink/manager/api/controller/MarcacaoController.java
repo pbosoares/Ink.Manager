@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import ink.manager.api.model.Marcacao;
+import ink.manager.api.dto.MarcacaoComClienteRequest;
 import jakarta.validation.Valid;
 import ink.manager.api.service.MarcacaoService;
 
@@ -43,6 +44,18 @@ public class MarcacaoController {
     @ResponseStatus(HttpStatus.CREATED)
     public Marcacao criar(@Valid @RequestBody Marcacao marcacao) {
         return marcacaoService.salvar(marcacao);
+    }
+
+    @PostMapping("/com-cliente")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Marcacao criarComCliente(@Valid @RequestBody MarcacaoComClienteRequest request) {
+        return marcacaoService.salvarComCliente(null, request);
+    }
+
+    @PutMapping("/{id}/com-cliente")
+    public Marcacao atualizarComCliente(@PathVariable Long id,
+            @Valid @RequestBody MarcacaoComClienteRequest request) {
+        return marcacaoService.salvarComCliente(id, request);
     }
 
     @PutMapping("/{id}")

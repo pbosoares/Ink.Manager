@@ -61,17 +61,6 @@
   </div>
 
   <dialog id="editor"><form id="editor-form"><div class="dialog-heading"><div><span class="eyebrow accent">LIVRO DO ESTÚDIO</span><h2 id="editor-title"></h2></div><button type="button" class="icon-button" id="close-editor" aria-label="Fechar formulário">×</button></div><div id="editor-fields"></div><p id="editor-error" class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" id="cancel-editor">Cancelar</button><button class="primary" id="save-editor">Salvar</button></div></form></dialog>
-  <dialog id="quick-client" aria-labelledby="quick-client-title">
-    <form id="quick-client-form">
-      <div class="dialog-heading"><div><span class="eyebrow accent">SEM SAIR DA MARCAÇÃO</span><h2 id="quick-client-title">Novo cliente</h2></div><button type="button" class="icon-button" id="close-quick-client" aria-label="Voltar à marcação">×</button></div>
-      <p class="muted">Cadastre a pessoa e continue com os dados da marcação já preenchidos.</p>
-      <label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label>
-      <label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label>
-      <div class="form-row"><label>Idade <span class="muted">Opcional</span><input name="idade" type="number" min="0" max="150" step="1"></label><label>Instagram <span class="muted">Opcional</span><input name="instagram" maxlength="100" placeholder="@cliente"></label></div>
-      <p id="quick-client-error" class="form-error" role="alert"></p>
-      <div class="dialog-actions"><button type="button" class="secondary" id="cancel-quick-client">Voltar</button><button class="primary" id="save-quick-client">Cadastrar e selecionar</button></div>
-    </form>
-  </dialog>
   <dialog id="confirmation"><div class="dialog-heading"><h2>Excluir registro?</h2></div><p id="confirmation-description"></p><p id="delete-error" class="form-error" role="alert"></p><div class="dialog-actions"><button id="cancel-delete" class="secondary">Manter registro</button><button id="confirm-delete" class="primary">Excluir</button></div></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
 </body>
