@@ -25,7 +25,6 @@ function logout(message = '') {
   state.appointments = [];
   $('workspace').hidden = true;
   $('auth').hidden = false;
-  $('quick-client').close();
   $('editor').close();
   $('confirmation').close();
   $('auth-form').reset();
@@ -185,85 +184,46 @@ function renderClients() {
 
 function openEditor(type, id = null) {
   const item = (type === 'client' ? state.clients : state.appointments).find((entry) => entry.id === id) || {};
-  state.edit = { type, id };
+  state.edit = { type, id, clientId: item.cliente?.id };
   $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcação'}`;
   $('editor-error').textContent = '';
   if (type === 'client') {
     $('editor-fields').innerHTML = `<label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><div class="form-row"><label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label><label>Idade<input name="idade" type="number" min="0" max="150" step="1"></label></div><label>Instagram <span class="muted">Opcional</span><input name="instagram" maxlength="100" placeholder="@cliente"></label>`;
   } else {
-    $('editor-fields').innerHTML = `<label>Cliente<select name="clienteId" required><option value="">Selecione um cliente</option>${[...state.clients].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((client) => `<option value="${client.id}">${escapeHtml(client.nome)}</option>`).join('')}</select></label><div class="form-row"><label>Data<input name="data" type="date" required></label><label>Horário<input name="horario" type="time" required></label></div><label>Descrição<textarea name="descricao" maxlength="255" placeholder="Ideia, local do corpo ou detalhes da sessão"></textarea></label><label>Status<select name="status">${Object.entries(statuses).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select></label>`;
+    const clientFields = id
+      ? `<p class="muted">Marcação de <strong>${escapeHtml(item.cliente?.nome)}</strong><br>${escapeHtml(item.cliente?.telefone)}</p>`
+      : `<div class="form-row"><label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label></div><div class="form-row"><label>Idade (opcional)<input name="idade" type="number" min="0" max="150" step="1"></label><label>Instagram (opcional)<input name="instagram" maxlength="100" placeholder="@cliente"></label></div>`;
+    $('editor-fields').innerHTML = `${clientFields}
+      <div class="form-row"><label>Data<input name="data" type="date" required></label><label>Horário<input name="horario" type="time" required></label></div><label>Descrição<textarea name="descricao" maxlength="255" placeholder="Ideia, local do corpo ou detalhes da sessão"></textarea></label><label>Status<select name="status">${Object.entries(statuses).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select></label>`;
   }
-  const values = type === 'client' ? item : { ...item, clienteId: item.cliente?.id, data: item.data || localDate(), horario: item.horario?.slice(0, 5), status: item.status || 'AGENDADA' };
+  const values = type === 'client' ? item : { ...item, data: item.data || localDate(), horario: item.horario?.slice(0, 5), status: item.status || 'AGENDADA' };
   for (const field of $('editor-fields').querySelectorAll('[name]')) field.value = values[field.name] ?? '';
-  if (type === 'appointment') {
-    const clientSelect = $('editor-form').elements.clienteId;
-    const addClient = document.createElement('button');
-    addClient.type = 'button';
-    addClient.className = 'text-button inline-client-action';
-    addClient.textContent = '+ Cadastrar novo cliente';
-    addClient.onclick = () => {
-      $('quick-client-form').reset();
-      $('quick-client-error').textContent = '';
-      $('quick-client').showModal();
-      $('quick-client-form').elements.nome.focus();
-    };
-    clientSelect.parentElement.after(addClient);
-    if (!state.clients.length) {
-      clientSelect.options[0].textContent = 'Cadastre o primeiro cliente abaixo';
-    }
-  }
+  $('save-editor').textContent = type === 'client' ? 'Salvar cliente' : 'Salvar marcação';
   $('editor').showModal();
 }
 
-$('quick-client-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  if ($('save-quick-client').disabled) return;
-  const values = Object.fromEntries(new FormData(event.currentTarget));
-  const body = {
-    nome: values.nome.trim(), telefone: values.telefone.trim(),
-    idade: values.idade === '' ? null : Number(values.idade), instagram: values.instagram.trim()
-  };
-  const buttons = ['save-quick-client', 'cancel-quick-client', 'close-quick-client'];
-  buttons.forEach((key) => { $(key).disabled = true; });
-  $('quick-client-error').textContent = '';
-  const generation = state.generation;
-  try {
-    const client = await api('/clientes', { method: 'POST', body });
-    if (generation !== state.generation) return;
-    state.clients.push(client);
-    const select = $('editor-form').elements.clienteId;
-    select.replaceChildren(new Option('Selecione um cliente', ''));
-    [...state.clients].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-      .forEach((entry) => select.add(new Option(entry.nome, entry.id)));
-    select.value = String(client.id);
-    render();
-    $('quick-client').close();
-    select.focus();
-    notify('Cliente cadastrado e selecionado. Agora é só salvar a marcação.');
-  } catch (error) {
-    $('quick-client-error').textContent = error.message;
-  } finally {
-    buttons.forEach((key) => { $(key).disabled = false; });
-  }
-});
-$('close-quick-client').onclick = $('cancel-quick-client').onclick = () => $('quick-client').close();
-$('quick-client').addEventListener('cancel', (event) => {
-  if ($('save-quick-client').disabled) event.preventDefault();
-});
-
 $('editor-form').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const { type, id } = state.edit;
+  if ($('save-editor').disabled) return;
+  const { type, id, clientId } = state.edit;
   const values = Object.fromEntries(new FormData(event.currentTarget));
-  const body = type === 'client' ? { nome: values.nome.trim(), telefone: values.telefone.trim(), idade: values.idade === '' ? null : Number(values.idade), instagram: values.instagram.trim() } : { cliente: { id: Number(values.clienteId) }, data: values.data, horario: values.horario, descricao: values.descricao.trim(), status: values.status };
+  const newClient = type === 'appointment' && !id;
+  const client = type === 'client' || newClient
+    ? { nome: values.nome.trim(), telefone: values.telefone.trim(), idade: values.idade === '' ? null : Number(values.idade), instagram: values.instagram.trim() }
+    : { id: clientId };
+  const body = type === 'client' ? client : { cliente: client, data: values.data, horario: values.horario, descricao: values.descricao.trim(), status: values.status };
   const buttons = ['save-editor', 'cancel-editor', 'close-editor'];
   buttons.forEach((key) => { $(key).disabled = true; });
   $('editor-error').textContent = '';
   try {
-    await api(`/${type === 'client' ? 'clientes' : 'marcacoes'}${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body });
+    await api(`/${type === 'client' ? 'clientes' : 'marcacoes'}${id ? `/${id}` : ''}${newClient ? '/com-cliente' : ''}`, { method: id ? 'PUT' : 'POST', body });
     $('editor').close();
     notify('Registro salvo. Tudo em ordem!');
     await loadData();
+    if (type === 'appointment' && state.token) {
+      ['agenda-search', 'agenda-date', 'agenda-status'].forEach((key) => { $(key).value = ''; });
+      setView('agenda');
+    }
   } catch (error) {
     $('editor-error').textContent = error.message;
   } finally {

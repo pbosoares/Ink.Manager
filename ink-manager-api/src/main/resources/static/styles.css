@@ -169,11 +169,6 @@ p {
   font-weight:700;
 }
 
-.inline-client-action {
-  display: block;
-  margin: -8px 0 20px;
-}
-
 .text-button:hover {
   text-decoration:underline;
 }

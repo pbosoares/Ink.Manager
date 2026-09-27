@@ -7,7 +7,7 @@ Interface old school e limpa, integrada à API Spring Boot na pasta existente do
 - Login e criação de conta.
 - Visão geral com sessões do dia, próximas sessões e total de clientes.
 - Agenda com busca, filtros de data/status, criação, edição e exclusão.
-- Cadastro de novos clientes dentro da marcação, com seleção automática e preservação dos dados já preenchidos.
+- Cadastro de cliente e marcação na mesma tela, com um único botão para salvar tudo.
 - Clientes com busca, cadastro, edição e exclusão.
 - Layout adaptado para celular, formulários acessíveis, estados vazios e mensagens de erro.
 
@@ -34,7 +34,7 @@ No Windows, dentro de `ink-manager-api`:
 
 No Linux/macOS: `./mvnw spring-boot:run`.
 
-Abra **http://localhost:8080** e crie sua conta. Na marcação, selecione um cliente existente ou use **+ Cadastrar novo cliente**. O cadastro pede nome e telefone; ao concluir, o cliente fica selecionado e você continua preenchendo a sessão. Clientes também podem ser cadastrados pela tela Clientes.
+Abra **http://localhost:8080** e crie sua conta. Na nova marcação, preencha nome, telefone, data, horário e descrição e clique em **Salvar marcação**. O registro aparece na agenda. Para mudar data, horário, descrição ou status, use **Editar** na própria agenda; o cliente vinculado é mantido. Cliente e marcação são gravados juntos em uma transação: se ocorrer um erro, nenhum cadastro parcial fica salvo. Clientes também podem ser cadastrados pela tela Clientes.
 
 Para Docker Compose, configure `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` e `JWT_SECRET` em um arquivo `.env` local (ignorado pelo Git), e execute `docker compose up --build`. A interface também abre na porta 8080. O PostgreSQL do Compose é exposto localmente na porta 5433.
 
