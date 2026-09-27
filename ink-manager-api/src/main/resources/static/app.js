@@ -25,6 +25,7 @@ function logout(message = '') {
   state.appointments = [];
   $('workspace').hidden = true;
   $('auth').hidden = false;
+  $('quick-client').close();
   $('editor').close();
   $('confirmation').close();
   $('auth-form').reset();
@@ -183,12 +184,6 @@ function renderClients() {
 }
 
 function openEditor(type, id = null) {
-  if (type === 'appointment' && !state.clients.length) {
-    notify('Cadastre um cliente antes de criar uma marcação.');
-    setView('clients');
-    openEditor('client');
-    return;
-  }
   const item = (type === 'client' ? state.clients : state.appointments).find((entry) => entry.id === id) || {};
   state.edit = { type, id };
   $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcação'}`;
@@ -200,8 +195,61 @@ function openEditor(type, id = null) {
   }
   const values = type === 'client' ? item : { ...item, clienteId: item.cliente?.id, data: item.data || localDate(), horario: item.horario?.slice(0, 5), status: item.status || 'AGENDADA' };
   for (const field of $('editor-fields').querySelectorAll('[name]')) field.value = values[field.name] ?? '';
+  if (type === 'appointment') {
+    const clientSelect = $('editor-form').elements.clienteId;
+    const addClient = document.createElement('button');
+    addClient.type = 'button';
+    addClient.className = 'text-button inline-client-action';
+    addClient.textContent = '+ Cadastrar novo cliente';
+    addClient.onclick = () => {
+      $('quick-client-form').reset();
+      $('quick-client-error').textContent = '';
+      $('quick-client').showModal();
+      $('quick-client-form').elements.nome.focus();
+    };
+    clientSelect.parentElement.after(addClient);
+    if (!state.clients.length) {
+      clientSelect.options[0].textContent = 'Cadastre o primeiro cliente abaixo';
+    }
+  }
   $('editor').showModal();
 }
+
+$('quick-client-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if ($('save-quick-client').disabled) return;
+  const values = Object.fromEntries(new FormData(event.currentTarget));
+  const body = {
+    nome: values.nome.trim(), telefone: values.telefone.trim(),
+    idade: values.idade === '' ? null : Number(values.idade), instagram: values.instagram.trim()
+  };
+  const buttons = ['save-quick-client', 'cancel-quick-client', 'close-quick-client'];
+  buttons.forEach((key) => { $(key).disabled = true; });
+  $('quick-client-error').textContent = '';
+  const generation = state.generation;
+  try {
+    const client = await api('/clientes', { method: 'POST', body });
+    if (generation !== state.generation) return;
+    state.clients.push(client);
+    const select = $('editor-form').elements.clienteId;
+    select.replaceChildren(new Option('Selecione um cliente', ''));
+    [...state.clients].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+      .forEach((entry) => select.add(new Option(entry.nome, entry.id)));
+    select.value = String(client.id);
+    render();
+    $('quick-client').close();
+    select.focus();
+    notify('Cliente cadastrado e selecionado. Agora é só salvar a marcação.');
+  } catch (error) {
+    $('quick-client-error').textContent = error.message;
+  } finally {
+    buttons.forEach((key) => { $(key).disabled = false; });
+  }
+});
+$('close-quick-client').onclick = $('cancel-quick-client').onclick = () => $('quick-client').close();
+$('quick-client').addEventListener('cancel', (event) => {
+  if ($('save-quick-client').disabled) event.preventDefault();
+});
 
 $('editor-form').addEventListener('submit', async (event) => {
   event.preventDefault();
