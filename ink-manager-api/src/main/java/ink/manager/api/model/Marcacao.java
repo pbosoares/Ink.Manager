@@ -1,6 +1,7 @@
 package ink.manager.api.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -14,15 +15,19 @@ public class Marcacao {
 
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
+    @NotNull(message = "Cliente é obrigatório")
     private Cliente cliente;
 
+    @NotNull(message = "Data é obrigatória")
     private LocalDate data;
 
+    @NotNull(message = "Horário é obrigatório")
     private LocalTime horario;
 
     private String descricao;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "Status é obrigatório")
     private StatusMarcacao status;
 
     public Marcacao() {

@@ -8,6 +8,8 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import ink.manager.api.exception.ApiException;
 
 import ink.manager.api.model.Usuario;
 import ink.manager.api.repository.UsuarioRepository;
@@ -32,9 +34,10 @@ public class UsuarioService {
     public Usuario cadastrar(Usuario usuario) {
 
         if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
-            throw new RuntimeException("E-mail já cadastrado.");
+            throw new ApiException(HttpStatus.CONFLICT, "E-mail já cadastrado.");
         }
 
+        usuario.setId(null);
         String senhaHash = passwordEncoder.encode(usuario.getSenha());
 
         usuario.setSenha(senhaHash);
@@ -47,11 +50,11 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository
             .findByEmail(email)
             .orElseThrow(() ->
-                new RuntimeException("E-mail ou senha inválidos.")
+                new ApiException(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos.")
             );
 
         if (!passwordEncoder.matches(senha, usuario.getSenha())) {
-            throw new RuntimeException("E-mail ou senha inválidos.");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos.");
         }
 
         Instant agora = Instant.now();

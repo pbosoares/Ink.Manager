@@ -67,6 +67,7 @@ public class SecurityConfig {
             )
 
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/", "/index.html", "/app.js", "/styles.css", "/favicon.svg").permitAll()
                 .requestMatchers("/auth/**").permitAll()
                 .anyRequest().authenticated()
             )

@@ -179,10 +179,17 @@ class ClienteServiceTest {
 
     @Test
     void deveDeletarCliente() {
-
+        Cliente cliente = criarCliente("Pablo", "21999999999", 32, "@pablo");
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
         clienteService.deletar(1L);
 
-        verify(clienteRepository).deleteById(1L);
+        verify(clienteRepository).delete(cliente);
+    }
+
+    @Test
+    void naoDeveDeletarClienteInexistente() {
+        assertThrows(ink.manager.api.exception.ApiException.class, () -> clienteService.deletar(99L));
+        verify(clienteRepository, never()).delete(any(Cliente.class));
     }
 
     private Cliente criarCliente(
