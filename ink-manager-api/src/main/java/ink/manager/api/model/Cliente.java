@@ -9,22 +9,39 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
 @Entity
+@jakarta.persistence.Table(name = "cliente")
 public class Cliente {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @jakarta.persistence.ManyToOne(optional = false)
+    @jakarta.persistence.JoinColumn(name = "estudio_id", nullable = false)
+    private Estudio estudio;
+    public Estudio getEstudio() { return estudio; }
+    public void setEstudio(Estudio estudio) { this.estudio = estudio; }
+
+
+    @jakarta.persistence.Version
+    private Long version;
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
+
+
     @NotBlank(message = "Nome é obrigatório")
+    @jakarta.validation.constraints.Size(max = 255)
     private String nome;
 
     @NotBlank(message = "Telefone é obrigatório")
+    @jakarta.validation.constraints.Size(max = 30)
     private String telefone;
 
     @Min(value = 0, message = "Idade não pode ser negativa")
     @Max(value = 150, message = "Idade inválida")
     private Integer idade;
 
+    @jakarta.validation.constraints.Size(max = 100)
     private String instagram;
 
     public Cliente() {

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import ink.manager.api.model.Marcacao;
-import ink.manager.api.dto.MarcacaoComClienteRequest;
+import ink.manager.api.dto.*;
 import jakarta.validation.Valid;
 import ink.manager.api.service.MarcacaoService;
 
@@ -30,43 +30,44 @@ public class MarcacaoController {
     }
 
     @GetMapping
-    public List<Marcacao> listarTodas() {
-        return marcacaoService.listarTodas();
+    public List<MarcacaoResponse> listarTodas() {
+        return marcacaoService.listarTodas().stream().map(MarcacaoResponse::from).toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Marcacao> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<MarcacaoResponse> buscarPorId(@PathVariable Long id) {
         Marcacao marcacao = marcacaoService.buscarPorId(id);
-        return ResponseEntity.ok(marcacao);
+        return ResponseEntity.ok(MarcacaoResponse.from(marcacao));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Marcacao criar(@Valid @RequestBody Marcacao marcacao) {
-        return marcacaoService.salvar(marcacao);
+    public MarcacaoResponse criar(@Valid @RequestBody MarcacaoRequest marcacao) {
+        return MarcacaoResponse.from(marcacaoService.salvar(marcacao.toModel()));
     }
 
     @PostMapping("/com-cliente")
     @ResponseStatus(HttpStatus.CREATED)
-    public Marcacao criarComCliente(@Valid @RequestBody MarcacaoComClienteRequest request) {
-        return marcacaoService.salvarComCliente(null, request);
+    public MarcacaoResponse criarComCliente(@Valid @RequestBody MarcacaoComClienteRequest request) {
+        return MarcacaoResponse.from(marcacaoService.salvarComCliente(null, request));
     }
 
     @PutMapping("/{id}/com-cliente")
-    public Marcacao atualizarComCliente(@PathVariable Long id,
+    public MarcacaoResponse atualizarComCliente(@PathVariable Long id,
             @Valid @RequestBody MarcacaoComClienteRequest request) {
-        return marcacaoService.salvarComCliente(id, request);
+        return MarcacaoResponse.from(marcacaoService.salvarComCliente(id, request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Marcacao> atualizar(
+    public ResponseEntity<MarcacaoResponse> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody Marcacao marcacao) {
+            @Valid @RequestBody MarcacaoRequest marcacao) {
 
-        Marcacao atualizada = marcacaoService.atualizar(id, marcacao);
-        return ResponseEntity.ok(atualizada);
+        Marcacao atualizada = marcacaoService.atualizar(id, marcacao.toModel());
+        return ResponseEntity.ok(MarcacaoResponse.from(atualizada));
     }
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('PROPRIETARIO')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         marcacaoService.deletar(id);

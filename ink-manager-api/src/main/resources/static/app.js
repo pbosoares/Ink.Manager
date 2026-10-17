@@ -2,7 +2,7 @@
 
 const $ = (id) => document.getElementById(id);
 const statuses = { AGENDADA: 'Agendada', CONFIRMADA: 'Confirmada', CONCLUIDA: 'Concluída', CANCELADA: 'Cancelada' };
-const state = { token: sessionStorage.getItem('ink.token'), clients: [], appointments: [], view: 'overview', register: false, edit: null, deletion: null, generation: 0 };
+const state = { token: sessionStorage.getItem('ink.token'), clients: [], appointments: [], professionals: [], user: null, studio: null, view: 'overview', register: false, edit: null, deletion: null, generation: 0, loaded: false, loading: false, loadRequest: 0 };
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : 'Sem data';
@@ -19,6 +19,8 @@ function notify(message) {
 
 function logout(message = '') {
   state.generation++;
+  state.loaded = false;
+  state.loading = false;
   state.token = null;
   sessionStorage.removeItem('ink.token');
   state.clients = [];
@@ -27,6 +29,7 @@ function logout(message = '') {
   $('auth').hidden = false;
   $('editor').close();
   $('confirmation').close();
+  window.inkTeam?.close();
   $('auth-form').reset();
   $('auth-error').textContent = message;
 }
@@ -37,7 +40,7 @@ async function api(path, { method = 'GET', body, publicRequest = false } = {}) {
   if (!publicRequest && state.token) headers.Authorization = `Bearer ${state.token}`;
   let response;
   try {
-    response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+    response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(20000) });
   } catch {
     throw new Error('Não foi possível conectar ao estúdio. Confira a conexão e tente novamente.');
   }
@@ -52,16 +55,28 @@ async function api(path, { method = 'GET', body, publicRequest = false } = {}) {
 
 async function loadData() {
   const generation = state.generation;
+  const request = ++state.loadRequest;
+  state.loaded = false;
+  state.loading = true;
+  render();
   $('loading').hidden = false;
   $('page-error').textContent = '';
   try {
-    const [clients, appointments] = await Promise.all([api('/clientes'), api('/marcacoes')]);
-    if (generation !== state.generation) return;
+    const [clients, appointments, professionals, session] = await Promise.all([api('/clientes'), api('/marcacoes'), api('/profissionais'), api('/auth/me')]);
+    if (generation !== state.generation || request !== state.loadRequest) return;
+    if (!Array.isArray(clients) || !Array.isArray(appointments)) throw new Error('Resposta inválida do servidor.');
+    state.loaded = true;
     state.clients = clients;
     state.appointments = appointments;
+    state.professionals = professionals;
+    state.user = session.usuario;
+    state.studio = session.estudio;
+    $('account-name').textContent = state.studio.nome;
     render();
   } catch (error) {
-    if (generation === state.generation) {
+    if (generation === state.generation && request === state.loadRequest) {
+      state.loading = false;
+      render();
       $('page-error').textContent = `${error.message} `;
       const retry = document.createElement('button');
       retry.className = 'text-button';
@@ -70,7 +85,11 @@ async function loadData() {
       $('page-error').append(retry);
     }
   } finally {
-    if (generation === state.generation) $('loading').hidden = true;
+    if (generation === state.generation && request === state.loadRequest) {
+      state.loading = false;
+      $('loading').hidden = true;
+      render();
+    }
   }
 }
 
@@ -86,6 +105,8 @@ function openWorkspace() {
 $('toggle-auth').addEventListener('click', () => {
   state.register = !state.register;
   $('name-field').hidden = !state.register;
+  $('studio-name-field').hidden = !state.register;
+  $('auth-form').elements.nomeEstudio.required = state.register;
   $('auth-form').elements.nome.required = state.register;
   $('auth-form').elements.senha.minLength = state.register ? 8 : 1;
   $('auth-form').elements.senha.autocomplete = state.register ? 'new-password' : 'current-password';
@@ -107,7 +128,7 @@ $('auth-form').addEventListener('submit', async (event) => {
   $('auth-error').textContent = '';
   try {
     if (state.register) {
-      await api('/auth/cadastro', { method: 'POST', body: values, publicRequest: true });
+      await api('/auth/estudios', { method: 'POST', body: values, publicRequest: true });
       // Account creation is complete even if a subsequent login fails.
       $('toggle-auth').disabled = false;
       $('toggle-auth').click();
@@ -133,9 +154,11 @@ function setView(view) {
   const copy = {
     overview: ['A CASA ESTÁ ABERTA', 'Cada dia, uma nova história.', 'Sua rotina organizada. Sua arte em primeiro lugar.'],
     agenda: ['TEMPO PARA FAZER ARTE', 'Sua agenda, no traço.', 'Cada sessão tem seu espaço. Cuide dos próximos encontros.'],
+    team: ['A EQUIPE', 'Cada profissional, sua agenda.', 'Expedientes e folgas compartilhados com a equipe.'],
+    studio: ['SEU ESPACO', 'O estudio tem a sua cara.', 'Nome, acessos e assinatura no mesmo lugar.'],
     clients: ['QUEM CONFIA NO SEU TRAÇO', 'As pessoas por trás da arte.', 'Contatos e histórias para manter sempre por perto.']
   }[view];
-  ['overview', 'agenda', 'clients'].forEach((key) => { $(`${key}-view`).hidden = key !== view; });
+  ['overview', 'agenda', 'clients', 'team', 'studio'].forEach((key) => { $(`${key}-view`).hidden = key !== view; });
   document.querySelectorAll('[data-view]').forEach((button) => {
     button.classList.toggle('active', button.dataset.view === view);
     if (button.dataset.view === view) button.setAttribute('aria-current', 'page');
@@ -153,6 +176,16 @@ function empty(title, description, action) {
 }
 
 function render() {
+  $('main-action').disabled = !state.loaded;
+  $('main-action').hidden = ['team', 'studio'].includes(state.view);
+  document.querySelectorAll('.owner-only').forEach((element) => { element.hidden = state.user?.perfil !== 'PROPRIETARIO'; });
+  ['overview', 'agenda', 'clients', 'team', 'studio'].forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
+  $('workspace').setAttribute('aria-busy', String(state.loading));
+  if (!state.loaded) {
+    ['stat-today', 'stat-upcoming', 'stat-clients'].forEach((id) => { $(id).textContent = '—'; });
+    ['today-list', 'agenda-list', 'client-list', 'agenda-count', 'client-count'].forEach((id) => { $(id).textContent = ''; });
+    return;
+  }
   const today = localDate();
   const appointments = sortedAppointments();
   const todays = appointments.filter((item) => item.data === today && item.status !== 'CANCELADA');
@@ -164,54 +197,74 @@ function render() {
   $('today-list').innerHTML = todays.length ? todays.map((item) => `<div class="session"><span class="session-time">${escapeHtml(item.horario?.slice(0, 5))}</span><div class="session-info"><div class="session-name">${escapeHtml(item.cliente?.nome)}</div><div class="session-description">${escapeHtml(item.descricao || 'Sessão de tatuagem')}</div></div>${badge(item.status)}<button class="text-button" data-edit-appointment="${item.id}" aria-label="Editar marcação de ${escapeHtml(item.cliente?.nome)}">Editar</button></div>`).join('') : empty('Um respiro na agenda.', 'Nenhuma sessão marcada para hoje.', 'appointment');
   renderAgenda();
   renderClients();
+  window.inkTeam?.render();
 }
 
 function renderAgenda() {
+  if (!state.loaded) return;
   const query = $('agenda-search').value.toLocaleLowerCase('pt-BR');
   const date = $('agenda-date').value;
   const status = $('agenda-status').value;
-  const items = sortedAppointments().filter((item) => (!date || item.data === date) && (!status || item.status === status) && `${item.cliente?.nome || ''} ${item.descricao || ''}`.toLocaleLowerCase('pt-BR').includes(query));
+  const professional = $('agenda-professional').value;
+  const items = sortedAppointments().filter((item) => (!professional || String(item.profissional?.id) === professional) && (!date || item.data === date) && (!status || item.status === status) && `${item.cliente?.nome || ''} ${item.descricao || ''}`.toLocaleLowerCase('pt-BR').includes(query));
   $('agenda-count').textContent = `${items.length} registro(s)`;
-  $('agenda-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>DATA / HORA</th><th>CLIENTE / SESSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(formatDate(item.data))}<small>${escapeHtml(item.data?.slice(0, 4))} · ${escapeHtml(item.horario?.slice(0, 5))}</small></td><td>${escapeHtml(item.cliente?.nome)}<small>${escapeHtml(item.descricao || 'Sem descrição')}</small></td><td>${badge(item.status)}</td><td><div class="row-actions"><button class="text-button" data-edit-appointment="${item.id}">Editar</button><button class="text-button delete" data-delete-appointment="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Nenhuma marcação por aqui.', query || date || status ? 'Experimente mudar os filtros.' : 'Comece reservando um horário para a próxima arte.', query || date || status ? '' : 'appointment');
+  $('agenda-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>DATA / HORA</th><th>CLIENTE / SESSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(formatDate(item.data))}<small>${escapeHtml(item.data?.slice(0, 4))} · ${escapeHtml(item.horario?.slice(0, 5))}</small></td><td>${escapeHtml(item.cliente?.nome)}<small>${escapeHtml(item.profissional?.nome)} / ${escapeHtml(item.descricao || 'Sem descrição')}</small></td><td>${badge(item.status)}</td><td><div class="row-actions"><button class="text-button" data-edit-appointment="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} data-delete-appointment="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Nenhuma marcação por aqui.', query || date || status ? 'Experimente mudar os filtros.' : 'Comece reservando um horário para a próxima arte.', query || date || status ? '' : 'appointment');
 }
 
 function renderClients() {
+  if (!state.loaded) return;
   const query = $('client-search').value.toLocaleLowerCase('pt-BR');
   const items = [...state.clients].filter((item) => `${item.nome} ${item.telefone} ${item.instagram || ''}`.toLocaleLowerCase('pt-BR').includes(query)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   $('client-count').textContent = `${items.length} cliente(s)`;
-  $('client-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>NOME</th><th>CONTATO</th><th>IDADE</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(item.nome)}<small>CLIENTE #${item.id}</small></td><td>${escapeHtml(item.telefone)}<small>${escapeHtml(item.instagram || 'Sem Instagram')}</small></td><td>${item.idade == null ? '—' : escapeHtml(item.idade)}</td><td><div class="row-actions"><button class="text-button" data-edit-client="${item.id}">Editar</button><button class="text-button delete" data-delete-client="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Toda história começa com alguém.', query ? 'Nenhum cliente encontrado nessa busca.' : 'Cadastre seu primeiro cliente para começar.', query ? '' : 'client');
+  $('client-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>NOME</th><th>CONTATO</th><th>IDADE</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(item.nome)}<small>CLIENTE #${item.id}</small></td><td>${escapeHtml(item.telefone)}<small>${escapeHtml(item.instagram || 'Sem Instagram')}</small></td><td>${item.idade == null ? '—' : escapeHtml(item.idade)}</td><td><div class="row-actions"><button class="text-button" data-edit-client="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} data-delete-client="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Toda história começa com alguém.', query ? 'Nenhum cliente encontrado nessa busca.' : 'Cadastre seu primeiro cliente para começar.', query ? '' : 'client');
 }
 
+
 function openEditor(type, id = null) {
+  if (!state.loaded) return;
   const item = (type === 'client' ? state.clients : state.appointments).find((entry) => entry.id === id) || {};
-  state.edit = { type, id, clientId: item.cliente?.id };
-  $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcação'}`;
+  state.edit = { type, id, clientId: item.cliente?.id, version: item.version, original: item };
+  $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcacao'}`;
   $('editor-error').textContent = '';
+  const customerFields = `<label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><div class="form-row"><label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label><label>Idade<input name="idade" type="number" min="0" max="150" step="1"></label></div><label>Instagram (opcional)<input name="instagram" maxlength="100" placeholder="@cliente"></label>`;
   if (type === 'client') {
-    $('editor-fields').innerHTML = `<label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><div class="form-row"><label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label><label>Idade<input name="idade" type="number" min="0" max="150" step="1"></label></div><label>Instagram <span class="muted">Opcional</span><input name="instagram" maxlength="100" placeholder="@cliente"></label>`;
+    $('editor-fields').innerHTML = customerFields;
   } else {
-    const clientFields = id
-      ? `<p class="muted">Marcação de <strong>${escapeHtml(item.cliente?.nome)}</strong><br>${escapeHtml(item.cliente?.telefone)}</p>`
-      : `<div class="form-row"><label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label></div><div class="form-row"><label>Idade (opcional)<input name="idade" type="number" min="0" max="150" step="1"></label><label>Instagram (opcional)<input name="instagram" maxlength="100" placeholder="@cliente"></label></div>`;
-    $('editor-fields').innerHTML = `${clientFields}
-      <div class="form-row"><label>Data<input name="data" type="date" required></label><label>Horário<input name="horario" type="time" required></label></div><label>Descrição<textarea name="descricao" maxlength="255" placeholder="Ideia, local do corpo ou detalhes da sessão"></textarea></label><label>Status<select name="status">${Object.entries(statuses).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}</select></label>`;
+    const customer = id
+      ? `<p>Cliente: <strong>${escapeHtml(item.cliente?.nome)}</strong></p>`
+      : `<label>Cliente<select name="clientMode" id="client-mode"><option value="existing">Cliente existente</option><option value="new">Novo cliente</option></select></label><fieldset id="existing-client"><legend>Cliente existente</legend><label>Selecione o cliente<select name="clienteId" required><option value="">Selecione...</option>${[...state.clients].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((c) => `<option value="${c.id}">${escapeHtml(c.nome)} - ${escapeHtml(c.telefone)}</option>`).join('')}</select></label></fieldset><fieldset id="new-client" hidden disabled><legend>Novo cliente</legend>${customerFields}</fieldset>`;
+    $('editor-fields').innerHTML = `${customer}<label>Profissional<select name="profissionalId" required>${state.professionals.filter((p) => p.ativo || p.id === item.profissional?.id).map((p) => `<option value="${p.id}">${escapeHtml(p.nome)}${p.ativo ? '' : ' (inativo)'}</option>`).join('')}</select></label><div class="form-row"><label>Data<input name="data" type="date" required></label><label>Horario<select name="horario" required><option value="">Consultando...</option></select></label></div><label>Descricao<textarea name="descricao" maxlength="255"></textarea></label><label>Duracao (minutos)<input name="duracaoMinutos" type="number" min="1" max="720" required></label><label>Status<select name="status">${Object.entries(statuses).map(([v,label]) => `<option value="${v}">${label}</option>`).join('')}</select></label>`;
   }
-  const values = type === 'client' ? item : { ...item, data: item.data || localDate(), horario: item.horario?.slice(0, 5), status: item.status || 'AGENDADA' };
+  const values = type === 'client' ? item : { ...item, data: item.data || localDate(), horario: item.horario?.slice(0,5), status: item.status || 'AGENDADA', duracaoMinutos: item.duracaoMinutos || 60, profissionalId: item.profissional?.id || state.professionals.find((p) => p.ativo)?.id };
   for (const field of $('editor-fields').querySelectorAll('[name]')) field.value = values[field.name] ?? '';
-  $('save-editor').textContent = type === 'client' ? 'Salvar cliente' : 'Salvar marcação';
+  const mode = $('client-mode');
+  if (mode) {
+    mode.value = state.clients.length ? 'existing' : 'new';
+    mode.onchange = () => {
+      const isNew = mode.value === 'new';
+      $('new-client').hidden = !isNew;
+      $('new-client').disabled = !isNew;
+      $('existing-client').hidden = isNew;
+      $('existing-client').disabled = isNew;
+    };
+    mode.onchange();
+  }
+  $('save-editor').textContent = type === 'client' ? 'Salvar cliente' : 'Salvar marcacao';
   $('editor').showModal();
+  if (type === 'appointment') window.inkTeam?.editorAvailability(item.horario?.slice(0, 5));
 }
 
 $('editor-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   if ($('save-editor').disabled) return;
-  const { type, id, clientId } = state.edit;
+  const { type, id, clientId, version } = state.edit;
   const values = Object.fromEntries(new FormData(event.currentTarget));
-  const newClient = type === 'appointment' && !id;
+  const newClient = type === 'appointment' && !id && values.clientMode === 'new';
   const client = type === 'client' || newClient
     ? { nome: values.nome.trim(), telefone: values.telefone.trim(), idade: values.idade === '' ? null : Number(values.idade), instagram: values.instagram.trim() }
-    : { id: clientId };
-  const body = type === 'client' ? client : { cliente: client, data: values.data, horario: values.horario, descricao: values.descricao.trim(), status: values.status };
+    : { id: id ? clientId : Number(values.clienteId) };
+  const body = type === 'client' ? client : { cliente: client, data: values.data, horario: values.horario, descricao: values.descricao.trim(), status: values.status, duracaoMinutos: Number(values.duracaoMinutos), profissionalId: Number(values.profissionalId) };
+  if (id) body.version = version;
   const buttons = ['save-editor', 'cancel-editor', 'close-editor'];
   buttons.forEach((key) => { $(key).disabled = true; });
   $('editor-error').textContent = '';
@@ -221,7 +274,7 @@ $('editor-form').addEventListener('submit', async (event) => {
     notify('Registro salvo. Tudo em ordem!');
     await loadData();
     if (type === 'appointment' && state.token) {
-      ['agenda-search', 'agenda-date', 'agenda-status'].forEach((key) => { $(key).value = ''; });
+      ['agenda-search', 'agenda-date', 'agenda-status', 'agenda-professional'].forEach((key) => { $(key).value = ''; });
       setView('agenda');
     }
   } catch (error) {
@@ -264,17 +317,32 @@ document.addEventListener('click', (event) => {
     if (button.dataset[`delete${type}`]) askDelete(type.toLowerCase(), Number(button.dataset[`delete${type}`]));
   }
 });
-$('logout').onclick = () => logout();
+$('logout').onclick = async () => { try { await api('/auth/logout', { method: 'POST' }); } catch {} finally { logout(); } };
 $('main-action').onclick = () => openEditor(state.view === 'clients' ? 'client' : 'appointment');
 $('see-agenda').onclick = () => setView('agenda');
 $('close-editor').onclick = $('cancel-editor').onclick = () => $('editor').close();
 $('cancel-delete').onclick = () => $('confirmation').close();
 $('editor').addEventListener('cancel', (event) => { if ($('save-editor').disabled) event.preventDefault(); });
 $('confirmation').addEventListener('cancel', (event) => { if ($('confirm-delete').disabled) event.preventDefault(); });
-['agenda-search', 'agenda-date', 'agenda-status'].forEach((id) => $(id).addEventListener('input', renderAgenda));
+['agenda-search', 'agenda-date', 'agenda-status', 'agenda-professional'].forEach((id) => $(id).addEventListener('input', renderAgenda));
 $('client-search').addEventListener('input', renderClients);
 $('clear-filters').onclick = () => {
-  ['agenda-search', 'agenda-date', 'agenda-status'].forEach((id) => { $(id).value = ''; });
+  ['agenda-search', 'agenda-date', 'agenda-status', 'agenda-professional'].forEach((id) => { $(id).value = ''; });
   renderAgenda();
 };
+async function loadAuthConfig() {
+  $('toggle-auth').disabled = true;
+  try {
+    const config = await api('/auth/config', { publicRequest: true });
+    $('auth-registration').hidden = !config.registrationEnabled;
+    $('registration-notice').hidden = config.registrationEnabled;
+  } catch {
+    $('auth-registration').hidden = true;
+    $('registration-notice').hidden = false;
+    $('registration-notice').textContent = 'Cadastro indisponível. Entre com uma conta existente.';
+  } finally {
+    $('toggle-auth').disabled = false;
+  }
+}
+loadAuthConfig();
 if (state.token) openWorkspace();

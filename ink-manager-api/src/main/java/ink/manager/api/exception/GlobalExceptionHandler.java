@@ -39,4 +39,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("erro",
                 "Não foi possível salvar ou excluir: registro duplicado ou vinculado a outros dados."));
     }
+
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String,String>> handleStale(org.springframework.dao.OptimisticLockingFailureException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("erro", "Registro alterado. Recarregue os dados antes de salvar."));
+    }
+
+    @ExceptionHandler(org.springframework.dao.PessimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, String>> handleBusyAgenda(org.springframework.dao.PessimisticLockingFailureException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("erro", "Agenda em atualizacao. Aguarde e tente novamente."));
+    }
 }

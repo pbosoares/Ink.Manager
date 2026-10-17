@@ -13,10 +13,28 @@ public class Marcacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @jakarta.persistence.ManyToOne(optional = false)
+    @jakarta.persistence.JoinColumn(name = "estudio_id", nullable = false)
+    private Estudio estudio;
+    public Estudio getEstudio() { return estudio; }
+    public void setEstudio(Estudio estudio) { this.estudio = estudio; }
+
+
+    @jakarta.persistence.Version
+    private Long version;
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
+
+
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
     @NotNull(message = "Cliente é obrigatório")
     private Cliente cliente;
+    @ManyToOne(optional=false) @JoinColumn(name="profissional_id",nullable=false)
+    private Profissional profissional;
+    public Profissional getProfissional(){return profissional;}
+    public void setProfissional(Profissional profissional){this.profissional=profissional;}
+
 
     @NotNull(message = "Data é obrigatória")
     private LocalDate data;
@@ -24,7 +42,16 @@ public class Marcacao {
     @NotNull(message = "Horário é obrigatório")
     private LocalTime horario;
 
+    @jakarta.validation.constraints.Size(max = 255)
     private String descricao;
+
+    @Column(nullable=false)
+    @jakarta.validation.constraints.Min(1)
+    @jakarta.validation.constraints.Max(720)
+    private Integer duracaoMinutos = 60;
+    public Integer getDuracaoMinutos() { return duracaoMinutos; }
+    public void setDuracaoMinutos(Integer value) { duracaoMinutos=value; }
+
 
     @Enumerated(EnumType.STRING)
     @NotNull(message = "Status é obrigatório")
@@ -37,7 +64,7 @@ public class Marcacao {
             Cliente cliente,
             LocalDate data,
             LocalTime horario,
-            String descricao,
+            @jakarta.validation.constraints.Size(max = 255) String descricao,
             StatusMarcacao status) {
 
         this.cliente = cliente;

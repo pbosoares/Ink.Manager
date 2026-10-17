@@ -26,6 +26,13 @@ class ClienteServiceTest {
     @Mock
     private ClienteRepository clienteRepository;
 
+    @Mock private ink.manager.api.config.AcessoAtual acesso;
+    @Mock private ink.manager.api.repository.EstudioRepository estudios;
+    @org.junit.jupiter.api.BeforeEach void contexto(){
+        org.mockito.Mockito.lenient().when(acesso.estudioId()).thenReturn(1L);
+        org.mockito.Mockito.lenient().when(estudios.getReferenceById(1L)).thenReturn(new ink.manager.api.model.Estudio());
+    }
+
     @InjectMocks
     private ClienteService clienteService;
 
@@ -46,7 +53,7 @@ class ClienteServiceTest {
                 "@maria"
         );
 
-        when(clienteRepository.findAll())
+        when(clienteRepository.findByEstudioId(1L))
                 .thenReturn(List.of(cliente1, cliente2));
 
         List<Cliente> resultado = clienteService.listarTodos();
@@ -55,7 +62,7 @@ class ClienteServiceTest {
         assertEquals("Pablo", resultado.get(0).getNome());
         assertEquals("Maria", resultado.get(1).getNome());
 
-        verify(clienteRepository).findAll();
+        verify(clienteRepository).findByEstudioId(1L);
     }
 
     @Test
@@ -68,7 +75,7 @@ class ClienteServiceTest {
                 "@pablo"
         );
 
-        when(clienteRepository.findById(1L))
+        when(clienteRepository.findByIdAndEstudioId(1L, 1L))
                 .thenReturn(Optional.of(cliente));
 
         Optional<Cliente> resultado =
@@ -77,13 +84,13 @@ class ClienteServiceTest {
         assertTrue(resultado.isPresent());
         assertSame(cliente, resultado.get());
 
-        verify(clienteRepository).findById(1L);
+        verify(clienteRepository).findByIdAndEstudioId(1L, 1L);
     }
 
     @Test
     void deveRetornarVazioQuandoClienteNaoExistir() {
 
-        when(clienteRepository.findById(99L))
+        when(clienteRepository.findByIdAndEstudioId(99L, 1L))
                 .thenReturn(Optional.empty());
 
         Optional<Cliente> resultado =
@@ -91,7 +98,7 @@ class ClienteServiceTest {
 
         assertTrue(resultado.isEmpty());
 
-        verify(clienteRepository).findById(99L);
+        verify(clienteRepository).findByIdAndEstudioId(99L, 1L);
     }
 
     @Test
@@ -104,7 +111,7 @@ class ClienteServiceTest {
                 "@pablo"
         );
 
-        when(clienteRepository.save(cliente))
+        when(clienteRepository.saveAndFlush(cliente))
                 .thenReturn(cliente);
 
         Cliente resultado =
@@ -112,7 +119,7 @@ class ClienteServiceTest {
 
         assertSame(cliente, resultado);
 
-        verify(clienteRepository).save(cliente);
+        verify(clienteRepository).saveAndFlush(cliente);
     }
 
     @Test
@@ -132,10 +139,10 @@ class ClienteServiceTest {
                 "@pablosoares"
         );
 
-        when(clienteRepository.findById(1L))
+        when(clienteRepository.findByIdAndEstudioId(1L, 1L))
                 .thenReturn(Optional.of(clienteExistente));
 
-        when(clienteRepository.save(clienteExistente))
+        when(clienteRepository.saveAndFlush(clienteExistente))
                 .thenReturn(clienteExistente);
 
         Cliente resultado =
@@ -146,14 +153,14 @@ class ClienteServiceTest {
         assertEquals(33, resultado.getIdade());
         assertEquals("@pablosoares", resultado.getInstagram());
 
-        verify(clienteRepository).findById(1L);
-        verify(clienteRepository).save(clienteExistente);
+        verify(clienteRepository).findByIdAndEstudioId(1L, 1L);
+        verify(clienteRepository).saveAndFlush(clienteExistente);
     }
 
     @Test
     void deveLancarExcecaoAoAtualizarClienteInexistente() {
 
-        when(clienteRepository.findById(99L))
+        when(clienteRepository.findByIdAndEstudioId(99L, 1L))
                 .thenReturn(Optional.empty());
 
         Cliente clienteAtualizado = criarCliente(
@@ -173,14 +180,14 @@ class ClienteServiceTest {
                 excecao.getMessage()
         );
 
-        verify(clienteRepository).findById(99L);
-        verify(clienteRepository, never()).save(any(Cliente.class));
+        verify(clienteRepository).findByIdAndEstudioId(99L, 1L);
+        verify(clienteRepository, never()).saveAndFlush(any(Cliente.class));
     }
 
     @Test
     void deveDeletarCliente() {
         Cliente cliente = criarCliente("Pablo", "21999999999", 32, "@pablo");
-        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+        when(clienteRepository.findByIdAndEstudioId(1L, 1L)).thenReturn(Optional.of(cliente));
         clienteService.deletar(1L);
 
         verify(clienteRepository).delete(cliente);
@@ -201,6 +208,7 @@ class ClienteServiceTest {
 
         Cliente cliente = new Cliente();
 
+        cliente.setVersion(0L);
         cliente.setNome(nome);
         cliente.setTelefone(telefone);
         cliente.setIdade(idade);

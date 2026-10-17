@@ -1,10 +1,8 @@
 package ink.manager.api.repository;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
+import java.util.*;
 import ink.manager.api.model.Cliente;
-
-@Repository
+import org.springframework.data.jpa.repository.JpaRepository;
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {
+    List<Cliente> findByEstudioId(Long estudioId);
+    Optional<Cliente> findByIdAndEstudioId(Long id, Long estudioId);
 }

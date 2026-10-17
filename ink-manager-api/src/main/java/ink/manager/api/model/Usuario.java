@@ -14,6 +14,27 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @jakarta.persistence.ManyToOne(optional = false)
+    @jakarta.persistence.JoinColumn(name = "estudio_id", nullable = false)
+    private Estudio estudio;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private Perfil perfil = Perfil.FUNCIONARIO;
+    private boolean ativo = true;
+    private long tokenVersion;
+    @Version private Long version;
+    public Perfil getPerfil() { return perfil; }
+    public void setPerfil(Perfil perfil) { this.perfil = perfil; }
+    public boolean isAtivo() { return ativo; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    public long getTokenVersion() { return tokenVersion; }
+    public void revogarSessoes() { this.tokenVersion++; }
+    public Long getVersion() { return version; }
+
+    public Estudio getEstudio() { return estudio; }
+    public void setEstudio(Estudio estudio) { this.estudio = estudio; }
+
+
     @Column(nullable = false)
     @NotBlank(message = "Nome é obrigatório")
     private String nome;

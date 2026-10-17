@@ -33,3 +33,10 @@ build/
 .vscode/
 
 .env
+.env.*
+!.env.example
+node_modules/
+playwright-report/
+test-results/
+
+target-validation.log

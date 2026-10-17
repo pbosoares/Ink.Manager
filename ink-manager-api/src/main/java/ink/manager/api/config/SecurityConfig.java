@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 public class SecurityConfig {
 
     @Value("${jwt.secret}")
@@ -31,8 +32,11 @@ public class SecurityConfig {
 
     @Bean
     public SecretKey secretKey() {
+        if (jwtSecret.isBlank() || jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException("JWT_SECRET deve conter pelo menos 32 bytes.");
+        }
         return new SecretKeySpec(
-            jwtSecret.getBytes(),
+            jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8),
             "HmacSHA256"
         );
     }
@@ -47,14 +51,16 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder(SecretKey secretKey) {
-        return NimbusJwtDecoder
+        NimbusJwtDecoder decoder = NimbusJwtDecoder
             .withSecretKey(secretKey)
             .macAlgorithm(MacAlgorithm.HS256)
             .build();
+        decoder.setJwtValidator(org.springframework.security.oauth2.jwt.JwtValidators.createDefaultWithIssuer("ink-manager"));
+        return decoder;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionJwtConverter sessions)
             throws Exception {
 
         http
@@ -67,13 +73,14 @@ public class SecurityConfig {
             )
 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/index.html", "/app.js", "/styles.css", "/favicon.svg").permitAll()
-                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/", "/index.html", "/app.js", "/team.js", "/styles.css", "/favicon.svg").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/auth/login", "/auth/estudios", "/auth/recuperar-senha", "/auth/redefinir-senha").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/auth/config", "/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
 
             .oauth2ResourceServer(oauth2 ->
-                oauth2.jwt(Customizer.withDefaults())
+                oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(sessions))
             );
 
         return http.build();

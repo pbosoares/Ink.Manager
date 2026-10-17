@@ -1,17 +1,9 @@
 package ink.manager.api.dto;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
-
-import ink.manager.api.model.Cliente;
-import ink.manager.api.model.StatusMarcacao;
+import java.time.*;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-
-public record MarcacaoComClienteRequest(
-        @NotNull(message = "Cliente é obrigatório") @Valid Cliente cliente,
-        @NotNull(message = "Data é obrigatória") LocalDate data,
-        @NotNull(message = "Horário é obrigatório") LocalTime horario,
-        String descricao,
-        @NotNull(message = "Status é obrigatório") StatusMarcacao status) {
-}
+import jakarta.validation.constraints.*;
+import ink.manager.api.model.StatusMarcacao;
+public record MarcacaoComClienteRequest(@NotNull @Valid ClienteRequest cliente,
+ @NotNull LocalDate data, @NotNull LocalTime horario, @Size(max=255) String descricao,
+ @NotNull StatusMarcacao status, @Min(1) @Max(720) Integer duracaoMinutos,
+ @PositiveOrZero Long version, @NotNull @Positive Long profissionalId) {}

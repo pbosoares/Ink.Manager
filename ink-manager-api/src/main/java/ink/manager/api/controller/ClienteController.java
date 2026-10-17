@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import ink.manager.api.model.Cliente;
+import ink.manager.api.dto.*;
 import ink.manager.api.service.ClienteService;
 import jakarta.validation.Valid;
 
@@ -29,32 +30,33 @@ public class ClienteController {
     }
 
     @GetMapping
-    public List<Cliente> listarTodos() {
-        return clienteService.listarTodos();
+    public List<ClienteResponse> listarTodos() {
+        return clienteService.listarTodos().stream().map(ClienteResponse::from).toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Cliente> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<ClienteResponse> buscarPorId(@PathVariable Long id) {
         return clienteService.buscarPorId(id)
-                .map(ResponseEntity::ok)
+                .map(ClienteResponse::from).map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Cliente criar(@Valid @RequestBody Cliente cliente) {
-        return clienteService.salvar(cliente);
+    public ClienteResponse criar(@Valid @RequestBody ClienteRequest cliente) {
+        return ClienteResponse.from(clienteService.salvar(cliente.toModel()));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cliente> atualizar(
+    public ResponseEntity<ClienteResponse> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody Cliente cliente) {
+            @Valid @RequestBody ClienteRequest cliente) {
 
-        Cliente atualizado = clienteService.atualizar(id, cliente);
-        return ResponseEntity.ok(atualizado);
+        Cliente atualizado = clienteService.atualizar(id, cliente.toModel());
+        return ResponseEntity.ok(ClienteResponse.from(atualizado));
     }
 
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('PROPRIETARIO')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         clienteService.deletar(id);
