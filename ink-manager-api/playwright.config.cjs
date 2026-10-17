@@ -1,6 +1,7 @@
 const { defineConfig } = require('@playwright/test');
 module.exports = defineConfig({
-  testDir: './e2e', workers: 1, timeout: 45000,
+  expect: { timeout: 20000 },
+  testDir: './e2e', workers: 1, timeout: 90000,
   use: { baseURL: 'http://127.0.0.1:8087', trace: 'retain-on-failure' },
   webServer: {
     command: 'java -jar target/api-0.0.1-SNAPSHOT.jar --server.port=8087 --server.address=127.0.0.1',

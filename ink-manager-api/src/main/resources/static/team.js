@@ -191,8 +191,9 @@
     loadAccounts(); window.inkBilling?.render();
   }
   async function loadAccounts() {
+    const generation = state.generation, userId = state.user?.id;
     try {
-      const accounts = await api('/equipe'); if (!owner()) return;
+      const accounts = await api('/equipe'); if (!owner() || generation !== state.generation || userId !== state.user?.id) return;
       $('account-list').innerHTML = accounts.map(account => `<article class="team-card"><strong>${escapeHtml(account.nome)}</strong><p>${escapeHtml(account.email)} / ${account.perfil === 'PROPRIETARIO' ? 'Responsavel' : 'Funcionario'} / ${account.ativo ? 'Ativo' : 'Desativado'}</p>${account.id === state.user.id ? '' : `<button type="button" class="secondary" data-account="${account.id}" data-version="${account.version}" data-active="${!account.ativo}">${account.ativo ? 'Desativar e encerrar sessoes' : 'Reativar acesso'}</button>`}</article>`).join('');
     } catch (error) { if ($('account-message')) $('account-message').textContent = error.message; }
   }
@@ -219,7 +220,7 @@
     finally { $('save-password').disabled=false; }
   };
   if (resetToken) passwordDialog(true);
-  window.inkTeam = { render: renderTeam, editorAvailability, close() { ++editorRequest; ++calendarRequest; settingsUser=null;calendarKey='';selectedDate='';$('professional-dialog').close(); } };
+  window.inkTeam = { render: renderTeam, editorAvailability, close() { ++editorRequest; ++calendarRequest; settingsUser=null;calendarKey='';selectedDate='';$('professional-dialog').close(); professionalEdit=null; ['studio-settings','professional-list','availability-days','availability-slots','block-list','shift-list'].forEach(id => { $(id).replaceChildren(); }); $('professional-form').reset(); } };
   setInterval(async () => {
     if (polling || document.hidden || !state.token || !state.loaded || $('editor').open || $('professional-dialog').open || !['overview','agenda'].includes(state.view)) return;
     polling=true; const generation=state.generation, request=state.loadRequest;

@@ -22,7 +22,7 @@ segundos quando visivel e sem editor aberto. A confirmacao final ocorre no servi
 
 - Responsavel: nome do estudio, acessos, profissionais, expedientes, folgas e exclusoes.
 - Funcionario: consulta, cadastro de clientes e criacao/edicao de agendamentos.
-- Uma conta de e-mail pertence a um estudo; o mesmo e-mail nao cria contas duplicadas.
+- Uma conta de e-mail pertence a um estudio; o mesmo e-mail nao cria contas duplicadas.
 - Cada requisicao valida usuario ativo e versao da sessao. Desativar acesso, redefinir senha ou sair revoga os tokens anteriores.
 - O responsavel nao pode desativar a propria conta. Contas nao sao apagadas junto com o historico.
 - Endpoints nunca aceitam o estudio por parametro para decidir o acesso: usam a sessao autenticada.
@@ -85,3 +85,42 @@ Para navegador: gere o JAR, execute `npm ci`, instale o Chromium de teste com
 `npx playwright install chromium`, configure outro banco exclusivo em DB_URL,
 DB_USERNAME e DB_PASSWORD e execute `npm run test:e2e`. Isso e tooling de
 validacao do desenvolvedor, nao instalacao para clientes.
+
+## Assinatura por cartao ou Pix
+
+O responsavel acessa Meu estudio para consultar o periodo de avaliacao, valor,
+periodo pago e formas de pagamento. Cartao usa assinatura recorrente no checkout
+Mercado Pago. Pix usa checkout hospedado para pagar uma mensalidade de cada vez;
+nao e Pix Automatico. Dados de cartao ficam no provedor.
+
+A configuracao inicial e 14 dias de avaliacao e R$ 19,90/mes, alteraveis pelo operador
+em BILLING_TRIAL_DAYS e BILLING_MONTHLY_AMOUNT antes de disponibilizar a oferta.
+O backend determina o valor e valida a moeda/quantia confirmadas pelo provedor.
+A configuracao de preco e comercial e precisa ser validada antes da primeira venda.
+
+Ao vencer a avaliacao e o periodo pago, novas gravacoes de clientes/agenda ficam
+bloqueadas com 402. Os dados continuam consultaveis e o responsavel pode renovar.
+BILLING_ENFORCE=true e o padrao; desabilitar e destinado somente a desenvolvimento.
+Cancelar recorrencia nao remove o credito ja pago. Estornos e chargebacks recebidos
+pelo webhook retiram o credito correspondente; o historico de negocio e preservado.
+
+Para habilitar pagamentos, o operador configura uma unica conta recebedora:
+
+- PUBLIC_URL: URL HTTPS publica da plataforma.
+- MP_ACCESS_TOKEN: credencial da conta recebedora.
+- MP_WEBHOOK_SECRET: segredo de assinatura das notificacoes.
+- Webhook publico: POST /assinatura/webhook, com eventos payment, subscription_preapproval e subscription_authorized_payment.
+
+A plataforma verifica HMAC, consulta o recurso diretamente na API do Mercado Pago
+e aplica o resultado de forma idempotente. Retornar do checkout nao ativa acesso.
+Cada pagamento tem ID unico e vinculo ao estudio correto. Uma intencao de checkout
+fica salva antes da chamada externa para repetir com a mesma chave de idempotencia.
+
+A conciliacao automatica executa em lotes a cada 10 minutos, alem do webhook. O
+responsavel pode usar Ja paguei para consultar o provedor. Sem as credenciais ou
+URL HTTPS, os botoes de pagamento ficam desabilitados e a API retorna indisponibilidade.
+Nenhuma integracao simulada e oferecida como pagamento real.
+
+A ativacao comercial ainda exige homologacao com contas de teste do provedor,
+seguida de configuracao de producao. Hospedagem, dominio e contas externas nao
+foram provisionados neste repositorio.

@@ -19,18 +19,19 @@ import static org.mockito.Mockito.*;
  "spring.datasource.url=${INK_TEST_DB_URL:jdbc:h2:mem:studio;DB_CLOSE_DELAY=-1}",
  "spring.datasource.driver-class-name=${INK_TEST_DB_DRIVER:org.h2.Driver}",
  "spring.datasource.username=${INK_TEST_DB_USER:sa}","spring.datasource.password=${INK_TEST_DB_PASSWORD:}",
- "jwt.secret=test-only-secret-with-more-than-32-bytes","studio.auth-attempts-per-minute=1000"})
+ "jwt.secret=test-only-secret-with-more-than-32-bytes","studio.auth-attempts-per-minute=1000","billing.mp-webhook-secret=webhook-secret-for-test-only","billing.sync-initial-delay-ms=3600000"})
 class StudioIntegrationTest {
     record Conta(String token,long profissional,long estudio,long usuario,String email){}
     @Value("${local.server.port}") int port;
     @Autowired JdbcTemplate jdbc;
     @Autowired org.springframework.security.oauth2.jwt.JwtEncoder encoder;
     @MockitoBean RecuperacaoEmail emailSender;
+    @MockitoBean ink.manager.api.service.MercadoPagoGateway gateway;
     final HttpClient client=HttpClient.newHttpClient();
     final ObjectMapper mapper=new ObjectMapper();
 
     @BeforeEach void clean(){
-        for(String table:List.of("recuperacoes_senha","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","estudios")) jdbc.update("DELETE FROM "+table);
+        for(String table:List.of("assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","estudios")) jdbc.update("DELETE FROM "+table);
     }
     HttpResponse<String> request(String method,String path,String body,String token)throws Exception{
         var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).timeout(Duration.ofSeconds(20));
@@ -171,5 +172,79 @@ class StudioIntegrationTest {
         String updated=login(conta.email(),"NovaSenhaTeste123");
         assertEquals(204,request("POST","/auth/logout",null,updated).statusCode());
         assertEquals(401,request("GET","/clientes",null,updated).statusCode());
+    }
+
+    HttpResponse<String> notificar(String type,String id,boolean valida)throws Exception{
+        String ts=Long.toString(Instant.now().getEpochSecond()),requestId="webhook-test-request";
+        var mac=javax.crypto.Mac.getInstance("HmacSHA256");
+        mac.init(new javax.crypto.spec.SecretKeySpec("webhook-secret-for-test-only".getBytes(java.nio.charset.StandardCharsets.UTF_8),"HmacSHA256"));
+        String value="id:"+id.toLowerCase(Locale.ROOT)+";request-id:"+requestId+";ts:"+ts+";";
+        String digest=HexFormat.of().formatHex(mac.doFinal(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        var request=HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/assinatura/webhook?data.id="+id))
+            .header("Content-Type","application/json").header("x-request-id",requestId)
+            .header("x-signature","ts="+ts+",v1="+(valida?digest:"00".repeat(32)))
+            .POST(HttpRequest.BodyPublishers.ofString(stringify(Map.of("type",type,"data",Map.of("id",id))))).build();
+        return client.send(request,HttpResponse.BodyHandlers.ofString());
+    }
+    JsonNode pagamento(String id,String reference,String status){
+        return mapper.readTree(stringify(Map.of("id",id,"external_reference",reference,"status",status,
+            "currency_id","BRL","transaction_amount",new java.math.BigDecimal("19.90"),"transaction_amount_refunded",status.equals("refunded")?new java.math.BigDecimal("19.90"):java.math.BigDecimal.ZERO,
+            "date_approved",OffsetDateTime.now(ZoneOffset.UTC).toString())));
+    }
+    @Test void pixExigeConfirmacaoAssinadaENaoDuplicaCredito()throws Exception{
+        var conta=conta("Estudio assinante");var outro=conta("Outro estudio");
+        jdbc.update("UPDATE estudios SET criado_em=? WHERE id=?",java.sql.Timestamp.valueOf(LocalDateTime.now().minusDays(40)),conta.estudio());
+        assertEquals(402,request("POST","/clientes","{\"nome\":\"Novo\",\"telefone\":\"21999999999\"}",conta.token()).statusCode());
+        assertEquals(200,request("GET","/clientes",null,conta.token()).statusCode());
+        when(gateway.disponivel()).thenReturn(true);
+        when(gateway.criar(eq("/checkout/preferences"),anyMap(),anyString())).thenReturn(mapper.readTree("{\"id\":\"pix-preference-1\",\"init_point\":\"https://www.mercadopago.com.br/checkout/pix-test\"}"));
+        var checkout=request("POST","/assinatura/checkout","{\"metodo\":\"PIX\"}",conta.token());assertEquals(200,checkout.statusCode(),checkout.body());
+        String reference=json(checkout).get("id").asText();
+        assertEquals(reference,json(request("POST","/assinatura/checkout","{\"metodo\":\"PIX\"}",conta.token())).get("id").asText());
+        verify(gateway,times(1)).criar(eq("/checkout/preferences"),anyMap(),anyString());
+        when(gateway.obter("/v1/payments/1001")).thenReturn(pagamento("1001",reference,"approved"));
+        assertEquals(401,notificar("payment","1001",false).statusCode());verify(gateway,never()).obter(anyString());
+        assertEquals(200,notificar("payment","1001",true).statusCode());
+        var pago=json(request("GET","/assinatura",null,conta.token()));assertEquals("ATIVA",pago.get("status").asText());
+        assertEquals(200,notificar("payment","1001",true).statusCode());
+        assertEquals(pago.get("pagoAte").asText(),json(request("GET","/assinatura",null,conta.token())).get("pagoAte").asText());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,conta.estudio()));
+        assertTrue(json(request("GET","/assinatura",null,outro.token())).get("pagoAte").isNull());
+        assertEquals(201,request("POST","/clientes","{\"nome\":\"Novo\",\"telefone\":\"21999999999\"}",conta.token()).statusCode());
+        when(gateway.obter("/v1/payments/1001")).thenReturn(pagamento("1001",reference,"refunded"));
+        assertEquals(200,notificar("payment","1001",true).statusCode());
+        assertEquals("EXPIRADA",json(request("GET","/assinatura",null,conta.token())).get("status").asText());
+        when(gateway.obter("/v1/payments/1001")).thenReturn(pagamento("1001",reference,"approved"));
+        assertEquals(200,notificar("payment","1001",true).statusCode());
+        assertEquals("EXPIRADA",json(request("GET","/assinatura",null,conta.token())).get("status").asText());
+        when(gateway.obter("/v1/payments/1002")).thenReturn(pagamento("1002",reference,"approved"));
+        assertEquals(200,notificar("payment","1002",true).statusCode());
+        assertEquals("ATIVA",json(request("GET","/assinatura",null,conta.token())).get("status").asText());
+    }
+    @Test void cartaoSoLiberaPagamentoConfirmadoECancelamentoPreservaPeriodo()throws Exception{
+        var conta=conta("Estudio cartao");when(gateway.disponivel()).thenReturn(true);
+        when(gateway.criar(eq("/preapproval"),anyMap(),anyString())).thenReturn(mapper.readTree("{\"id\":\"card-contract-1\",\"init_point\":\"https://www.mercadopago.com.br/subscriptions/card-test\"}"));
+        var checkout=request("POST","/assinatura/checkout","{\"metodo\":\"CARTAO\"}",conta.token());assertEquals(200,checkout.statusCode(),checkout.body());
+        String reference=json(checkout).get("id").asText();
+        var contrato=mapper.readTree(stringify(Map.of("id","card-contract-1","external_reference",reference,"status","authorized")));
+        when(gateway.obter("/preapproval/card-contract-1")).thenReturn(contrato);
+        assertEquals(200,notificar("subscription_preapproval","card-contract-1",true).statusCode());
+        assertTrue(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
+        when(gateway.obter("/authorized_payments/2001")).thenReturn(mapper.readTree("{\"preapproval_id\":\"card-contract-1\",\"payment\":{\"id\":\"3001\"}}"));
+        when(gateway.obter("/v1/payments/3001")).thenReturn(pagamento("3001",reference,"approved"));
+        assertEquals(200,notificar("subscription_authorized_payment","2001",true).statusCode());
+        String until=json(request("GET","/assinatura",null,conta.token())).get("pagoAte").asText();
+        when(gateway.atualizar(eq("/preapproval/card-contract-1"),anyMap())).thenReturn(mapper.readTree(stringify(Map.of("id","card-contract-1","external_reference",reference,"status","cancelled"))));
+        var cancelled=request("POST","/assinatura/cancelar-recorrencia",null,conta.token());assertEquals(200,cancelled.statusCode(),cancelled.body());
+        assertEquals(until,json(cancelled).get("pagoAte").asText());assertFalse(json(cancelled).get("cartaoEmRecorrencia").asBoolean());
+    }
+    @Test void pagamentoMenorNaoAtivaAssinatura()throws Exception{
+        var conta=conta("Estudio");when(gateway.disponivel()).thenReturn(true);
+        when(gateway.criar(eq("/checkout/preferences"),anyMap(),anyString())).thenReturn(mapper.readTree("{\"id\":\"pix-preference-2\",\"init_point\":\"https://www.mercadopago.com.br/checkout/pix-test\"}"));
+        var checkout=request("POST","/assinatura/checkout","{\"metodo\":\"PIX\"}",conta.token());String reference=json(checkout).get("id").asText();
+        var invalid=mapper.readTree(stringify(Map.of("id","4001","external_reference",reference,"status","approved","currency_id","BRL","transaction_amount",1)));
+        when(gateway.obter("/v1/payments/4001")).thenReturn(invalid);
+        assertEquals(400,notificar("payment","4001",true).statusCode());
+        assertTrue(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
     }
 }

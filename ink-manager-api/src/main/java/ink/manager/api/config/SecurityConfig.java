@@ -60,7 +60,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionJwtConverter sessions)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionJwtConverter sessions, ink.manager.api.service.AssinaturaService assinatura)
             throws Exception {
 
         http
@@ -73,9 +73,10 @@ public class SecurityConfig {
             )
 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/index.html", "/app.js", "/team.js", "/styles.css", "/favicon.svg").permitAll()
+                .requestMatchers("/", "/index.html", "/app.js", "/team.js", "/billing.js", "/styles.css", "/favicon.svg").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/auth/login", "/auth/estudios", "/auth/recuperar-senha", "/auth/redefinir-senha").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/auth/config", "/actuator/health").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/assinatura/webhook").permitAll()
                 .anyRequest().authenticated()
             )
 
@@ -83,6 +84,7 @@ public class SecurityConfig {
                 oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(sessions))
             );
 
+        http.addFilterAfter(new AssinaturaAccessFilter(assinatura), org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 }

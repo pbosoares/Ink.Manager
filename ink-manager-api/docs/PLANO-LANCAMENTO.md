@@ -1,48 +1,28 @@
-# Plano de lancamento: R$ 19,90 por mes por estudio
+# Plano de lancamento SaaS
 
-Oferta definida: agenda unica, cadastro de clientes e painel geral, com atualizacoes
-do produto. Suporte por mensagem em horario comercial, com canal e janela
-informados na proposta. Personalizacoes sao orcadas separadamente. O preco nao e
-vitalicio; qualquer reajuste deve ser comunicado previamente conforme o acordo.
+O assinante acessa a plataforma pelo navegador, cadastra seu proprio estudio,
+personaliza o nome e administra os acessos da equipe. Uma unica operacao hospeda
+as empresas com dados isolados; nao ha instalacao por cliente.
 
-## Modelo da primeira versao
+## Oferta inicial
 
-Uma instalacao dedicada por estudio: banco, volumes, rede, JWT e convite proprios.
-As contas da equipe do mesmo estudio compartilham os dados e permissoes.
-Nao cadastrar empresas diferentes na mesma instalacao.
-Use um servidor/VM independente por estudio nesta topologia: o proxy publica
-80/443. Projetos Compose separados no mesmo host nao resolvem a disputa dessas
-portas. Hospedagem compartilhada exige outro desenho de proxy e validacao.
+Equipe com agenda por profissional, expediente, intervalos, folgas, clientes
+recorrentes, consulta de disponibilidade e administracao de acessos. Recuperacao
+de senha depende do e-mail da plataforma. Pagamento por cartao recorrente ou Pix
+mensal no provedor, com liberacao apos confirmacao.
 
-## Preparar cada instalacao
+O preco e configurado por BILLING_MONTHLY_AMOUNT e exibido antes do checkout.
+O valor inicial da implementacao e R$ 19,90, com avaliacao de 14 dias configuravel.
+Valide preco e margem com custos de hospedagem, taxas e suporte antes de publicar.
+A proposta de piloto comercial deve informar prazo, valor posterior e atendimento.
 
-Em uma copia independente da aplicacao, execute no PowerShell:
+## Antes da primeira assinatura real
 
-```powershell
-./deploy/New-StudioConfig.ps1 -StudioId estudio-exemplo -Domain agenda.exemplo.com.br -ImageTag release-validada
-docker compose --env-file .env -f compose.production.yml config --quiet
-docker compose --env-file .env -f compose.production.yml up --build -d
-```
+1. Escolher hospedagem gerenciada para backend e PostgreSQL e publicar com HTTPS.
+2. Configurar URL publica, remetente de e-mail e conta recebedora.
+3. Homologar fluxo completo com contas de teste: adesao, renovacao, Pix, cancelamento, atraso e estorno.
+4. Ensaiar isolamento de empresas, troca de senha, revogacao de acesso e restauracao de backup.
+5. Definir suporte, termos e tratamento de dados e entao iniciar um piloto assistido.
 
-O script gera segredos aleatorios independentes, nao imprime seus valores e
-recusa sobrescrever arquivo existente. Restrinja acesso ao .env ao operador.
-O identificador do estudio define o projeto Compose e seus volumes.
-Nao troque esse identificador depois de gravar dados: outro nome aponta para
-outros volumes, sem migrar os registros existentes.
-
-Cadastre a equipe pelo convite do .env. Depois deixe STUDIO_REGISTRATION_CODE
-vazio e recrie a API. Valide bloqueio de cadastro e login das contas existentes.
-
-## Cobranca e operacao
-
-Nesta versao, a mensalidade e cobrada manualmente pelo responsavel comercial.
-Nao ha checkout, assinatura recorrente, webhook ou suspensao automatica.
-Registre cliente, vencimento e pagamento fora do repositorio, sem dados de cartao.
-O preco de R$ 19,90 nao comprova viabilidade: meca infraestrutura, backup,
-taxas, impostos e tempo de suporte antes de ampliar as vendas.
-
-Antes de cobrar por acesso operacional, cumpra docs/RELEASE.md: CI da revisao,
-HTTPS, persistencia, backup restaurado, monitoramento e homologacao.
-Para dois estudios, valide tambem que um token da instalacao A e rejeitado na B
-e que criar/excluir um cliente em A nao altera os dados de B.
-Nao marque estes testes como concluidos sem executa-los nos ambientes reais.
+Os assinantes nao executam scripts, Docker ou comandos de banco. A operacao da
+plataforma e centralizada. Docker e ampliacao da CI ficam para a etapa posterior.

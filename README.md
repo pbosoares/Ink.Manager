@@ -12,6 +12,8 @@ nome do estudio e administra equipe, clientes e agendas por profissional.
 Aplicacao em [ink-manager-api](ink-manager-api/README.md).
 O assinante nao instala Java, banco ou Docker. A plataforma precisa ser publicada
 online pelo operador; hospedagem e dominio ainda nao foram provisionados.
-A integracao de assinatura por cartao/Pix esta em desenvolvimento separado.
+Mensalidade inicial de R$ 19,90 por estudio, com 14 dias de avaliacao.
+Assinatura por cartao recorrente ou Pix mensal, com confirmacao pelo provedor.
+Pagamentos reais dependem da configuracao e homologacao do Mercado Pago.
 
 Os Java da raiz, `lib/` e `clientes.txt` sao o CLI historico, fora do build atual.

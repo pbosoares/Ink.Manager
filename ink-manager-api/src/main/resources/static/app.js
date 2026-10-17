@@ -25,6 +25,8 @@ function logout(message = '') {
   sessionStorage.removeItem('ink.token');
   state.clients = [];
   state.appointments = [];
+  state.professionals = []; state.user = null; state.studio = null; state.edit = null; state.deletion = null;
+  ['today-list','agenda-list','client-list','account-name'].forEach(id => { $(id).textContent = ''; });
   $('workspace').hidden = true;
   $('auth').hidden = false;
   $('editor').close();
@@ -36,6 +38,7 @@ function logout(message = '') {
 
 async function api(path, { method = 'GET', body, publicRequest = false } = {}) {
   const headers = {};
+  const requestToken = state.token;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (!publicRequest && state.token) headers.Authorization = `Bearer ${state.token}`;
   let response;
@@ -46,7 +49,7 @@ async function api(path, { method = 'GET', body, publicRequest = false } = {}) {
   }
   const data = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
-    if (response.status === 401 && !publicRequest) logout('Sua sessão expirou. Entre novamente.');
+    if (response.status === 401 && !publicRequest && state.token === requestToken) logout('Sua sessão expirou. Entre novamente.');
     const message = data?.erro || (data && !data.timestamp && typeof data === 'object' ? Object.values(data).filter((v) => typeof v === 'string').join(' ') : '');
     throw new Error(message || (response.status === 401 ? 'E-mail ou senha inválidos.' : 'Não foi possível concluir. Tente novamente.'));
   }
