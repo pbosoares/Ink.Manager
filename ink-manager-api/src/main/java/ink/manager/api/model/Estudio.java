@@ -5,6 +5,10 @@ import jakarta.persistence.*;
 public class Estudio {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(nullable=false, unique=true, length=80)
+    private String linkPublico;
+    @PrePersist void prepararLink() { if (linkPublico == null) linkPublico = java.util.UUID.randomUUID().toString(); }
+    public String getLinkPublico() { return linkPublico; }
     @Column(nullable = false, length = 100)
     private String nome;
     @Version private Long version;
@@ -13,6 +17,15 @@ public class Estudio {
     public java.time.LocalDateTime getCriadoEm(){return criadoEm;}
     public void setCriadoEm(java.time.LocalDateTime criadoEm){this.criadoEm=criadoEm;}
     public java.time.LocalDateTime getPagoAte(){return pagoAte;}
+    @Column(nullable=false,length=64) private String fusoHorario="America/Sao_Paulo";
+    @Column(nullable=false) private Integer antecedenciaMinimaMinutos=120;
+    @Column(nullable=false) private Integer limiteAgendamentosEmail=3;
+    public String getFusoHorario(){return fusoHorario;}
+    public void setFusoHorario(String value){fusoHorario=value;}
+    public Integer getAntecedenciaMinimaMinutos(){return antecedenciaMinimaMinutos;}
+    public void setAntecedenciaMinimaMinutos(Integer value){antecedenciaMinimaMinutos=value;}
+    public Integer getLimiteAgendamentosEmail(){return limiteAgendamentosEmail;}
+    public void setLimiteAgendamentosEmail(Integer value){limiteAgendamentosEmail=value;}
 
     public Long getId() { return id; }
     public String getNome() { return nome; }

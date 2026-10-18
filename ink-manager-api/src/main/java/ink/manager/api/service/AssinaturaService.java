@@ -34,7 +34,7 @@ public class AssinaturaService {
 
     public AssinaturaService(AssinaturaStore store,EstudioRepository estudios,UsuarioService usuarios,
             MercadoPagoGateway gateway,AcessoAtual acesso,Clock clock,PlatformTransactionManager manager,
-            @Value("${billing.monthly-amount:19.90}") BigDecimal valor,@Value("${billing.trial-days:14}") int trialDays,
+            @Value("${billing.monthly-amount:29.90}") BigDecimal valor,@Value("${billing.trial-days:14}") int trialDays,
             @Value("${billing.enforce:true}") boolean enforce,@Value("${app.public-url}") String publicUrl){
         this.store=store;this.estudios=estudios;this.usuarios=usuarios;this.gateway=gateway;this.acesso=acesso;
         this.clock=clock;this.tx=new TransactionTemplate(manager);this.valor=valor.setScale(2);this.trialDays=trialDays;
@@ -56,7 +56,7 @@ public class AssinaturaService {
         // Persist the intent before the external request. Retries reuse its idempotency key.
         String id=tx.execute(status->{
             estudios.bloquear(estudioId).orElseThrow();var aberto=store.aberto(estudioId,metodo.name());
-            if(aberto.isPresent()&&(metodo==Metodo.CARTAO||aberto.get().criadoEm().plusHours(24).isAfter(LocalDateTime.now(clock))))return aberto.get().id();
+            if(aberto.isPresent()&&aberto.get().valor().compareTo(valor)==0&&(metodo==Metodo.CARTAO||aberto.get().criadoEm().plusHours(24).isAfter(LocalDateTime.now(clock))))return aberto.get().id();
             String novo=UUID.randomUUID().toString();store.criar(novo,estudioId,metodo.name(),valor,LocalDateTime.now(clock));return novo;
         });
         return tx.execute(status->{
@@ -66,12 +66,12 @@ public class AssinaturaService {
             body.put("notification_url",publicUrl+"/assinatura/webhook");
             JsonNode response;
             if(metodo==Metodo.CARTAO){
-                body.put("reason","Ink Manager - assinatura mensal");body.put("payer_email",email);body.put("status","pending");
+                body.put("reason","Marcaê - assinatura mensal");body.put("payer_email",email);body.put("status","pending");
                 body.put("back_url",publicUrl+"/?assinatura=retorno");
                 body.put("auto_recurring",Map.of("frequency",1,"frequency_type","months","transaction_amount",atual.valor(),"currency_id","BRL"));
                 response=gateway.criar("/preapproval",body,id);
             }else{
-                body.put("items",List.of(Map.of("id","ink-manager-mensal","title","Ink Manager - mensalidade por Pix","quantity",1,"unit_price",atual.valor(),"currency_id","BRL")));
+                body.put("items",List.of(Map.of("id","ink-manager-mensal","title","Marcaê - mensalidade por Pix","quantity",1,"unit_price",atual.valor(),"currency_id","BRL")));
                 body.put("payer",Map.of("email",email));body.put("back_urls",Map.of("success",publicUrl+"/?assinatura=retorno","pending",publicUrl+"/?assinatura=retorno","failure",publicUrl+"/?assinatura=retorno"));
                 body.put("auto_return","approved");body.put("expires",true);
                 body.put("expiration_date_from",clock.instant().toString());body.put("expiration_date_to",clock.instant().plus(Duration.ofHours(24)).toString());

@@ -8,6 +8,30 @@ import java.time.LocalTime;
 @Entity
 @Table(name = "marcacoes")
 public class Marcacao {
+    @Transient private boolean recebimentoConfirmado;
+    @Transient private boolean podeConfirmarRecebimento;
+    @Column(length=20) private String presenca;
+    @Column(length=30) private String avisoPrivacidadeVersao;
+    private java.time.Instant avisoPrivacidadeLidoEm;
+    public String getPresenca(){return presenca;}
+    public void setPresenca(String value){presenca=value;}
+    public String getAvisoPrivacidadeVersao(){return avisoPrivacidadeVersao;}
+    public void registrarAvisoPrivacidade(String versao,java.time.Instant lidoEm){avisoPrivacidadeVersao=versao;avisoPrivacidadeLidoEm=lidoEm;}
+    public boolean isRecebimentoConfirmado(){return recebimentoConfirmado;}
+    public boolean isPodeConfirmarRecebimento(){return podeConfirmarRecebimento;}
+    public void informarRecebimento(boolean confirmado,boolean permitido){recebimentoConfirmado=confirmado;podeConfirmarRecebimento=permitido;}
+    @ManyToOne @JoinColumn(name="servico_id") private Servico servico;
+    @Column(length=100) private String servicoNome;
+    @Column(precision=12,scale=2) private java.math.BigDecimal precoPrevisto;
+    @Column(length=36) private String chavePublica;
+    @Column(length=64) private String pedidoPublicoHash;
+    public Servico getServico(){return servico;}
+    public String getServicoNome(){return servicoNome;}
+    public java.math.BigDecimal getPrecoPrevisto(){return precoPrevisto;}
+    public void definirServico(Servico value){servico=value;servicoNome=value.getNome();precoPrevisto=value.getPreco();}
+    public String getChavePublica(){return chavePublica;}
+    public String getPedidoPublicoHash(){return pedidoPublicoHash;}
+    public void definirPedidoPublico(String chave,String hash){chavePublica=chave;pedidoPublicoHash=hash;}
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

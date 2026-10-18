@@ -7,5 +7,6 @@ public class AgendaGuard {
     private final EstudioRepository estudios;
     private final AcessoAtual acesso;
     public AgendaGuard(EstudioRepository estudios, AcessoAtual acesso) { this.estudios = estudios; this.acesso = acesso; }
-    public void bloquear() { estudios.bloquear(acesso.estudioId()).orElseThrow(); }
+    public void bloquear() { bloquear(acesso.estudioId()); }
+    public void bloquear(Long estudioId) { estudios.bloquear(estudioId).orElseThrow(); }
 }

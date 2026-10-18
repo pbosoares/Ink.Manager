@@ -24,9 +24,11 @@ import jakarta.validation.Valid;
 public class ClienteController {
 
     private final ClienteService clienteService;
+    private final ink.manager.api.service.HistoricoFaltasService faltas;
 
-    public ClienteController(ClienteService clienteService) {
+    public ClienteController(ClienteService clienteService,ink.manager.api.service.HistoricoFaltasService faltas) {
         this.clienteService = clienteService;
+        this.faltas=faltas;
     }
 
     @GetMapping
@@ -40,6 +42,10 @@ public class ClienteController {
                 .map(ClienteResponse::from).map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @GetMapping("/{id}/historico-faltas")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('PROPRIETARIO')")
+    public List<ink.manager.api.dto.RegistroFalta> historicoFaltas(@PathVariable Long id){return faltas.porCliente(id);}
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

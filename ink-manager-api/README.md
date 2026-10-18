@@ -1,4 +1,4 @@
-# Ink Manager - SaaS
+# Marcae - SaaS (Ink Manager)
 
 Uma unica aplicacao atende varios estudios, com dados separados e acesso pelo
 navegador. Cada responsavel cria o proprio estudio e personaliza seu nome. Nao ha
@@ -93,7 +93,7 @@ periodo pago e formas de pagamento. Cartao usa assinatura recorrente no checkout
 Mercado Pago. Pix usa checkout hospedado para pagar uma mensalidade de cada vez;
 nao e Pix Automatico. Dados de cartao ficam no provedor.
 
-A configuracao inicial e 14 dias de avaliacao e R$ 19,90/mes, alteraveis pelo operador
+A configuracao inicial e 14 dias de avaliacao sem cartao no inicio e R$ 29,90/mes, alteraveis pelo operador
 em BILLING_TRIAL_DAYS e BILLING_MONTHLY_AMOUNT antes de disponibilizar a oferta.
 O backend determina o valor e valida a moeda/quantia confirmadas pelo provedor.
 A configuracao de preco e comercial e precisa ser validada antes da primeira venda.
@@ -124,3 +124,48 @@ Nenhuma integracao simulada e oferecida como pagamento real.
 A ativacao comercial ainda exige homologacao com contas de teste do provedor,
 seguida de configuracao de producao. Hospedagem, dominio e contas externas nao
 foram provisionados neste repositorio.
+
+## Marcae simples: servicos, link publico e recebimentos
+
+O layout e os recursos anteriores de equipe, agenda, clientes e assinatura foram
+preservados. Em Meu negocio, o responsavel cadastra nome, preco e duracao dos
+servicos, configura os profissionais e copia o link fixo. Arquivar um servico o
+retira das novas reservas sem apagar seu historico. Renomear o negocio nao muda o link.
+
+O cliente abre /agendar.html?local=LINK, escolhe servico, profissional, dia e
+horario, informa nome/telefone e confirma sem criar conta. O servidor usa preco e
+duracao do catalogo e grava snapshots. A resposta perdida pode ser repetida com a
+mesma chave sem duplicar cliente/reserva. O horario so e garantido ao confirmar;
+conflitos exigem consultar os horarios novamente. Nenhum pagamento e feito nessa pagina.
+
+O proprietario confirma atendimento e valor efetivamente recebido a partir do
+horario agendado, em uma unica acao na agenda. Agendamento cancelado ou futuro nao
+aceita recebimento. O registro confirmado conclui o atendimento e bloqueia sua
+edicao/exclusao; repetir o mesmo valor devolve o registro existente. Correcao ou
+estorno desses recebimentos nao faz parte desta entrega.
+
+A tela Recebimentos soma somente valores confirmados: semana segunda a domingo
+e mes calendario, pela data da confirmacao no fuso do estabelecimento. Reservas e
+atendimentos concluidos sem confirmacao de valor nao entram no total. Funcionarios
+nao acessam controles ou totais de recebimentos. O catalogo nao e controle de estoque,
+custos, lucro ou sistema contabil.
+
+Contratos novos (JWT existente, salvo rotas publicas):
+
+- GET/POST /servicos; PUT /servicos/{id}. Escrita somente proprietario.
+- GET /servicos/link: caminho publico fixo, somente proprietario.
+- GET /publico/{link}: catalogo minimo, sem contatos de terceiros.
+- GET /publico/{link}/horarios?servicoId=ID&profissionalId=ID&data=AAAA-MM-DD.
+- POST /publico/{link}/reservas: chave UUID, servicoId, profissionalId, data, horario, nome e telefone.
+- POST /recebimentos/marcacoes/{id}: {valor}, somente proprietario.
+- GET /recebimentos?data=AAAA-MM-DD: totais e registros, somente proprietario.
+
+Agendas incluem servicoNome/precoPrevisto (nulos no legado), recebimentoConfirmado
+e podeConfirmarRecebimento. Migracao V10 e aditiva. Reservas publicas continuam
+sujeitas ao acesso vigente do negocio, isolamento e validacao de disponibilidade.
+Todos os servicos ativos podem ser reservados com qualquer profissional ativo do
+mesmo negocio. Janela publica: hoje ate 365 dias, inicio em passos de 15 minutos.
+Limites publicos padrao por instancia/IP: 10 reservas e 120 consultas por minuto.
+
+Resultados executados, comandos e limitacoes estao em docs/MARCAE-VALIDACAO.md.
+Homologacao local nao representa publicacao ou cobranca real.

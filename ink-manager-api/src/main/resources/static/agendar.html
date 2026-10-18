@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#E9DDBF">
+  <meta name="description" content="Escolha seu serviço e um horário livre. Agende sem criar conta.">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Agendar — Marcaê</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css"><script src="/agendar.js" defer></script>
+</head>
+<body class="public-booking">
+  <div class="public-shell">
+    <header class="landing-masthead"><a class="landing-logo" href="/">Marcaê<span aria-hidden="true"> ✦</span></a><span class="landing-motto">SEU HORÁRIO, SEM COMPLICAÇÃO.</span></header>
+    <main id="public-main">
+      <span class="eyebrow accent">AGENDAMENTO ONLINE</span>
+      <h1 id="business-name">Reserve seu horário.</h1>
+      <p>Escolha o serviço, o profissional e um horário livre. Sem criar conta. Para reservar, informe seu email e leia o aviso de privacidade.</p>
+      <p id="public-loading" role="status">Carregando serviços e profissionais…</p>
+      <p id="public-error" class="form-error" role="alert"></p>
+      <button id="retry-catalog" type="button" class="secondary" hidden>Tentar novamente</button>
+      <form id="booking-form" hidden>
+        <fieldset id="booking-fields">
+          <legend class="sr-only">Dados do agendamento</legend>
+          <label>Serviço<select name="servicoId" id="public-service" required><option value="">Selecione o serviço</option></select></label>
+          <p id="service-summary" class="booking-summary" aria-live="polite">Escolha um serviço para consultar preço e duração.</p>
+          <label>Profissional<select name="profissionalId" id="public-professional" required><option value="">Selecione o profissional</option></select></label>
+          <div class="form-row"><label>Dia<input name="data" id="public-date" type="date" required></label><label>Horário<select name="horario" id="public-time" required disabled><option value="">Escolha serviço, profissional e dia</option></select></label></div>
+          <p id="slots-status" role="status"></p>
+          <button id="refresh-slots" type="button" class="text-button">Atualizar horários</button>
+          <p id="public-timezone" class="muted"></p>
+          <label>Seu nome<input name="nome" autocomplete="name" maxlength="100" required></label>
+          <label>E-mail<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+          <label>Telefone<input name="telefone" type="tel" autocomplete="tel" maxlength="30" minlength="8" placeholder="(11) 99999-9999" required></label>
+        <details class="privacy-notice"><summary>Aviso de privacidade <span id="privacy-version"></span></summary><p>O estabelecimento usa seu nome, telefone e email para identificar e organizar esta reserva. O email fica vinculado ao cadastro criado para o atendimento. A versão do aviso e a data da leitura são registradas junto à reserva.</p></details>
+          <label class="checkbox-label privacy-ack"><input name="avisoPrivacidadeLido" type="checkbox" required> Li o aviso de privacidade</label>
+        </fieldset>
+        <p id="booking-error" class="form-error" role="alert"></p>
+        <p id="pending-note" class="booking-summary" hidden>Estamos verificando sua reserva. Tente novamente para confirmar o mesmo pedido, sem duplicar.</p>
+        <button id="reserve-button" class="primary wide" disabled>Reservar horário</button>
+        <p class="muted">Você não precisa de conta. Nenhum pagamento é feito nesta página.</p>
+      </form>
+      <section id="booking-confirmation" class="booking-confirmation" tabindex="-1" aria-labelledby="confirmation-heading" hidden>
+        <span class="eyebrow accent">TUDO CERTO</span><h2 id="confirmation-heading">Reserva confirmada</h2>
+        <dl id="confirmation-details"></dl>
+        <p>Guarde o protocolo. Para alterar ou cancelar, fale diretamente com o estabelecimento.</p>
+        <button id="another-booking" type="button" class="secondary">Fazer outro agendamento</button>
+      </section>
+    </main>
+    <footer class="landing-footer"><span>MAIS TEMPO PARA ATENDER BEM.</span><span>Marcaê</span></footer>
+  </div>
+</body>
+</html>

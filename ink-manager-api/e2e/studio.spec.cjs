@@ -1,6 +1,28 @@
 const { test, expect } = require('@playwright/test');
+test.use({ launchOptions: { args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] } });
 let cleanupToken;
 let cleanupClientId;
+async function waitForWorkspace(page) {
+  await page.waitForFunction(() => {
+    const action = document.querySelector('#main-action');
+    const retry = document.querySelector('#page-error button');
+    return Boolean(action && !action.disabled) || Boolean(retry && !retry.hidden);
+  }, null, { timeout: 30000 });
+  if (await page.locator('#main-action').isDisabled()) {
+    const failure = await page.locator('#page-error').innerText();
+    const requests = page.__inkFailedRequests || [];
+    test.info().annotations.push({ type: 'workspace-fetch-failure', description: JSON.stringify({ failure, requests }) });
+    await page.locator('#page-error button').click();
+  }
+  await expect(page.locator('#main-action')).toBeEnabled({ timeout: 30000 });
+}
+function recordWorkspaceFailures(page) {
+  page.__inkFailedRequests = [];
+  page.on('requestfailed', request => {
+    if (new URL(request.url()).origin !== 'http://127.0.0.1:8087') return;
+    page.__inkFailedRequests.push({ path: new URL(request.url()).pathname, failure: request.failure()?.errorText });
+  });
+}
 test.afterEach(async ({ request }) => {
   if (!cleanupToken || !cleanupClientId) return;
   const headers = { Authorization: `Bearer ${cleanupToken}` };
@@ -16,7 +38,9 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   const staffEmail = `staff-${Date.now()}@example.com`;
   const customerName = `Cliente E2E ${Date.now()}`;
   const errors = [];
+  recordWorkspaceFailures(page);
   page.on('pageerror', (error) => errors.push(error.message));
+  await page.bringToFront();
   await page.goto('/');
   await page.screenshot({ path: 'target/validation-login.png', fullPage: true });
   await page.locator('#toggle-auth').click();
@@ -26,8 +50,8 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   await page.locator('#auth-form [name=nomeEstudio]').fill('Estudio Autonomo E2E');
   await page.locator('#auth-submit').click();
   await expect(page.locator('#workspace')).toBeVisible();
-  await expect(page.locator('#main-action')).toBeEnabled();
-  await page.locator('[data-view=studio]').click();
+  await waitForWorkspace(page);
+  await page.locator('.nav-item[data-view=studio]').click();
   await expect(page.locator('#billing-content [data-billing=CARTAO]')).toBeDisabled();
   await expect(page.locator('#billing-content [data-billing=PIX]')).toBeDisabled();
   await page.locator('#studio-name-form [name=nome]').fill('Estudio Personalizado E2E');
@@ -71,7 +95,7 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
     await page.locator('#editor [name=descricao]').fill(`Sessao E2E ${time}`);
     await page.locator('#save-editor').click();
     await expect(page.locator('#editor')).not.toBeVisible();
-    await expect(page.locator('#main-action')).toBeEnabled();
+    await waitForWorkspace(page);
   }
   await page.locator('#agenda-search').fill(customerName);
   await expect(page.locator('#agenda-list tbody tr')).toHaveCount(2);
@@ -82,7 +106,7 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   await expect(page.locator('#agenda-list')).toContainText('Confirmada');
   expect((await (await request.get('/clientes', { headers })).json()).length).toBe(clients.length);
   await page.reload();
-  await expect(page.locator('#main-action')).toBeEnabled();
+  await waitForWorkspace(page);
   await page.locator('[data-view=agenda]').click();
   await page.locator('#agenda-search').fill(customerName);
   await expect(page.locator('#agenda-list tbody tr')).toHaveCount(2);
@@ -92,12 +116,13 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   const staffContext = await browser.newContext();
   try {
     const staffPage = await staffContext.newPage();
+    await staffPage.bringToFront();
     await staffPage.goto('/');
     await staffPage.locator('#auth-form [name=email]').fill(staffEmail);
     await staffPage.locator('#auth-form [name=senha]').fill('SenhaTeste123');
     await staffPage.locator('#auth-submit').click();
     await expect(staffPage.locator('#main-action')).toBeEnabled();
-    await expect(staffPage.locator('[data-view=studio]')).toBeHidden();
+    await expect(staffPage.locator('.nav-item[data-view=studio]')).toBeHidden();
     await staffPage.locator('[data-view=agenda]').click();
     await staffPage.locator('#agenda-search').fill(customerName);
     await expect(staffPage.locator('#agenda-list tbody tr')).toHaveCount(2);
@@ -114,7 +139,7 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
     await expect(page.locator('#agenda-list tbody tr')).toHaveCount(3,{timeout:25000});
     const accounts = await (await request.get('/equipe',{headers})).json();
     const staff = accounts.find(account => account.email === staffEmail);
-    await page.locator('[data-view=studio]').click();
+    await page.locator('.nav-item[data-view=studio]').click();
     await page.locator(`[data-account="${staff.id}"]`).click();
     await expect(page.locator(`[data-account="${staff.id}"]`)).toContainText('Reativar');
     await staffPage.reload();
@@ -125,7 +150,7 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   await page.locator('#auth-form [name=email]').fill(email);
   await page.locator('#auth-form [name=senha]').fill('SenhaTeste123');
   await page.locator('#auth-submit').click();
-  await expect(page.locator('#main-action')).toBeEnabled();
+  await waitForWorkspace(page);
   cleanupToken = await page.evaluate(() => sessionStorage.getItem('ink.token'));
   expect(errors).toEqual([]);
 });

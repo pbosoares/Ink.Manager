@@ -19,7 +19,7 @@ import static org.mockito.Mockito.*;
  "spring.datasource.url=${INK_TEST_DB_URL:jdbc:h2:mem:studio;DB_CLOSE_DELAY=-1}",
  "spring.datasource.driver-class-name=${INK_TEST_DB_DRIVER:org.h2.Driver}",
  "spring.datasource.username=${INK_TEST_DB_USER:sa}","spring.datasource.password=${INK_TEST_DB_PASSWORD:}",
- "jwt.secret=test-only-secret-with-more-than-32-bytes","studio.auth-attempts-per-minute=1000","billing.mp-webhook-secret=webhook-secret-for-test-only","billing.sync-initial-delay-ms=3600000"})
+ "jwt.secret=test-only-secret-with-more-than-32-bytes","studio.auth-attempts-per-minute=1000","studio.public-bookings-per-minute=1000","studio.public-queries-per-minute=1000","studio.time-zone=America/Sao_Paulo","billing.mp-webhook-secret=webhook-secret-for-test-only","billing.sync-initial-delay-ms=3600000"})
 class StudioIntegrationTest {
     record Conta(String token,long profissional,long estudio,long usuario,String email){}
     @Value("${local.server.port}") int port;
@@ -31,7 +31,7 @@ class StudioIntegrationTest {
     final ObjectMapper mapper=new ObjectMapper();
 
     @BeforeEach void clean(){
-        for(String table:List.of("assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","estudios")) jdbc.update("DELETE FROM "+table);
+        for(String table:List.of("assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","recebimentos","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","servicos","estudios")) jdbc.update("DELETE FROM "+table);
     }
     HttpResponse<String> request(String method,String path,String body,String token)throws Exception{
         var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).timeout(Duration.ofSeconds(20));
@@ -188,7 +188,7 @@ class StudioIntegrationTest {
     }
     JsonNode pagamento(String id,String reference,String status){
         return mapper.readTree(stringify(Map.of("id",id,"external_reference",reference,"status",status,
-            "currency_id","BRL","transaction_amount",new java.math.BigDecimal("19.90"),"transaction_amount_refunded",status.equals("refunded")?new java.math.BigDecimal("19.90"):java.math.BigDecimal.ZERO,
+            "currency_id","BRL","transaction_amount",new java.math.BigDecimal("29.90"),"transaction_amount_refunded",status.equals("refunded")?new java.math.BigDecimal("29.90"):java.math.BigDecimal.ZERO,
             "date_approved",OffsetDateTime.now(ZoneOffset.UTC).toString())));
     }
     @Test void pixExigeConfirmacaoAssinadaENaoDuplicaCredito()throws Exception{
@@ -246,5 +246,498 @@ class StudioIntegrationTest {
         when(gateway.obter("/v1/payments/4001")).thenReturn(invalid);
         assertEquals(400,notificar("payment","4001",true).statusCode());
         assertTrue(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
+    }
+
+    // Contract tests for docs/MARCAE-CONTRATOS.md. HTTP is the assertion boundary;
+    // JDBC only prepares historical dates that cannot be booked through the UI.
+    record Publico(Conta conta, String link, long servico, long profissional, LocalDate dia) {}
+
+    JsonNode servico(Conta owner, String nome, String preco, int minutos) throws Exception {
+        var response=request("POST","/servicos",stringify(Map.of("nome",nome,"preco",new java.math.BigDecimal(preco),"duracaoMinutos",minutos,"ativo",true)),owner.token());
+        assertEquals(201,response.statusCode(),response.body());
+        return json(response);
+    }
+    String linkPublico(Conta owner) throws Exception {
+        var response=request("GET","/servicos/link",null,owner.token());
+        assertEquals(200,response.statusCode(),response.body());
+        String caminho=json(response).get("caminho").asText();
+        assertTrue(caminho.startsWith("/agendar.html?local="),caminho);
+        return caminho.substring("/agendar.html?local=".length());
+    }
+    long profissionalPublico(Conta owner, LocalDate dia, String nome) throws Exception {
+        var turnos=List.of(Map.of("diaSemana",dia.getDayOfWeek().getValue(),"inicio","09:00","fim","12:00"),
+            Map.of("diaSemana",dia.getDayOfWeek().getValue(),"inicio","13:00","fim","18:00"));
+        var response=request("POST","/profissionais",stringify(Map.of("nome",nome,"ativo",true,"horarios",turnos)),owner.token());
+        assertEquals(201,response.statusCode(),response.body());
+        return json(response).get("id").asLong();
+    }
+    Publico publico(String nome) throws Exception {
+        var owner=conta(nome);String link=linkPublico(owner);
+        var catalogo=request("GET","/publico/"+link,null,null);
+        assertEquals(200,catalogo.statusCode(),catalogo.body());
+        LocalDate dia=LocalDate.parse(json(catalogo).get("hoje").asText()).plusDays(7);
+        long p=profissionalPublico(owner,dia,"Profissional publico");
+        long s=servico(owner,"Corte simples","25.90",30).get("id").asLong();
+        return new Publico(owner,link,s,p,dia);
+    }
+    Map<String,Object> pedido(Publico p,String hora) {
+        return new HashMap<>(Map.of("chave",UUID.randomUUID().toString(),"servicoId",p.servico(),
+            "profissionalId",p.profissional(),"data",p.dia().toString(),"horario",hora,
+            "nome","Cliente publico","telefone","21999998888","email","cliente."+UUID.randomUUID()+"@example.com","avisoPrivacidadeLido",true));
+    }
+    HttpResponse<String> reservar(Publico p,Map<String,Object> body) throws Exception {
+        return request("POST","/publico/"+p.link()+"/reservas",stringify(body),null);
+    }
+    HttpResponse<String> slots(Publico p,long s,long profissional,LocalDate dia) throws Exception {
+        return request("GET","/publico/"+p.link()+"/horarios?servicoId="+s+"&profissionalId="+profissional+"&data="+dia,null,null);
+    }
+    JsonNode slots(Publico p) throws Exception {
+        var response=slots(p,p.servico(),p.profissional(),p.dia());
+        assertEquals(200,response.statusCode(),response.body());
+        assertTrue(response.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        return json(response).get("horarios");
+    }
+    void dinheiro(String esperado,JsonNode valor) {
+        assertNotNull(valor);
+        assertEquals(0,new java.math.BigDecimal(esperado).compareTo(new java.math.BigDecimal(valor.asText())),valor.toString());
+    }
+    List<HttpResponse<String>> concorrentes(Callable<HttpResponse<String>> a,Callable<HttpResponse<String>> b) throws Exception {
+        var executor=Executors.newFixedThreadPool(2);var inicio=new CountDownLatch(1);
+        try {
+            var fa=executor.submit(()->{assertTrue(inicio.await(10,TimeUnit.SECONDS));return a.call();});
+            var fb=executor.submit(()->{assertTrue(inicio.await(10,TimeUnit.SECONDS));return b.call();});
+            inicio.countDown();
+            return List.of(fa.get(30,TimeUnit.SECONDS),fb.get(30,TimeUnit.SECONDS));
+        } finally { executor.shutdownNow(); }
+    }
+    String funcionario(Conta owner) throws Exception {
+        String email=UUID.randomUUID()+"@example.com";
+        var response=request("POST","/equipe",stringify(Map.of("nome","Equipe","email",email,"senha","SenhaTeste123")),owner.token());
+        assertEquals(201,response.statusCode(),response.body());
+        return login(email,"SenhaTeste123");
+    }
+    JsonNode marcacaoParaReceber(Conta owner,String hora,String status) throws Exception {
+        var body=reserva(cliente(owner),owner.profissional(),hora);
+        var created=request("POST","/marcacoes",stringify(body),owner.token());
+        assertEquals(201,created.statusCode(),created.body());
+        long id=json(created).get("id").asLong();
+        jdbc.update("UPDATE marcacoes SET data=?,status=? WHERE id=?",java.sql.Date.valueOf("2020-01-01"),status,id);
+        var loaded=request("GET","/marcacoes/"+id,null,owner.token());
+        assertEquals(200,loaded.statusCode(),loaded.body());return json(loaded);
+    }
+    HttpResponse<String> receber(Conta owner,long id,String valor) throws Exception {
+        return request("POST","/recebimentos/marcacoes/"+id,"{\"valor\":"+valor+"}",owner.token());
+    }
+    JsonNode resumo(Conta owner,String data) throws Exception {
+        var response=request("GET","/recebimentos"+(data==null?"":"?data="+data),null,owner.token());
+        assertEquals(200,response.statusCode(),response.body());return json(response);
+    }
+
+    @Test void catalogoPublicoLinkFixoESemContatos() throws Exception {
+        var p=publico("Marcae publico");
+        var hidden=servico(p.conta(),"Arquivado","10.00",15);
+        var archived=request("PUT","/servicos/"+hidden.get("id").asLong(),stringify(Map.of("nome","Arquivado","preco",10,"duracaoMinutos",15,"ativo",false,"version",hidden.get("version").asLong())),p.conta().token());
+        assertEquals(200,archived.statusCode(),archived.body());
+        var catalogo=request("GET","/publico/"+p.link(),null,null);
+        assertEquals(200,catalogo.statusCode(),catalogo.body());
+        assertTrue(catalogo.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        var data=json(catalogo);assertEquals(7,data.size());assertEquals("Marcae publico",data.get("nome").asText());
+        assertEquals("America/Sao_Paulo",data.get("fusoHorario").asText());assertEquals(1,data.get("servicos").size());
+        var s=data.get("servicos").get(0);assertEquals(4,s.size());assertEquals(p.servico(),s.get("id").asLong());dinheiro("25.90",s.get("preco"));
+        for(var profissional:data.get("profissionais")){assertEquals(2,profissional.size());assertTrue(profissional.has("id"));assertTrue(profissional.has("nome"));}
+        for(var campo:List.of("telefone","email","clientes","reservas","version","estudioId"))assertFalse(catalogo.body().contains("\""+campo+"\""),catalogo.body());
+        var me=json(request("GET","/auth/me",null,p.conta().token()));
+        var edit=request("PUT","/estudio",stringify(Map.of("nome","Nome novo","version",me.get("estudio").get("version").asLong())),p.conta().token());
+        assertEquals(200,edit.statusCode(),edit.body());assertEquals(p.link(),linkPublico(p.conta()));
+        assertEquals("Nome novo",json(request("GET","/publico/"+p.link(),null,null)).get("nome").asText());
+        assertEquals(404,request("GET","/publico/inexistente",null,null).statusCode());
+    }
+    @Test void reservaPublicaSemContaRespostaMinimaESnapshotServidor() throws Exception {
+        var p=publico("Reserva sem conta");
+        int usuarios=jdbc.queryForObject("SELECT count(*) FROM usuarios",Integer.class);
+        var body=pedido(p,"09:15");body.put("duracaoMinutos",1);body.put("preco",0);body.put("servicoNome","Nome adulterado");
+        var created=reservar(p,body);assertEquals(201,created.statusCode(),created.body());
+        assertTrue(created.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        var confirm=json(created);assertEquals(8,confirm.size());assertEquals(30,confirm.get("duracaoMinutos").asInt());
+        for(var campo:List.of("protocolo","servico","profissional","data","horario","fusoHorario","preco","duracaoMinutos"))assertTrue(confirm.has(campo),campo);
+        for(var campo:List.of("telefone","email","cliente","nome","clienteId","marcacaoId"))assertFalse(confirm.has(campo),campo);
+        assertEquals("Corte simples",confirm.get("servico").asText());dinheiro("25.90",confirm.get("preco"));
+        assertEquals(usuarios,jdbc.queryForObject("SELECT count(*) FROM usuarios",Integer.class));
+        var agenda=json(request("GET","/marcacoes",null,p.conta().token()));assertEquals(1,agenda.size());
+        long id=agenda.get(0).get("id").asLong();assertEquals(30,agenda.get(0).get("duracaoMinutos").asInt());
+        assertEquals("Corte simples",agenda.get(0).get("servicoNome").asText());dinheiro("25.90",agenda.get(0).get("precoPrevisto"));
+        var s=json(request("GET","/servicos",null,p.conta().token())).get(0);
+        var edit=request("PUT","/servicos/"+p.servico(),stringify(Map.of("nome","Servico novo","preco",99,"duracaoMinutos",60,"ativo",true,"version",s.get("version").asLong())),p.conta().token());
+        assertEquals(200,edit.statusCode(),edit.body());
+        var saved=json(request("GET","/marcacoes/"+id,null,p.conta().token()));
+        assertEquals(30,saved.get("duracaoMinutos").asInt());assertEquals("Corte simples",saved.get("servicoNome").asText());dinheiro("25.90",saved.get("precoPrevisto"));
+        var replay=reservar(p,body);assertEquals(201,replay.statusCode(),replay.body());assertEquals(confirm,json(replay));
+        body.put("telefone","21911112222");assertEquals(409,reservar(p,body).statusCode());
+        assertEquals(1,json(request("GET","/clientes",null,p.conta().token())).size());
+        assertEquals(1,json(request("GET","/marcacoes",null,p.conta().token())).size());
+        jdbc.update("UPDATE marcacoes SET data=? WHERE id=?",java.sql.Date.valueOf("2020-01-01"),id);
+        var recebido=receber(p.conta(),id,"19.90");assertEquals(200,recebido.statusCode(),recebido.body());
+        assertEquals("Corte simples",json(recebido).get("servico").asText());dinheiro("19.90",json(recebido).get("valor"));
+    }
+    @Test void reservaPublicaRespeitaTrintaMinutosGradeEFronteira() throws Exception {
+        var p=publico("Grade");assertTrue(contem(slots(p),"09:15:00"));
+        var adulterada=request("GET","/publico/"+p.link()+"/horarios?servicoId="+p.servico()+"&profissionalId="+p.profissional()+"&data="+p.dia()+"&duracaoMinutos=1",null,null);
+        assertEquals(200,adulterada.statusCode(),adulterada.body());assertEquals(30,json(adulterada).get("duracaoMinutos").asInt());
+        assertFalse(contem(json(adulterada).get("horarios"),"11:45:00"));
+        assertEquals(201,reservar(p,pedido(p,"09:15")).statusCode());
+        var livres=slots(p);assertFalse(contem(livres,"09:00:00"));assertFalse(contem(livres,"09:15:00"));assertFalse(contem(livres,"09:30:00"));assertTrue(contem(livres,"09:45:00"));
+        assertEquals(409,reservar(p,pedido(p,"09:20")).statusCode());
+        assertEquals(409,reservar(p,pedido(p,"09:30")).statusCode());
+        assertEquals(201,reservar(p,pedido(p,"09:45")).statusCode());
+        var foraGrade=pedido(p,"10:05");assertEquals(409,reservar(p,foraGrade).statusCode());
+    }
+    @Test void publicoRespeitaTurnoIntervaloBloqueioEJanelaDeDatas() throws Exception {
+        var p=publico("Expediente");
+        var block=request("POST","/profissionais/"+p.profissional()+"/bloqueios",stringify(Map.of("inicio",p.dia()+"T14:00","fim",p.dia()+"T15:00","motivo","Folga privada")),p.conta().token());
+        assertEquals(201,block.statusCode(),block.body());
+        var livres=slots(p);assertTrue(contem(livres,"11:30:00"));assertFalse(contem(livres,"11:45:00"));assertFalse(contem(livres,"12:00:00"));
+        assertFalse(contem(livres,"13:45:00"));assertFalse(contem(livres,"14:00:00"));assertTrue(contem(livres,"15:00:00"));
+        for(var hora:List.of("08:45","11:45","12:00","13:45","14:00","17:45"))assertEquals(409,reservar(p,pedido(p,hora)).statusCode(),hora);
+        assertEquals(201,reservar(p,pedido(p,"15:00")).statusCode());
+        var catalogo=json(request("GET","/publico/"+p.link(),null,null));LocalDate hoje=LocalDate.parse(catalogo.get("hoje").asText());
+        for(var dia:List.of(hoje.minusDays(1),hoje.plusDays(366))){
+            var body=pedido(p,"09:00");body.put("data",dia.toString());
+            assertEquals(400,reservar(p,body).statusCode());assertEquals(400,slots(p,p.servico(),p.profissional(),dia).statusCode());
+        }
+        assertEquals(200,slots(p,p.servico(),p.profissional(),hoje.plusDays(365)).statusCode());
+    }
+    @Test void servicosEProfissionaisSaoIsoladosEntreEstudios() throws Exception {
+        var a=publico("A");var b=publico("B");
+        var lista=json(request("GET","/servicos",null,b.conta().token()));assertEquals(1,lista.size());assertEquals(b.servico(),lista.get(0).get("id").asLong());
+        assertEquals(404,slots(a,b.servico(),a.profissional(),a.dia()).statusCode());
+        assertEquals(404,slots(a,a.servico(),b.profissional(),a.dia()).statusCode());
+        var body=pedido(a,"09:00");body.put("servicoId",b.servico());assertEquals(404,reservar(a,body).statusCode());
+        body=pedido(a,"09:00");body.put("profissionalId",b.profissional());assertEquals(404,reservar(a,body).statusCode());
+        var edit=Map.of("nome","Invasao","preco",1,"duracaoMinutos",15,"ativo",true,"version",0);
+        assertEquals(404,request("PUT","/servicos/"+a.servico(),stringify(edit),b.conta().token()).statusCode());
+        var archived=request("PUT","/servicos/"+a.servico(),stringify(Map.of("nome","Corte simples","preco",new java.math.BigDecimal("25.90"),"duracaoMinutos",30,"ativo",false,"version",0)),a.conta().token());assertEquals(200,archived.statusCode(),archived.body());
+        assertEquals(0,json(request("GET","/publico/"+a.link(),null,null)).get("servicos").size());
+        assertEquals(404,reservar(a,pedido(a,"09:00")).statusCode());assertEquals(404,slots(a,a.servico(),a.profissional(),a.dia()).statusCode());
+        assertEquals(0,json(request("GET","/clientes",null,a.conta().token())).size());
+    }
+    @Test void profissionaisDiferentesPodemReservarSimultaneamente() throws Exception {
+        var p=publico("Agendas independentes");long outro=profissionalPublico(p.conta(),p.dia(),"Outro profissional");
+        var a=pedido(p,"10:00");var b=pedido(p,"10:00");b.put("profissionalId",outro);
+        var responses=concorrentes(()->reservar(p,a),()->reservar(p,b));
+        assertEquals(List.of(201,201),responses.stream().map(HttpResponse::statusCode).sorted().toList());
+        assertEquals(2,json(request("GET","/marcacoes",null,p.conta().token())).size());
+    }
+    @Test void reservasPublicasConcorrentesUmaVenceERepeticaoNaoDuplica() throws Exception {
+        var p=publico("Concorrencia publica");var a=pedido(p,"10:00");var b=pedido(p,"10:00");
+        var responses=concorrentes(()->reservar(p,a),()->reservar(p,b));
+        assertEquals(List.of(201,409),responses.stream().map(HttpResponse::statusCode).sorted().toList());
+        assertEquals(1,json(request("GET","/clientes",null,p.conta().token())).size());
+        assertEquals(1,json(request("GET","/marcacoes",null,p.conta().token())).size());
+        var same=pedido(p,"11:00");var retries=concorrentes(()->reservar(p,same),()->reservar(p,same));
+        assertEquals(List.of(201,201),retries.stream().map(HttpResponse::statusCode).sorted().toList());
+        assertEquals(json(retries.get(0)),json(retries.get(1)));
+        assertEquals(2,json(request("GET","/clientes",null,p.conta().token())).size());
+        assertEquals(2,json(request("GET","/marcacoes",null,p.conta().token())).size());
+    }
+    @Test void publicoNaoContornaAssinaturaExpirada() throws Exception {
+        var p=publico("Assinatura expirada");
+        jdbc.update("UPDATE estudios SET criado_em=?,pago_ate=NULL WHERE id=?",java.sql.Timestamp.valueOf(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")).minusDays(40)),p.conta().estudio());
+        assertEquals(409,reservar(p,pedido(p,"10:00")).statusCode());
+        assertEquals(0,json(request("GET","/clientes",null,p.conta().token())).size());
+        assertEquals(0,json(request("GET","/marcacoes",null,p.conta().token())).size());
+    }
+    @Test void catalogoELivroCaixaExigemPermissaoProprietario() throws Exception {
+        var p=publico("Permissoes");String equipe=funcionario(p.conta());
+        assertEquals(200,request("GET","/servicos",null,equipe).statusCode());
+        assertEquals(403,request("GET","/servicos/link",null,equipe).statusCode());
+        var novo=stringify(Map.of("nome","Novo","preco",10,"duracaoMinutos",30,"ativo",true));
+        assertEquals(403,request("POST","/servicos",novo,equipe).statusCode());
+        assertEquals(403,request("PUT","/servicos/"+p.servico(),novo,equipe).statusCode());
+        assertEquals(403,request("GET","/recebimentos",null,equipe).statusCode());
+        long m=marcacaoParaReceber(p.conta(),"10:00","AGENDADA").get("id").asLong();
+        assertEquals(403,request("POST","/recebimentos/marcacoes/"+m,"{\"valor\":10}",equipe).statusCode());
+        for(var path:List.of("/servicos","/servicos/link","/recebimentos"))assertEquals(401,request("GET",path,null,null).statusCode());
+        assertEquals(401,request("POST","/recebimentos/marcacoes/"+m,"{\"valor\":10}",null).statusCode());
+        assertEquals(200,receber(p.conta(),m,"10.00").statusCode());
+        var outra=conta("Outra conta");assertEquals(404,receber(outra,m,"10.00").statusCode());
+        assertEquals(0,resumo(outra,null).get("recebimentos").size());
+    }
+    @Test void recebimentoSoPodeSerConfirmadoAposFimDaDuracaoSnapshot() throws Exception {
+        var owner=conta("Recebimento apos fim");var body=reserva(cliente(owner),owner.profissional(),"10:00");body.put("duracaoMinutos",30);
+        var created=request("POST","/marcacoes",stringify(body),owner.token());assertEquals(201,created.statusCode(),created.body());long id=json(created).get("id").asLong();
+        var future=json(request("GET","/marcacoes/"+id,null,owner.token()));assertEquals(30,future.get("duracaoMinutos").asInt());assertFalse(future.get("recebimentoConfirmado").asBoolean());assertFalse(future.get("podeConfirmarRecebimento").asBoolean());
+        assertEquals(409,receber(owner,id,"29.90").statusCode());assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE marcacao_id=?",Integer.class,id));
+        jdbc.update("UPDATE marcacoes SET data=? WHERE id=?",java.sql.Date.valueOf(LocalDate.now(ZoneId.of("America/Sao_Paulo")).minusDays(1)),id);
+        var elapsed=json(request("GET","/marcacoes/"+id,null,owner.token()));assertFalse(elapsed.get("recebimentoConfirmado").asBoolean());assertTrue(elapsed.get("podeConfirmarRecebimento").asBoolean());
+        var paid=receber(owner,id,"29.90");assertEquals(200,paid.statusCode(),paid.body());dinheiro("29.90",json(paid).get("valor"));
+        var completed=json(request("GET","/marcacoes/"+id,null,owner.token()));assertEquals("CONCLUIDA",completed.get("status").asText());assertEquals("COMPARECEU",completed.get("presenca").asText());assertTrue(completed.get("recebimentoConfirmado").asBoolean());assertFalse(completed.get("podeConfirmarRecebimento").asBoolean());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE marcacao_id=?",Integer.class,id));var storedAmount=jdbc.queryForObject("SELECT valor FROM recebimentos WHERE marcacao_id=?",java.math.BigDecimal.class,id);assertNotNull(storedAmount);assertEquals(0,new java.math.BigDecimal("29.90").compareTo(storedAmount));
+    }
+    @Test void recebimentoIdempotenteConcluiEImpedeEditarOuExcluir() throws Exception {
+        var owner=conta("Recebimento");var m=marcacaoParaReceber(owner,"10:00","AGENDADA");long id=m.get("id").asLong();
+        assertFalse(m.get("recebimentoConfirmado").asBoolean());assertTrue(m.get("podeConfirmarRecebimento").asBoolean());
+        var paid=receber(owner,id,"19.90");assertEquals(200,paid.statusCode(),paid.body());dinheiro("19.90",json(paid).get("valor"));
+        assertNotNull(OffsetDateTime.parse(json(paid).get("confirmadoEm").asText()));
+        var retry=receber(owner,id,"19.9");assertEquals(200,retry.statusCode(),retry.body());assertEquals(json(paid),json(retry));
+        assertEquals(409,receber(owner,id,"20.00").statusCode());
+        var saved=json(request("GET","/marcacoes/"+id,null,owner.token()));assertEquals("CONCLUIDA",saved.get("status").asText());
+        assertTrue(saved.get("recebimentoConfirmado").asBoolean());assertFalse(saved.get("podeConfirmarRecebimento").asBoolean());
+        var agenda=json(request("GET","/marcacoes",null,owner.token()));assertEquals(1,agenda.size());
+        assertTrue(agenda.get(0).get("recebimentoConfirmado").asBoolean());assertFalse(agenda.get(0).get("podeConfirmarRecebimento").asBoolean());
+        var edit=reserva(saved.get("cliente").get("id").asLong(),owner.profissional(),saved.get("horario").asText());
+        edit.put("data",saved.get("data").asText());edit.put("status","CONCLUIDA");edit.put("version",saved.get("version").asLong());
+        assertEquals(409,request("PUT","/marcacoes/"+id,stringify(edit),owner.token()).statusCode());
+        edit.put("cliente",Map.of("nome","Outro","telefone","21999997777"));
+        assertEquals(409,request("PUT","/marcacoes/"+id+"/com-cliente",stringify(edit),owner.token()).statusCode());
+        assertEquals(409,request("DELETE","/marcacoes/"+id,null,owner.token()).statusCode());
+        var sum=resumo(owner,null);assertEquals(1,sum.get("recebimentos").size());dinheiro("19.90",sum.get("totalMes"));dinheiro("19.90",sum.get("totalSemana"));
+    }
+    @Test void futurasCanceladasESemRecebimentoNaoContam() throws Exception {
+        var owner=conta("Somente confirmados");
+        var future=request("POST","/marcacoes",stringify(reserva(cliente(owner),owner.profissional(),"10:00")),owner.token());assertEquals(201,future.statusCode(),future.body());
+        long futureId=json(future).get("id").asLong();
+        var futureSaved=json(request("GET","/marcacoes/"+futureId,null,owner.token()));
+        assertFalse(futureSaved.get("recebimentoConfirmado").asBoolean());assertFalse(futureSaved.get("podeConfirmarRecebimento").asBoolean());
+        var futureList=json(request("GET","/marcacoes",null,owner.token()));assertEquals(1,futureList.size());
+        assertFalse(futureList.get(0).get("recebimentoConfirmado").asBoolean());assertFalse(futureList.get(0).get("podeConfirmarRecebimento").asBoolean());
+        assertEquals(409,receber(owner,futureId,"30.00").statusCode());
+        var cancelledSaved=marcacaoParaReceber(owner,"11:00","CANCELADA");long cancelled=cancelledSaved.get("id").asLong();
+        assertFalse(cancelledSaved.get("recebimentoConfirmado").asBoolean());assertFalse(cancelledSaved.get("podeConfirmarRecebimento").asBoolean());
+        assertEquals(409,receber(owner,cancelled,"30.00").statusCode());
+        marcacaoParaReceber(owner,"12:00","CONCLUIDA");marcacaoParaReceber(owner,"13:00","AGENDADA");
+        var sum=resumo(owner,null);assertEquals(0,sum.get("recebimentos").size());dinheiro("0.00",sum.get("totalSemana"));dinheiro("0.00",sum.get("totalMes"));
+    }
+    @Test void recebimentosConcorrentesIdempotentesESemDuplicacao() throws Exception {
+        var owner=conta("Concorrencia recebimentos");long id=marcacaoParaReceber(owner,"10:00","AGENDADA").get("id").asLong();
+        var iguais=concorrentes(()->receber(owner,id,"0.10"),()->receber(owner,id,"0.10"));
+        assertEquals(List.of(200,200),iguais.stream().map(HttpResponse::statusCode).sorted().toList());assertEquals(json(iguais.get(0)),json(iguais.get(1)));
+        long outro=marcacaoParaReceber(owner,"11:00","AGENDADA").get("id").asLong();
+        var diferentes=concorrentes(()->receber(owner,outro,"0.20"),()->receber(owner,outro,"0.30"));
+        assertEquals(List.of(200,409),diferentes.stream().map(HttpResponse::statusCode).sorted().toList());
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE estudio_id=?",Integer.class,owner.estudio()));
+        var sum=resumo(owner,null);assertEquals(2,sum.get("recebimentos").size());
+        var esperado=new java.math.BigDecimal("0.10").add(new java.math.BigDecimal(json(diferentes.stream().filter(r->r.statusCode()==200).findFirst().orElseThrow()).get("valor").asText()));
+        dinheiro(esperado.toPlainString(),sum.get("totalMes"));
+    }
+    @Test void valoresInvalidosNaoPersistemEServicoExigeVersao() throws Exception {
+        var owner=conta("Validacao monetaria");long id=marcacaoParaReceber(owner,"10:00","AGENDADA").get("id").asLong();
+        for(var valor:List.of("-0.01","0.001","null"))assertEquals(400,receber(owner,id,valor).statusCode(),valor);
+        assertEquals(0,resumo(owner,null).get("recebimentos").size());assertEquals(200,receber(owner,id,"0.00").statusCode());
+        for(var valor:List.of("-0.01","0.001")){
+            var response=request("POST","/servicos",stringify(Map.of("nome","Invalido","preco",new java.math.BigDecimal(valor),"duracaoMinutos",30,"ativo",true)),owner.token());assertEquals(400,response.statusCode(),response.body());
+        }
+        for(var minutos:List.of(0,721))assertEquals(400,request("POST","/servicos",stringify(Map.of("nome","Invalido","preco",10,"duracaoMinutos",minutos,"ativo",true)),owner.token()).statusCode());
+        var s=servico(owner,"Valido","0.10",30);long sid=s.get("id").asLong();
+        String body=stringify(Map.of("nome","Editado","preco",new java.math.BigDecimal("0.20"),"duracaoMinutos",30,"ativo",true,"version",s.get("version").asLong()));
+        assertEquals(200,request("PUT","/servicos/"+sid,body,owner.token()).statusCode());assertEquals(409,request("PUT","/servicos/"+sid,body,owner.token()).statusCode());
+    }
+    @Test void resumoUsaBigDecimalConfirmacaoSemanaMesEFusoSemDuplicar() throws Exception {
+        var owner=conta("Resumo financeiro");
+        String[] instantes={"2026-01-01T02:59:59Z","2026-01-01T03:00:00Z","2026-01-04T02:59:59Z","2026-01-05T02:59:59Z","2026-02-01T02:59:59Z","2026-02-01T03:00:00Z","2025-12-29T02:59:59Z"};
+        String[] valores={"0.10","0.20","0.30","0.40","0.50","0.60","0.70"};
+        var incluidos=new HashSet<Long>();
+        for(int i=0;i<instantes.length;i++){
+            long mid=marcacaoParaReceber(owner,String.format(Locale.ROOT,"%02d:00",9+i),"AGENDADA").get("id").asLong();
+            var paid=receber(owner,mid,valores[i]);assertEquals(200,paid.statusCode(),paid.body());long rid=json(paid).get("id").asLong();
+            jdbc.update("UPDATE recebimentos SET confirmado_em=? WHERE id=?",OffsetDateTime.parse(instantes[i]),rid);
+            if(i<5)incluidos.add(rid);
+        }
+        var sum=resumo(owner,"2026-01-01");assertEquals("BRL",sum.get("moeda").asText());assertEquals("America/Sao_Paulo",sum.get("fusoHorario").asText());
+        assertEquals("2025-12-29",sum.get("inicioSemana").asText());assertEquals("2026-01-04",sum.get("fimSemana").asText());
+        assertEquals("2026-01-01",sum.get("inicioMes").asText());assertEquals("2026-01-31",sum.get("fimMes").asText());
+        dinheiro("1.00",sum.get("totalSemana"));dinheiro("1.40",sum.get("totalMes"));
+        var ids=new HashSet<Long>();for(var row:sum.get("recebimentos")){
+            assertTrue(ids.add(row.get("id").asLong()),"Recebimento duplicado na uniao semana/mes");
+            assertEquals(ZoneOffset.ofHours(-3),OffsetDateTime.parse(row.get("confirmadoEm").asText()).getOffset());
+        }
+        assertEquals(incluidos,ids);
+        assertEquals(400,request("GET","/recebimentos?data=nao-e-data",null,owner.token()).statusCode());
+    }
+    @Test void reservaPublicaValidaNomeTelefoneEIdsSemCriarRegistrosParciais() throws Exception {
+        var p=publico("Validacao publica");
+        assertEquals(400,request("POST","/publico/"+p.link()+"/reservas","{}",null).statusCode());
+        for(var campo:List.of("nome","telefone","email")){
+            var body=pedido(p,"10:00");body.put(campo,"");assertEquals(400,reservar(p,body).statusCode(),campo);
+        }
+        var telefone=pedido(p,"10:00");telefone.put("telefone","sem numero telefone");assertEquals(400,reservar(p,telefone).statusCode());
+        var consentimento=pedido(p,"10:00");consentimento.put("avisoPrivacidadeLido",false);assertEquals(400,reservar(p,consentimento).statusCode());
+        var chave=pedido(p,"10:00");chave.put("chave","invalida");assertEquals(400,reservar(p,chave).statusCode());
+        for(var campo:List.of("servicoId","profissionalId")){
+            var body=pedido(p,"10:00");body.put(campo,Long.MAX_VALUE);assertEquals(404,reservar(p,body).statusCode(),campo);
+        }
+        assertEquals(0,json(request("GET","/clientes",null,p.conta().token())).size());
+        assertEquals(0,json(request("GET","/marcacoes",null,p.conta().token())).size());
+    }
+    @Test void agendaOrdenaServidorPorDataHorarioEId() throws Exception {
+        var p=publico("Agenda ordenada");
+        for(var hora:List.of("15:00","09:00","13:00")){
+            var response=reservar(p,pedido(p,hora));assertEquals(201,response.statusCode(),response.body());
+        }
+        long outro=profissionalPublico(p.conta(),p.dia(),"Segunda agenda");
+        var simultanea=pedido(p,"09:00");simultanea.put("profissionalId",outro);assertEquals(201,reservar(p,simultanea).statusCode());
+        var agenda=json(request("GET","/marcacoes",null,p.conta().token()));assertEquals(4,agenda.size());
+        var anterior=agenda.get(0);
+        for(int i=1;i<agenda.size();i++){
+            var atual=agenda.get(i);
+            int ordemData=LocalDate.parse(anterior.get("data").asText()).compareTo(LocalDate.parse(atual.get("data").asText()));
+            int ordemHora=LocalTime.parse(anterior.get("horario").asText()).compareTo(LocalTime.parse(atual.get("horario").asText()));
+            assertTrue(ordemData<0 || (ordemData==0 && (ordemHora<0 || (ordemHora==0 && anterior.get("id").asLong()<atual.get("id").asLong()))),agenda.toString());
+            anterior=atual;
+        }
+    }
+
+    String configurar(Publico p,int antecedencia,int limite,String fuso)throws Exception{
+        var body=Map.of("antecedenciaMinimaMinutos",antecedencia,"limiteAgendamentosPorEmail",limite,"fusoHorario",fuso);
+        var response=request("PUT","/configuracao/agendamento",stringify(body),p.conta().token());
+        assertEquals(200,response.statusCode(),response.body());return response.body();
+    }
+    long criarMarcacaoHistorica(Conta owner,LocalDate data,String horario,String status,String presenca,String servico,java.math.BigDecimal preco)throws Exception{
+        long idCliente=cliente(owner);var body=reserva(idCliente,owner.profissional(),horario);body.put("descricao",servico);body.put("status","AGENDADA");
+        var created=request("POST","/marcacoes",stringify(body),owner.token());assertEquals(201,created.statusCode(),created.body());
+        long id=json(created).get("id").asLong();
+        jdbc.update("UPDATE marcacoes SET data=?,status=?,presenca=?,servico_nome=?,preco_previsto=? WHERE id=?",
+            java.sql.Date.valueOf(data),status,presenca,servico,preco,id);
+        return id;
+    }
+    int criarReservaFuturaParaEmail(Publico p,String email,String hora)throws Exception{
+        var body=pedido(p,hora);body.put("email",email);
+        var created=reservar(p,body);assertEquals(201,created.statusCode(),created.body());return created.statusCode();
+    }
+    @Test void configuracaoAgendamentoValidaPermissaoTenantEValores() throws Exception {
+        var p=publico("Configuração local");var b=conta("Outro estudio");var equipe=funcionario(p.conta());
+        assertEquals(401,request("GET","/configuracao/agendamento",null,null).statusCode());
+        assertEquals(403,request("GET","/configuracao/agendamento",null,equipe).statusCode());
+        assertEquals(403,request("PUT","/configuracao/agendamento",stringify(Map.of("antecedenciaMinimaMinutos",120,"limiteAgendamentosPorEmail",3,"fusoHorario","UTC")),equipe).statusCode());
+        var defaults=json(request("GET","/configuracao/agendamento",null,p.conta().token()));
+        assertEquals(120,defaults.get("antecedenciaMinimaMinutos").asInt());assertEquals(3,defaults.get("limiteAgendamentosPorEmail").asInt());assertEquals("America/Sao_Paulo",defaults.get("fusoHorario").asText());
+        for(var invalid:List.of(Map.of("antecedenciaMinimaMinutos",-1,"limiteAgendamentosPorEmail",3,"fusoHorario","UTC"),Map.of("antecedenciaMinimaMinutos",43201,"limiteAgendamentosPorEmail",3,"fusoHorario","UTC"),Map.of("antecedenciaMinimaMinutos",120,"limiteAgendamentosPorEmail",0,"fusoHorario","UTC"),Map.of("antecedenciaMinimaMinutos",120,"limiteAgendamentosPorEmail",51,"fusoHorario","Mars/Olympus")))
+            assertEquals(400,request("PUT","/configuracao/agendamento",stringify(invalid),p.conta().token()).statusCode(),invalid.toString());
+        var updated=request("PUT","/configuracao/agendamento",stringify(Map.of("antecedenciaMinimaMinutos",240,"limiteAgendamentosPorEmail",5,"fusoHorario","UTC")),p.conta().token());
+        assertEquals(200,updated.statusCode(),updated.body());assertEquals(240,json(updated).get("antecedenciaMinimaMinutos").asInt());
+        var bConfig=json(request("GET","/configuracao/agendamento",null,b.token()));assertEquals(120,bConfig.get("antecedenciaMinimaMinutos").asInt());assertEquals(3,bConfig.get("limiteAgendamentosPorEmail").asInt());assertEquals("America/Sao_Paulo",bConfig.get("fusoHorario").asText());
+    }
+    @Test void reservaExigeEmailAvisoEIsolaCadastroDoContatoDoCliente() throws Exception {
+        var p=publico("Privacidade da reserva");int usuarios=jdbc.queryForObject("SELECT count(*) FROM usuarios",Integer.class);String email="Cliente.Aviso@example.com";
+        for(var field:List.of("email","avisoPrivacidadeLido")){
+            var missing=pedido(p,"09:00");missing.remove(field);assertEquals(400,reservar(p,missing).statusCode(),field);
+        }
+        var invalidEmail=pedido(p,"09:00");invalidEmail.put("email","nao-e-email");assertEquals(400,reservar(p,invalidEmail).statusCode());
+        var unchecked=pedido(p,"09:00");unchecked.put("avisoPrivacidadeLido",false);assertEquals(400,reservar(p,unchecked).statusCode());
+        assertEquals(0,json(request("GET","/clientes",null,p.conta().token())).size());
+        assertEquals(usuarios,jdbc.queryForObject("SELECT count(*) FROM usuarios",Integer.class));
+        var body=pedido(p,"09:00");body.put("email",email);var accepted=reservar(p,body);assertEquals(201,accepted.statusCode(),accepted.body());
+        var contact=jdbc.queryForMap("SELECT email FROM cliente WHERE estudio_id=?",p.conta().estudio());assertEquals(email.toLowerCase(Locale.ROOT),((String)contact.get("email")).toLowerCase(Locale.ROOT));
+        var booking=jdbc.queryForMap("SELECT aviso_privacidade_versao, aviso_privacidade_lido_em FROM marcacoes WHERE estudio_id=?",p.conta().estudio());
+        assertEquals(json(request("GET","/publico/"+p.link(),null,null)).get("versaoAvisoPrivacidade").asText(),booking.get("aviso_privacidade_versao"));assertNotNull(booking.get("aviso_privacidade_lido_em"));
+        assertFalse(accepted.body().contains(email));assertEquals(usuarios,jdbc.queryForObject("SELECT count(*) FROM usuarios",Integer.class));
+    }
+    @Test void antecedenciaMinimaSeAplicaNaDisponibilidadeENaReserva() throws Exception {
+        var p=publico("Antecedencia");var now=ZonedDateTime.now(ZoneId.of("America/Sao_Paulo"));
+        var turnos=new ArrayList<Map<String,Object>>();for(int day=1;day<=7;day++)turnos.add(Map.of("diaSemana",day,"inicio","00:00","fim","23:59"));
+        var prof=json(request("GET","/profissionais",null,p.conta().token())).get(0);
+        var updated=request("PUT","/profissionais/"+p.profissional(),stringify(Map.of("nome","Dia todo","ativo",true,"horarios",turnos,"version",prof.get("version").asLong())),p.conta().token());assertEquals(200,updated.statusCode(),updated.body());
+        assertEquals(200,request("PUT","/configuracao/agendamento",stringify(Map.of("antecedenciaMinimaMinutos",120,"limiteAgendamentosPorEmail",3,"fusoHorario","America/Sao_Paulo")),p.conta().token()).statusCode());
+        var limite=now.plusMinutes(120).toLocalDateTime();int remainder=limite.getMinute()%15;var slot=limite.plusMinutes(remainder==0?0:15-remainder).withSecond(0).withNano(0);
+        if(!slot.toLocalDate().equals(now.toLocalDate())||slot.toLocalTime().isBefore(LocalTime.of(1,0))||slot.toLocalTime().isAfter(LocalTime.of(23,0)))slot=slot.plusDays(1).toLocalDate().atTime(2,0);
+        var candidate=new Publico(p.conta(),p.link(),p.servico(),p.profissional(),slot.toLocalDate());
+        var tooSoon=pedido(candidate,slot.toLocalTime().minusMinutes(15).toString());tooSoon.put("data",slot.toLocalDate().toString());
+        assertEquals(409,reservar(candidate,tooSoon).statusCode());
+        var available=slots(p,p.servico(),p.profissional(),slot.toLocalDate());assertEquals(200,available.statusCode(),available.body());
+        var listed=json(available).get("horarios");assertFalse(contem(listed,slot.toLocalTime().minusMinutes(15).toString()+":00"));assertTrue(contem(listed,slot.toLocalTime().toString()+":00"));
+        var allowed=pedido(candidate,slot.toLocalTime().toString());allowed.put("data",slot.toLocalDate().toString());
+        assertEquals(201,reservar(candidate,allowed).statusCode());
+    }
+    @Test void limiteDeReservasAbertasPorEmailEPorEstudio() throws Exception {
+        var a=publico("Limite A");var b=publico("Limite B");
+        assertEquals(200,request("PUT","/configuracao/agendamento",stringify(Map.of("antecedenciaMinimaMinutos",120,"limiteAgendamentosPorEmail",1,"fusoHorario","America/Sao_Paulo")),a.conta().token()).statusCode());
+        String shared="repetido@example.com";
+        assertEquals(201,criarReservaFuturaParaEmail(a,shared,"09:00"));
+        var second=pedido(a,"10:00");second.put("email",shared);assertEquals(429,reservar(a,second).statusCode());
+        var otherTenant=pedido(b,"09:00");otherTenant.put("email",shared);assertEquals(201,reservar(b,otherTenant).statusCode());
+        var list=json(request("GET","/clientes",null,a.conta().token()));assertEquals(1,list.size());
+    }
+    @Test void registrarPresencaExigeProprietarioFimDaSessaoERespeitaRecebimentos() throws Exception {
+        var a=conta("Presenca");var b=conta("Outro estudo");String staff=funcionario(a);
+        long future=criarMarcacaoHistorica(a,LocalDate.now(ZoneId.of("America/Sao_Paulo")).plusDays(2),"10:00","AGENDADA",null,"Futuro",new java.math.BigDecimal("29.90"));
+        assertEquals(403,request("PUT","/marcacoes/"+future+"/presenca","{\"presenca\":\"FALTOU\"}",staff).statusCode());
+        assertEquals(401,request("PUT","/marcacoes/"+future+"/presenca","{\"presenca\":\"FALTOU\"}",null).statusCode());
+        assertEquals(404,request("PUT","/marcacoes/"+future+"/presenca","{\"presenca\":\"FALTOU\"}",b.token()).statusCode());
+        assertEquals(409,request("PUT","/marcacoes/"+future+"/presenca","{\"presenca\":\"COMPARECEU\"}",a.token()).statusCode());
+        var late=request("PUT","/marcacoes/"+future+"/presenca","{\"presenca\":\"UNKNOWN\"}",a.token());assertEquals(400,late.statusCode());
+        var cancelled=criarMarcacaoHistorica(a,LocalDate.now(ZoneId.of("America/Sao_Paulo")).minusDays(2),"11:00","CANCELADA",null,"Cancelada",null);
+        assertEquals(409,request("PUT","/marcacoes/"+cancelled+"/presenca","{\"presenca\":\"FALTOU\"}",a.token()).statusCode());
+        long due=criarMarcacaoHistorica(a,LocalDate.now(ZoneId.of("America/Sao_Paulo")).minusDays(2),"12:00","AGENDADA",null,"Consulta",null);
+        var attended=request("PUT","/marcacoes/"+due+"/presenca","{\"presenca\":\"COMPARECEU\"}",a.token());assertEquals(200,attended.statusCode(),attended.body());assertEquals("COMPARECEU",json(attended).get("presenca").asText());
+        var missed=request("PUT","/marcacoes/"+due+"/presenca","{\"presenca\":\"FALTOU\"}",a.token());assertEquals(200,missed.statusCode(),missed.body());assertEquals("FALTOU",json(missed).get("presenca").asText());
+        var received=criarMarcacaoHistorica(a,LocalDate.now(ZoneId.of("America/Sao_Paulo")).minusDays(2),"13:00","AGENDADA",null,"Recebida",null);
+        assertEquals(200,receber(a,received,"29.90").statusCode());
+        assertEquals(409,request("PUT","/marcacoes/"+received+"/presenca","{\"presenca\":\"FALTOU\"}",a.token()).statusCode());
+        assertEquals("COMPARECEU",json(request("GET","/marcacoes/"+received,null,a.token())).get("presenca").asText());
+        assertTrue(json(request("GET","/marcacoes/"+future,null,a.token())).get("presenca").isNull());
+    }
+    @Test void historicoDeFaltasAgrupaEmailSoDentroDoTenant() throws Exception {
+        var a=conta("Historico A");var b=conta("Historico B");long customerA=cliente(a);String email="historico@example.com";
+        jdbc.update("UPDATE cliente SET email=? WHERE id=?",email,customerA);
+        long missA=criarMarcacaoHistorica(a,LocalDate.now().minusDays(2),"10:00","AGENDADA","FALTOU","Corte",null);long missAClient=jdbc.queryForObject("SELECT cliente_id FROM marcacoes WHERE id=?",Long.class,missA);jdbc.update("UPDATE cliente SET email=? WHERE id=?",email,missAClient);
+        long customerA2=cliente(a);jdbc.update("UPDATE cliente SET email=? WHERE id=?",email,customerA2);
+        long missA2=criarMarcacaoHistorica(a,LocalDate.now().minusDays(3),"11:00","AGENDADA","FALTOU","Barba",null);long missA2Client=jdbc.queryForObject("SELECT cliente_id FROM marcacoes WHERE id=?",Long.class,missA2);jdbc.update("UPDATE cliente SET email=? WHERE id=?",email,missA2Client);
+        long customerB=cliente(b);jdbc.update("UPDATE cliente SET email=? WHERE id=?",email,customerB);
+        criarMarcacaoHistorica(b,LocalDate.now().minusDays(4),"12:00","AGENDADA","FALTOU","Privado",null);
+        assertEquals(401,request("GET","/clientes/"+customerA+"/historico-faltas",null,null).statusCode());
+        var own=json(request("GET","/clientes/"+customerA+"/historico-faltas",null,a.token()));assertEquals(2,own.size());
+        assertTrue(own.toString().contains("Corte"));assertTrue(own.toString().contains("Barba"));assertFalse(own.toString().contains("Privado"));
+        assertEquals(404,request("GET","/clientes/"+customerA+"/historico-faltas",null,b.token()).statusCode());
+        assertEquals(404,request("GET","/clientes/999999/historico-faltas",null,a.token()).statusCode());
+    }
+    @Test void relatorioMensalDefineDenominadorMesVazioComparacaoETenant() throws Exception {
+        var a=conta("Relatorio A");var b=conta("Relatorio B");String staff=funcionario(a);
+        var month=YearMonth.now(ZoneId.of("America/Sao_Paulo")).minusMonths(1);var prior=month.minusMonths(1);
+        long came=criarMarcacaoHistorica(a,month.atDay(2),"09:00","CONCLUIDA",null,"Servico snapshot",new java.math.BigDecimal("40.00"));
+        long miss=criarMarcacaoHistorica(a,month.atDay(3),"10:00","AGENDADA","FALTOU","Servico snapshot",new java.math.BigDecimal("29.90"));
+        criarMarcacaoHistorica(a,month.atDay(4),"11:00","CANCELADA",null,"Cancelamento",new java.math.BigDecimal("50.00"));
+        criarMarcacaoHistorica(a,month.atDay(5),"12:00","AGENDADA",null,"Sem classificacao",new java.math.BigDecimal("10.00"));
+        criarMarcacaoHistorica(a,prior.atDay(2),"13:00","AGENDADA",null,"Base vazia",null);
+        long paid=criarMarcacaoHistorica(a,month.atDay(6),"14:00","AGENDADA",null,"Receita confirmadoEm",null);
+        assertEquals(200,receber(a,paid,"0.10").statusCode());long receiptId=jdbc.queryForObject("SELECT id FROM recebimentos WHERE marcacao_id=?",Long.class,paid);
+        jdbc.update("UPDATE recebimentos SET confirmado_em=? WHERE id=?",OffsetDateTime.of(month.atDay(1),LocalTime.of(2,59,59),ZoneOffset.UTC),receiptId);
+        var response=request("GET","/relatorios/mensal?mes="+month,null,a.token());assertEquals(200,response.statusCode(),response.body());var report=json(response);
+        assertEquals(month.toString(),report.get("mes").asText());assertEquals("America/Sao_Paulo",report.get("fusoHorario").asText());assertTrue(report.get("comparacaoDisponivel").asBoolean());
+        var current=report.get("atual");assertEquals(4,current.get("agendamentos").asLong());assertEquals(2,current.get("comparecimentos").asLong());assertEquals(1,current.get("faltas").asLong());assertEquals(1,current.get("cancelamentos").asLong());
+        assertEquals(3,current.get("denominadorComparecimento").asLong());dinheiro("66.67",current.get("taxaComparecimento"));dinheiro("29.90",current.get("valorPotencialFaltas"));
+        dinheiro("0.00",current.get("receitaRealizada"));
+        var previous=report.get("mesAnterior");assertEquals(1,previous.get("agendamentos").asLong());assertEquals(0,previous.get("denominadorComparecimento").asLong());assertTrue(previous.get("taxaComparecimento").isNull());assertTrue(report.get("variacoes").get("pontosPercentuais").isNull());
+        assertEquals(month.lengthOfMonth(),report.get("dias").size());assertEquals(month.atDay(1).toString(),report.get("dias").get(0).get("data").asText());
+        assertEquals(3,report.get("servicos").size());assertEquals("Servico snapshot",report.get("servicos").get(0).get("nome").asText());
+        assertEquals(403,request("GET","/relatorios/mensal?mes="+month,null,staff).statusCode());assertEquals(401,request("GET","/relatorios/mensal",null,null).statusCode());
+        assertEquals(0,json(request("GET","/relatorios/mensal?mes="+month,null,b.token())).get("atual").get("agendamentos").asInt());
+        assertEquals(400,request("GET","/relatorios/mensal?mes=invalido",null,a.token()).statusCode());
+    }
+    @Test void relatorioContaReceitaPelaDataConfirmadaNoFusoEComparaMesVazio() throws Exception {
+        var owner=conta("Relatorio timezone");var month=YearMonth.now(ZoneId.of("America/Sao_Paulo")).minusMonths(1);
+        for(var timestamp:List.of(OffsetDateTime.of(month.atDay(1),LocalTime.of(2,59,59),ZoneOffset.UTC),OffsetDateTime.of(month.atDay(1),LocalTime.of(3,0),ZoneOffset.UTC))){
+            long id=criarMarcacaoHistorica(owner,month.atDay(2),"09:00","AGENDADA",null,"Faturamento",null);assertEquals(200,receber(owner,id,"19.90").statusCode());
+            long receipt=jdbc.queryForObject("SELECT id FROM recebimentos WHERE marcacao_id=?",Long.class,id);jdbc.update("UPDATE recebimentos SET confirmado_em=? WHERE id=?",timestamp,receipt);
+        }
+        var report=json(request("GET","/relatorios/mensal?mes="+month,null,owner.token()));dinheiro("19.90",report.get("atual").get("receitaRealizada"));
+        dinheiro("19.90",report.get("mesAnterior").get("receitaRealizada"));
+        var emptyMonth=month.minusMonths(2);var empty=json(request("GET","/relatorios/mensal?mes="+emptyMonth,null,owner.token()));
+        assertFalse(empty.get("comparacaoDisponivel").asBoolean());assertEquals(0,empty.get("atual").get("agendamentos").asInt());assertTrue(empty.get("atual").get("taxaComparecimento").isNull());assertTrue(empty.get("variacoes").get("agendamentos").isNull());
+    }
+    @Test void relatorioIncluiFuturoNoTotalMasNaoNoDenominador() throws Exception {
+        var owner=conta("Relatorio futuro");var month=YearMonth.now(ZoneId.of("America/Sao_Paulo")).plusMonths(1);long id=criarMarcacaoHistorica(owner,month.atDay(2),"09:00","AGENDADA",null,"Futuro",new java.math.BigDecimal("29.90"));
+        var report=json(request("GET","/relatorios/mensal?mes="+month,null,owner.token()));assertEquals(1,report.get("atual").get("agendamentos").asInt());assertEquals(0,report.get("atual").get("denominadorComparecimento").asInt());
+        assertFalse(report.get("comparacaoDisponivel").asBoolean());
+    }
+    @Test void cadastroNovoIniciaAvaliacaoSemPagamentoOuChamadaAoGateway() throws Exception {
+        String email=UUID.randomUUID()+"@example.com";var inicio=LocalDateTime.now();
+        var cadastro=request("POST","/auth/estudios",stringify(Map.of("nomeEstudio","Avaliacao sem pagamento","nome","Responsavel","email",email,"senha","SenhaTeste123")),null);
+        assertEquals(201,cadastro.statusCode(),cadastro.body());assertFalse(json(cadastro).has("pagamento"));assertFalse(json(cadastro).has("metodoPagamento"));
+        String token=login(email,"SenhaTeste123");var resumoResponse=request("GET","/assinatura",null,token);assertEquals(200,resumoResponse.statusCode(),resumoResponse.body());var resumo=json(resumoResponse);
+        assertEquals("AVALIACAO",resumo.get("status").asText());dinheiro("29.90",resumo.get("mensalidade"));assertEquals("BRL",resumo.get("moeda").asText());
+        LocalDateTime avaliacaoAte=LocalDateTime.parse(resumo.get("avaliacaoAte").asText());assertTrue(avaliacaoAte.isAfter(inicio.plusDays(14).minusMinutes(1)));assertTrue(avaliacaoAte.isBefore(LocalDateTime.now().plusDays(14).plusMinutes(1)));
+        long estudio=jdbc.queryForObject("SELECT estudio_id FROM usuarios WHERE email=?",Long.class,email);
+        LocalDateTime criadoEm=jdbc.queryForObject("SELECT criado_em FROM estudios WHERE id=?",(rs,row)->rs.getTimestamp(1).toLocalDateTime(),estudio);
+        assertTrue(avaliacaoAte.isAfter(criadoEm.plusDays(14).minusMinutes(1)));assertTrue(avaliacaoAte.isBefore(criadoEm.plusDays(14).plusMinutes(1)));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM assinatura_checkouts",Integer.class));assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos",Integer.class));verify(gateway).disponivel();verifyNoMoreInteractions(gateway);
     }
 }

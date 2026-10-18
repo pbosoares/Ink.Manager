@@ -6,7 +6,7 @@
   let calendarKey = '';
   let selectedDate = '';
   let settingsUser = null;
-  let polling = false;
+  let polling = false, refreshTimer = null, focusTimer = null, queuedRefresh = false;
   const days = ['Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado', 'Domingo'];
   const owner = () => state.user?.perfil === 'PROPRIETARIO';
   document.body.insertAdjacentHTML('beforeend', `
@@ -17,7 +17,7 @@
         <p>Adicione dois turnos no mesmo dia para reservar um intervalo de almoco.</p>
         <div id="shift-list"></div><button type="button" id="add-shift" class="secondary">+ Turno</button>
         <p id="professional-error" class="form-error" role="alert"></p>
-        <div class="dialog-actions"><button type="button" id="close-professional" class="secondary">Fechar</button><button id="save-professional" class="primary">Salvar expediente</button></div>
+        <div class="dialog-actions"><button type="button" id="close-professional" class="secondary">Fechar</button><button id="save-professional" class="primary">Salvar horários</button></div>
       </form>
       <section id="block-section" hidden><h3>Folgas e ausencias</h3>
         <form id="block-form"><div class="form-row"><label>Inicio<input name="inicio" type="datetime-local" required></label><label>Fim<input name="fim" type="datetime-local" required></label></div><label>Motivo (opcional)<input name="motivo" maxlength="255"></label><button class="secondary">Bloquear periodo</button><p id="block-error" role="alert"></p></form><div id="block-list"></div>
@@ -168,7 +168,7 @@
   function renderSettings() {
     if (settingsUser === state.user.id) return;
     settingsUser = state.user.id;
-    $('studio-settings').innerHTML = `<section class="settings-section"><h2>Nome do estudio</h2><form id="studio-name-form"><label>Como o estudio aparece para a equipe<input name="nome" required maxlength="100"></label><button class="primary">Salvar nome</button><p id="studio-name-message" role="status"></p></form></section><section class="settings-section"><h2>Acessos da equipe</h2><p>Funcionarios consultam e marcam sessoes. O responsavel configura o estudio, controla acessos e exclui registros.</p><div id="account-list"></div><h3>Novo funcionario</h3><form id="account-form"><label>Nome<input name="nome" required maxlength="100"></label><label>E-mail<input name="email" type="email" required maxlength="255"></label><label>Senha inicial<input name="senha" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></label><button class="primary">Criar acesso</button><p id="account-message" role="status"></p></form></section><section class="settings-section" id="billing-settings"><h2>Assinatura</h2><div id="billing-content">Carregando opcoes...</div></section>`;
+    $('studio-settings').innerHTML = `<section class="settings-section"><h2>Nome do negócio</h2><form id="studio-name-form"><label>Como seu negócio aparece para a equipe<input name="nome" required maxlength="100"></label><button class="primary">Salvar nome</button><p id="studio-name-message" role="status"></p></form></section><section class="settings-section"><h2>Acessos da equipe</h2><p>A equipe consulta a agenda e marca atendimentos. O responsável configura o negócio, controla acessos e exclui registros.</p><div id="account-list"></div><h3>Novo funcionario</h3><form id="account-form"><label>Nome<input name="nome" required maxlength="100"></label><label>E-mail<input name="email" type="email" required maxlength="255"></label><label>Senha inicial<input name="senha" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></label><button class="primary">Criar acesso</button><p id="account-message" role="status"></p></form></section><section class="settings-section" id="billing-settings"><h2>Assinatura</h2><div id="billing-content">Carregando opcoes...</div></section>`;
     $('studio-name-form').elements.nome.value = state.studio.nome;
     $('studio-name-form').onsubmit = async event => {
       event.preventDefault(); const button = event.currentTarget.querySelector('button'); button.disabled = true;
@@ -221,11 +221,45 @@
   };
   if (resetToken) passwordDialog(true);
   window.inkTeam = { render: renderTeam, editorAvailability, close() { ++editorRequest; ++calendarRequest; settingsUser=null;calendarKey='';selectedDate='';$('professional-dialog').close(); professionalEdit=null; ['studio-settings','professional-list','availability-days','availability-slots','block-list','shift-list'].forEach(id => { $(id).replaceChildren(); }); $('professional-form').reset(); } };
-  setInterval(async () => {
-    if (polling || document.hidden || !state.token || !state.loaded || $('editor').open || $('professional-dialog').open || !['overview','agenda'].includes(state.view)) return;
-    polling=true; const generation=state.generation, request=state.loadRequest;
-    try { const [appointments,professionals]=await Promise.all([api('/marcacoes'),api('/profissionais')]); if (generation===state.generation&&request===state.loadRequest) {state.appointments=appointments;state.professionals=professionals;render();if(state.view==='agenda')loadCalendar(true);} }
-    catch (error) { if (generation===state.generation) $('page-error').textContent=error.message; }
-    finally {polling=false;}
-  },20000);
-})();
+  function canRefreshAgenda() {
+    return !document.hidden && Boolean(state.token) && state.loaded && !$('editor').open && !$('professional-dialog').open && ['overview', 'agenda'].includes(state.view);
+  }
+  function scheduleAgendaRefresh(delay = 0, retryAfterFailure = false) {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => { refreshTimer = null; refreshAgenda(retryAfterFailure); }, delay);
+  }
+  async function refreshAgenda(retryAfterFailure = false) {
+    if (!canRefreshAgenda()) return;
+    if (polling) { queuedRefresh = true; return; }
+    polling = true;
+    const generation = state.generation, request = state.loadRequest;
+    try {
+      const appointments = await api('/marcacoes');
+      if (generation !== state.generation || request !== state.loadRequest || !state.token) return;
+      const professionals = await api('/profissionais');
+      if (generation === state.generation && request === state.loadRequest && state.token) {
+        state.appointments = appointments;
+        state.professionals = professionals;
+        render();
+        if (state.view === 'agenda') loadCalendar(true);
+      }
+    } catch (error) {
+      if (generation === state.generation) $('page-error').textContent = error.message;
+      if (retryAfterFailure) scheduleAgendaRefresh(350, false);
+    } finally {
+      polling = false;
+      if (queuedRefresh) {
+        queuedRefresh = false;
+        if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
+        scheduleAgendaRefresh(0, false);
+      }
+    }
+  }
+  function refreshOnReturn() {
+    if (document.hidden) return;
+    if (focusTimer) clearTimeout(focusTimer);
+    focusTimer = setTimeout(() => { focusTimer = null; scheduleAgendaRefresh(0, true); }, 150);
+  }
+  window.addEventListener('focus', refreshOnReturn);
+  document.addEventListener('visibilitychange', refreshOnReturn);
+  setInterval(() => { if (!polling) scheduleAgendaRefresh(0, true); }, 20000);})();

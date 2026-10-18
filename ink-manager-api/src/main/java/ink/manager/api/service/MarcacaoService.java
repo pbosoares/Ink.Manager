@@ -20,14 +20,20 @@ public class MarcacaoService {
     private final DisponibilidadeService disponibilidade;
     private final AcessoAtual acesso;
     private final Clock clock;
+    private final RecebimentoRepository recebimentos;
     public MarcacaoService(MarcacaoRepository marcacoes,ClienteRepository clientes,EstudioRepository estudios,
-            AgendaGuard guard,DisponibilidadeService disponibilidade,AcessoAtual acesso,Clock clock){
+            AgendaGuard guard,DisponibilidadeService disponibilidade,AcessoAtual acesso,Clock clock,RecebimentoRepository recebimentos){
         this.marcacoes=marcacoes;this.clientes=clientes;this.estudios=estudios;this.guard=guard;
-        this.disponibilidade=disponibilidade;this.acesso=acesso;this.clock=clock;
+        this.disponibilidade=disponibilidade;this.acesso=acesso;this.clock=clock;this.recebimentos=recebimentos;
     }
-    @Transactional(readOnly=true) public List<Marcacao> listarTodas(){return marcacoes.findByEstudioId(acesso.estudioId());}
+    @Transactional(readOnly=true) public List<Marcacao> listarTodas(){
+        var lista=marcacoes.findByEstudioIdOrderByDataAscHorarioAscIdAsc(acesso.estudioId());
+        var confirmadas=new HashSet<>(recebimentos.marcacoesConfirmadas(acesso.estudioId()));
+        lista.forEach(m->informarRecebimento(m,confirmadas.contains(m.getId())));return lista;
+    }
     @Transactional(readOnly=true) public Marcacao buscarPorId(Long id){
-        return marcacoes.findByIdAndEstudioId(id,acesso.estudioId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Marcacao nao encontrada."));
+        var m=marcacoes.findByIdAndEstudioId(id,acesso.estudioId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Marcacao nao encontrada."));
+        informarRecebimento(m,recebimentos.existsByMarcacaoIdAndEstudioId(id,acesso.estudioId()));return m;
     }
     public Marcacao salvar(Marcacao marcacao){
         guard.bloquear();marcacao.setId(null);marcacao.setVersion(null);resolverVinculos(marcacao);validarAgenda(marcacao,null);return marcacoes.saveAndFlush(marcacao);
@@ -48,6 +54,7 @@ public class MarcacaoService {
     }
     public Marcacao atualizar(Long id,Marcacao marcacao){guard.bloquear();return atualizarInterno(buscarPorId(id),marcacao);}
     private Marcacao atualizarInterno(Marcacao atual,Marcacao marcacao){
+        protegerRecebimento(atual.getId());
         if(marcacao.getVersion()==null||!Objects.equals(atual.getVersion(),marcacao.getVersion())) throw new ApiException(HttpStatus.CONFLICT,"Registro alterado. Recarregue antes de salvar.");
         marcacao.setId(atual.getId());resolverVinculos(marcacao);validarAgenda(marcacao,atual);
         atual.setCliente(marcacao.getCliente());atual.setProfissional(marcacao.getProfissional());atual.setData(marcacao.getData());
@@ -72,5 +79,13 @@ public class MarcacaoService {
         if(mudou&&inicio.isBefore(LocalDateTime.now(clock))) throw new ApiException(HttpStatus.BAD_REQUEST,"Nao e permitido agendar no passado.");
         if(mudou||!inicio.isBefore(LocalDateTime.now(clock))) disponibilidade.validarReserva(m);
     }
-    public void deletar(Long id){guard.bloquear();marcacoes.delete(buscarPorId(id));}
+    private void protegerRecebimento(Long id){var m=marcacoes.findByIdAndEstudioId(id,acesso.estudioId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Marcacao nao encontrada."));if(recebimentos.existsByMarcacaoIdAndEstudioId(id,acesso.estudioId())||m.getPresenca()!=null)throw new ApiException(HttpStatus.CONFLICT,"Atendimento com comparecimento registrado nao pode ser alterado ou excluido.");}
+    private void informarRecebimento(Marcacao m,boolean confirmado){
+        var zona=java.time.ZoneId.of(m.getEstudio().getFusoHorario());
+        var fim=m.getData().atTime(m.getHorario()).plusMinutes(m.getDuracaoMinutos()==null?60:m.getDuracaoMinutos());
+        var terminou=!fim.isAfter(LocalDateTime.now(clock.withZone(zona)));
+        var permitido=!confirmado&&m.getStatus()!=StatusMarcacao.CANCELADA&&!"FALTOU".equals(m.getPresenca())&&terminou;
+        m.informarRecebimento(confirmado,permitido);
+    }
+    public void deletar(Long id){guard.bloquear();var m=buscarPorId(id);protegerRecebimento(id);marcacoes.delete(m);}
 }

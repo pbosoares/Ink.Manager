@@ -24,9 +24,11 @@ import ink.manager.api.service.MarcacaoService;
 public class MarcacaoController {
 
     private final MarcacaoService marcacaoService;
+    private final ink.manager.api.service.PresencaService presencaService;
 
-    public MarcacaoController(MarcacaoService marcacaoService) {
+    public MarcacaoController(MarcacaoService marcacaoService,ink.manager.api.service.PresencaService presencaService) {
         this.marcacaoService = marcacaoService;
+        this.presencaService=presencaService;
     }
 
     @GetMapping
@@ -56,6 +58,12 @@ public class MarcacaoController {
     public MarcacaoResponse atualizarComCliente(@PathVariable Long id,
             @Valid @RequestBody MarcacaoComClienteRequest request) {
         return MarcacaoResponse.from(marcacaoService.salvarComCliente(id, request));
+    }
+
+    @PutMapping("/{id}/presenca")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('PROPRIETARIO')")
+    public MarcacaoResponse registrarPresenca(@PathVariable Long id,@Valid @RequestBody ink.manager.api.service.PresencaService.Pedido pedido){
+        return MarcacaoResponse.from(presencaService.atualizar(id,pedido));
     }
 
     @PutMapping("/{id}")

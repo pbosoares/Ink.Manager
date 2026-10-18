@@ -29,8 +29,11 @@ public class DisponibilidadeService {
         this.marcacoes=marcacoes;this.acesso=acesso;this.clock=clock;
     }
     public Profissional profissional(Long id){
+        return profissional(acesso.estudioId(), id);
+    }
+    public Profissional profissional(Long estudioId, Long id){
         if(id==null) throw new ApiException(HttpStatus.BAD_REQUEST,"Informe o profissional.");
-        return profissionais.findByIdAndEstudioId(id,acesso.estudioId()).orElseThrow(()->
+        return profissionais.findByIdAndEstudioId(id,estudioId).orElseThrow(()->
             new ApiException(HttpStatus.NOT_FOUND,"Profissional nao encontrado."));
     }
     public static boolean ativa(Marcacao m){return m.getStatus()==StatusMarcacao.AGENDADA||m.getStatus()==StatusMarcacao.CONFIRMADA;}
@@ -63,10 +66,13 @@ public class DisponibilidadeService {
             throw new ApiException(HttpStatus.CONFLICT,"Horario ocupado ou bloqueado para este profissional.");
     }
     public HorariosDisponiveis consultar(Long id,LocalDate data,int duracao,Long ignorarId){
-        validarDuracao(duracao);var profissional=profissional(id);
-        if(ignorarId!=null&&!marcacoes.existsByIdAndProfissionalIdAndEstudioId(ignorarId,id,acesso.estudioId()))
+        return consultarEstudio(acesso.estudioId(),id,data,duracao,ignorarId);
+    }
+    public HorariosDisponiveis consultarEstudio(Long estudioId,Long id,LocalDate data,int duracao,Long ignorarId){
+        validarDuracao(duracao);var profissional=profissional(estudioId,id);
+        if(ignorarId!=null&&!marcacoes.existsByIdAndProfissionalIdAndEstudioId(ignorarId,id,estudioId))
             throw new ApiException(HttpStatus.BAD_REQUEST,"Marcacao nao pertence ao profissional selecionado.");
-        var reservas=marcacoes.findByProfissionalIdAndEstudioIdAndDataBetween(id,acesso.estudioId(),data,data);
+        var reservas=marcacoes.findByProfissionalIdAndEstudioIdAndDataBetween(id,estudioId,data,data);
         var livres=slots(profissional,data,duracao,ignorarId,turnos(id),reservas,bloqueios.findByProfissionalIdOrderByInicioAsc(id));
         return new HorariosDisponiveis(id,data,duracao,clock.getZone().getId(),livres);
     }

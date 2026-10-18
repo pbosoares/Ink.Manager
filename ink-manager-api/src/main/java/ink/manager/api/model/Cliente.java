@@ -43,6 +43,11 @@ public class Cliente {
 
     @jakarta.validation.constraints.Size(max = 100)
     private String instagram;
+    @jakarta.persistence.Column(length=254)
+    @jakarta.validation.constraints.Email
+    private String email;
+    public String getEmail(){return email;}
+    public void setEmail(String value){email=value;}
 
     public Cliente() {
     }

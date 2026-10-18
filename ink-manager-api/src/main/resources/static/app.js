@@ -1,13 +1,21 @@
 'use strict';
 
+// Load brand fonts without holding up the authenticated app bootstrap.
+const brandFonts = document.createElement('link');
+brandFonts.rel = 'preload';
+brandFonts.as = 'style';
+brandFonts.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Caslon+Display&family=Rye&display=swap';
+brandFonts.onload = () => { brandFonts.rel = 'stylesheet'; };
+document.head.append(brandFonts);
+
 const $ = (id) => document.getElementById(id);
 const statuses = { AGENDADA: 'Agendada', CONFIRMADA: 'Confirmada', CONCLUIDA: 'Concluída', CANCELADA: 'Cancelada' };
-const state = { token: sessionStorage.getItem('ink.token'), clients: [], appointments: [], professionals: [], user: null, studio: null, view: 'overview', register: false, edit: null, deletion: null, generation: 0, loaded: false, loading: false, loadRequest: 0 };
+const state = { token: sessionStorage.getItem('ink.token'), clients: [], appointments: [], professionals: [], user: null, studio: null, view: 'overview', register: false, registrationEnabled: false, edit: null, deletion: null, generation: 0, loaded: false, loading: false, loadRequest: 0 };
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : 'Sem data';
 const badge = (value) => `<span class="badge ${Object.hasOwn(statuses, value) ? value : ''}">${escapeHtml(statuses[value] || 'Sem status')}</span>`;
-const sortedAppointments = () => [...state.appointments].sort((a, b) => `${a.data}T${a.horario}`.localeCompare(`${b.data}T${b.horario}`));
+const sortedAppointments = () => [...state.appointments].sort((a, b) => `${a.data}T${a.horario}`.localeCompare(`${b.data}T${b.horario}`) || a.id - b.id);
 let toastTimer;
 
 function notify(message) {
@@ -32,6 +40,8 @@ function logout(message = '') {
   $('editor').close();
   $('confirmation').close();
   window.inkTeam?.close();
+  window.inkSimple?.close();
+  window.inkAnalytics?.close();
   $('auth-form').reset();
   $('auth-error').textContent = message;
 }
@@ -45,7 +55,7 @@ async function api(path, { method = 'GET', body, publicRequest = false } = {}) {
   try {
     response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(20000) });
   } catch {
-    throw new Error('Não foi possível conectar ao estúdio. Confira a conexão e tente novamente.');
+    throw new Error('Não foi possível conectar ao negócio. Confira a conexão e tente novamente.');
   }
   const data = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
@@ -99,7 +109,7 @@ async function loadData() {
 function openWorkspace() {
   $('auth').hidden = true;
   $('workspace').hidden = false;
-  $('account-name').textContent = 'Seu estúdio';
+  $('account-name').textContent = 'Seu negócio';
   $('today-label').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   setView('overview');
   loadData();
@@ -114,13 +124,16 @@ $('toggle-auth').addEventListener('click', () => {
   $('auth-form').elements.senha.minLength = state.register ? 8 : 1;
   $('auth-form').elements.senha.autocomplete = state.register ? 'new-password' : 'current-password';
   $('auth-title').textContent = state.register ? 'Abra as portas.' : 'Bom te ver por aqui.';
-  $('auth-description').textContent = state.register ? 'Crie seu acesso para começar a organizar o estúdio.' : 'Entre para cuidar da sua agenda e dos seus clientes.';
-  $('auth-submit').textContent = state.register ? 'Criar minha conta ↗' : 'Entrar no estúdio ↗';
-  $('auth-question').textContent = state.register ? 'Já tem uma conta?' : 'Primeira vez aqui?';
+  $('auth-description').textContent = state.register ? 'Crie seu neg\u00f3cio e comece a organizar a agenda.' : 'Entre para cuidar da agenda e dos clientes do seu neg\u00f3cio.';
+  $('auth-submit').textContent = state.register ? 'Testar gr\u00e1tis por 14 dias \u2192' : 'Entrar no neg\u00f3cio \u2192';
+  $('auth-submit').classList.toggle('primary', state.register);
+  $('auth-submit').classList.toggle('secondary', !state.register);
+  $('auth-question').textContent = state.register ? 'J\u00e1 tem uma conta?' : 'Primeira vez aqui?';
   $('toggle-auth').textContent = state.register ? 'Entrar' : 'Criar uma conta';
+  $('auth-registration').hidden = !state.registrationEnabled;
+  $('landing-offer').hidden = !state.registrationEnabled || state.register;
   $('auth-error').textContent = '';
 });
-
 $('auth-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const values = Object.fromEntries(new FormData(event.currentTarget));
@@ -136,7 +149,7 @@ $('auth-form').addEventListener('submit', async (event) => {
       $('toggle-auth').disabled = false;
       $('toggle-auth').click();
       $('toggle-auth').disabled = true;
-      notify('Conta criada. Bem-vindo ao estúdio!');
+      notify('Conta criada. Bem-vindo ao negócio!');
     }
     const result = await api('/auth/login', { method: 'POST', body: { email: values.email, senha: values.senha }, publicRequest: true });
     if (!result?.token) throw new Error('O servidor não retornou uma sessão válida.');
@@ -153,15 +166,17 @@ $('auth-form').addEventListener('submit', async (event) => {
 });
 
 function setView(view) {
+  if (view === 'receipts' && state.user?.perfil !== 'PROPRIETARIO') view = 'overview';
   state.view = view;
   const copy = {
-    overview: ['A CASA ESTÁ ABERTA', 'Cada dia, uma nova história.', 'Sua rotina organizada. Sua arte em primeiro lugar.'],
-    agenda: ['TEMPO PARA FAZER ARTE', 'Sua agenda, no traço.', 'Cada sessão tem seu espaço. Cuide dos próximos encontros.'],
+    overview: ['A CASA ESTÁ ABERTA', 'Cada dia, uma nova história.', 'Sua rotina organizada. Seus atendimentos em primeiro lugar.'],
+    agenda: ['TEMPO PARA ATENDER BEM', 'Sua agenda, no lugar.', 'Cada atendimento tem seu espaço. Cuide dos próximos encontros.'],
     team: ['A EQUIPE', 'Cada profissional, sua agenda.', 'Expedientes e folgas compartilhados com a equipe.'],
-    studio: ['SEU ESPACO', 'O estudio tem a sua cara.', 'Nome, acessos e assinatura no mesmo lugar.'],
-    clients: ['QUEM CONFIA NO SEU TRAÇO', 'As pessoas por trás da arte.', 'Contatos e histórias para manter sempre por perto.']
+    studio: ['SEU ESPACO', 'Seu negócio tem a sua cara.', 'Serviços, link de reservas, acessos e assinatura no mesmo lugar.'],
+    receipts: ['VALORES CONFIRMADOS', 'Recebimentos, sem complicação.', 'Confirme o atendimento e o valor recebido para acompanhar a semana e o mês.'],
+    clients: ['QUEM CONFIA NO SEU TRABALHO', 'Seus clientes, sempre por perto.', 'Contatos e histórias para manter sempre por perto.']
   }[view];
-  ['overview', 'agenda', 'clients', 'team', 'studio'].forEach((key) => { $(`${key}-view`).hidden = key !== view; });
+  ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts'].forEach((key) => { $(`${key}-view`).hidden = key !== view; });
   document.querySelectorAll('[data-view]').forEach((button) => {
     button.classList.toggle('active', button.dataset.view === view);
     if (button.dataset.view === view) button.setAttribute('aria-current', 'page');
@@ -180,9 +195,9 @@ function empty(title, description, action) {
 
 function render() {
   $('main-action').disabled = !state.loaded;
-  $('main-action').hidden = ['team', 'studio'].includes(state.view);
+  $('main-action').hidden = ['team', 'studio', 'receipts'].includes(state.view);
   document.querySelectorAll('.owner-only').forEach((element) => { element.hidden = state.user?.perfil !== 'PROPRIETARIO'; });
-  ['overview', 'agenda', 'clients', 'team', 'studio'].forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
+  ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts'].forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
   $('workspace').setAttribute('aria-busy', String(state.loading));
   if (!state.loaded) {
     ['stat-today', 'stat-upcoming', 'stat-clients'].forEach((id) => { $(id).textContent = '—'; });
@@ -197,10 +212,12 @@ function render() {
   const currentTime = `${today}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
   $('stat-upcoming').textContent = String(appointments.filter((item) => `${item.data}T${item.horario}` >= currentTime && ['AGENDADA', 'CONFIRMADA'].includes(item.status)).length).padStart(2, '0');
   $('stat-clients').textContent = String(state.clients.length).padStart(2, '0');
-  $('today-list').innerHTML = todays.length ? todays.map((item) => `<div class="session"><span class="session-time">${escapeHtml(item.horario?.slice(0, 5))}</span><div class="session-info"><div class="session-name">${escapeHtml(item.cliente?.nome)}</div><div class="session-description">${escapeHtml(item.descricao || 'Sessão de tatuagem')}</div></div>${badge(item.status)}<button class="text-button" data-edit-appointment="${item.id}" aria-label="Editar marcação de ${escapeHtml(item.cliente?.nome)}">Editar</button></div>`).join('') : empty('Um respiro na agenda.', 'Nenhuma sessão marcada para hoje.', 'appointment');
+  $('today-list').innerHTML = todays.length ? todays.map((item) => `<div class="session"><span class="session-time">${escapeHtml(item.horario?.slice(0, 5))}</span><div class="session-info"><div class="session-name">${escapeHtml(item.cliente?.nome)}</div><div class="session-description">${escapeHtml(item.servicoNome || item.descricao || 'Atendimento')}${window.inkSimple?.appointmentDetails(item) || ''}</div>${window.inkAnalytics?.attendanceAction(item) || ''}</div>${badge(item.status)}${window.inkSimple?.receiptAction(item) || ''}<button class="text-button" ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-edit-appointment="${item.id}" aria-label="Editar marcação de ${escapeHtml(item.cliente?.nome)}">Editar</button></div>`).join('') : empty('Um respiro na agenda.', 'Nenhum atendimento marcado para hoje.', 'appointment');
   renderAgenda();
   renderClients();
   window.inkTeam?.render();
+  window.inkSimple?.render();
+  window.inkAnalytics?.render();
 }
 
 function renderAgenda() {
@@ -209,9 +226,9 @@ function renderAgenda() {
   const date = $('agenda-date').value;
   const status = $('agenda-status').value;
   const professional = $('agenda-professional').value;
-  const items = sortedAppointments().filter((item) => (!professional || String(item.profissional?.id) === professional) && (!date || item.data === date) && (!status || item.status === status) && `${item.cliente?.nome || ''} ${item.descricao || ''}`.toLocaleLowerCase('pt-BR').includes(query));
+  const items = sortedAppointments().filter((item) => (!professional || String(item.profissional?.id) === professional) && (!date || item.data === date) && (!status || item.status === status) && `${item.cliente?.nome || ''} ${item.servicoNome || ''} ${item.descricao || ''}`.toLocaleLowerCase('pt-BR').includes(query));
   $('agenda-count').textContent = `${items.length} registro(s)`;
-  $('agenda-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>DATA / HORA</th><th>CLIENTE / SESSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(formatDate(item.data))}<small>${escapeHtml(item.data?.slice(0, 4))} · ${escapeHtml(item.horario?.slice(0, 5))}</small></td><td>${escapeHtml(item.cliente?.nome)}<small>${escapeHtml(item.profissional?.nome)} / ${escapeHtml(item.descricao || 'Sem descrição')}</small></td><td>${badge(item.status)}</td><td><div class="row-actions"><button class="text-button" data-edit-appointment="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} data-delete-appointment="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Nenhuma marcação por aqui.', query || date || status ? 'Experimente mudar os filtros.' : 'Comece reservando um horário para a próxima arte.', query || date || status ? '' : 'appointment');
+  $('agenda-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>DATA / HORA</th><th>CLIENTE / ATENDIMENTO</th><th>STATUS</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(formatDate(item.data))}<small>${escapeHtml(item.data?.slice(0, 4))} · ${escapeHtml(item.horario?.slice(0, 5))}</small></td><td>${escapeHtml(item.cliente?.nome)}<small>${escapeHtml(item.profissional?.nome)} / ${escapeHtml(item.servicoNome || item.descricao || 'Sem descrição')}</small>${window.inkSimple?.appointmentDetails(item) || ''}${window.inkAnalytics?.attendanceAction(item) || ''}</td><td>${badge(item.status)}</td><td><div class="row-actions">${window.inkSimple?.receiptAction(item) || ''}<button class="text-button" ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-edit-appointment="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-delete-appointment="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Nenhuma marcação por aqui.', query || date || status ? 'Experimente mudar os filtros.' : 'Reserve um horário para o próximo atendimento.', query || date || status ? '' : 'appointment');
 }
 
 function renderClients() {
@@ -226,6 +243,7 @@ function renderClients() {
 function openEditor(type, id = null) {
   if (!state.loaded) return;
   const item = (type === 'client' ? state.clients : state.appointments).find((entry) => entry.id === id) || {};
+  if (type === 'appointment' && item.recebimentoConfirmado) { notify('Atendimento com recebimento confirmado não pode ser alterado.'); return; }
   state.edit = { type, id, clientId: item.cliente?.id, version: item.version, original: item };
   $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcacao'}`;
   $('editor-error').textContent = '';
@@ -337,15 +355,25 @@ async function loadAuthConfig() {
   $('toggle-auth').disabled = true;
   try {
     const config = await api('/auth/config', { publicRequest: true });
-    $('auth-registration').hidden = !config.registrationEnabled;
-    $('registration-notice').hidden = config.registrationEnabled;
+    state.registrationEnabled = Boolean(config.registrationEnabled);
+    $('auth-registration').hidden = !state.registrationEnabled;
+    $('landing-offer').hidden = !state.registrationEnabled || state.register;
+    $('registration-notice').hidden = state.registrationEnabled;
   } catch {
+    state.registrationEnabled = false;
     $('auth-registration').hidden = true;
+    $('landing-offer').hidden = true;
     $('registration-notice').hidden = false;
     $('registration-notice').textContent = 'Cadastro indisponível. Entre com uma conta existente.';
   } finally {
     $('toggle-auth').disabled = false;
   }
 }
+$('landing-trial').addEventListener('click', () => {
+  if (!state.registrationEnabled || state.register) return;
+  $('toggle-auth').click();
+  $('auth-form').elements.nomeEstudio.focus();
+});
+window.inkApp = { api, user: () => state.user, appointments: () => state.appointments, view: () => state.view, reload: loadData, render, notify };
 loadAuthConfig();
 if (state.token) openWorkspace();

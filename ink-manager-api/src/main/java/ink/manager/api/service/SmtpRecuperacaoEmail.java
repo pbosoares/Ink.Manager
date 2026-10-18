@@ -13,7 +13,7 @@ public class SmtpRecuperacaoEmail implements RecuperacaoEmail {
     public boolean disponivel(){return !host.isBlank()&&!from.isBlank()&&sender.getIfAvailable()!=null;}
     public void enviar(String email,String link){
         var message=new SimpleMailMessage();message.setFrom(from);message.setTo(email);
-        message.setSubject("Ink Manager - redefinir senha");
+        message.setSubject("Marcaê - redefinir senha");
         message.setText("Use o link para redefinir sua senha. Ele vale por 30 minutos e pode ser usado uma vez.\n\n"+link+"\n\nSe voce nao solicitou, ignore esta mensagem.");
         sender.getObject().send(message);
     }
