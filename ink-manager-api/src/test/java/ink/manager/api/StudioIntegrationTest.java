@@ -640,10 +640,11 @@ class StudioIntegrationTest {
         var limite=now.plusMinutes(120).toLocalDateTime();int remainder=limite.getMinute()%15;var slot=limite.plusMinutes(remainder==0?0:15-remainder).withSecond(0).withNano(0);
         if(!slot.toLocalDate().equals(now.toLocalDate())||slot.toLocalTime().isBefore(LocalTime.of(1,0))||slot.toLocalTime().isAfter(LocalTime.of(23,0)))slot=slot.plusDays(1).toLocalDate().atTime(2,0);
         var candidate=new Publico(p.conta(),p.link(),p.servico(),p.profissional(),slot.toLocalDate());
-        var tooSoon=pedido(candidate,slot.toLocalTime().minusMinutes(15).toString());tooSoon.put("data",slot.toLocalDate().toString());
-        assertEquals(409,reservar(candidate,tooSoon).statusCode());
+        var limiteExato=now.plusMinutes(105).withSecond(0).withNano(0);
+        var tooSoon=pedido(candidate,limiteExato.toLocalTime().toString());tooSoon.put("data",limiteExato.toLocalDate().toString());
+        var refused=reservar(candidate,tooSoon);assertEquals(409,refused.statusCode(),refused.body());assertTrue(refused.body().contains("antecedencia"));
         var available=slots(p,p.servico(),p.profissional(),slot.toLocalDate());assertEquals(200,available.statusCode(),available.body());
-        var listed=json(available).get("horarios");assertFalse(contem(listed,slot.toLocalTime().minusMinutes(15).toString()+":00"));assertTrue(contem(listed,slot.toLocalTime().toString()+":00"));
+        var listed=json(available).get("horarios");assertTrue(contem(listed,slot.toLocalTime().toString()+":00"));
         var allowed=pedido(candidate,slot.toLocalTime().toString());allowed.put("data",slot.toLocalDate().toString());
         assertEquals(201,reservar(candidate,allowed).statusCode());
     }
@@ -729,7 +730,7 @@ class StudioIntegrationTest {
         assertFalse(report.get("comparacaoDisponivel").asBoolean());
     }
     @Test void cadastroNovoIniciaAvaliacaoSemPagamentoOuChamadaAoGateway() throws Exception {
-        String email=UUID.randomUUID()+"@example.com";var inicio=LocalDateTime.now();
+        String email=UUID.randomUUID()+"@example.com";var inicio=LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
         var cadastro=request("POST","/auth/estudios",stringify(Map.of("nomeEstudio","Avaliacao sem pagamento","nome","Responsavel","email",email,"senha","SenhaTeste123")),null);
         assertEquals(201,cadastro.statusCode(),cadastro.body());assertFalse(json(cadastro).has("pagamento"));assertFalse(json(cadastro).has("metodoPagamento"));
         String token=login(email,"SenhaTeste123");var resumoResponse=request("GET","/assinatura",null,token);assertEquals(200,resumoResponse.statusCode(),resumoResponse.body());var resumo=json(resumoResponse);
