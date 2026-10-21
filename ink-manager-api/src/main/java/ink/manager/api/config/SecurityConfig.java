@@ -73,9 +73,9 @@ public class SecurityConfig {
             )
 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/index.html", "/app.js", "/team.js", "/billing.js", "/simple.js", "/analytics.js", "/agendar.html", "/agendar.js", "/styles.css", "/favicon.svg").permitAll()
+                .requestMatchers("/", "/index.html", "/app.js", "/team.js", "/billing.js", "/simple.js", "/analytics.js", "/agendar.html", "/agendar.js", "/acao-email.html", "/acao-email.js", "/oferta.html", "/oferta.js", "/styles.css", "/favicon.svg").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/publico/*", "/publico/*/horarios").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/publico/*/reservas").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/publico/*/reservas", "/publico/*/lista-espera", "/publico/*/oferta/visualizar", "/publico/*/oferta/aceitar", "/publico/acoes/visualizar", "/publico/acoes").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/auth/login", "/auth/estudios", "/auth/recuperar-senha", "/auth/redefinir-senha").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/auth/config", "/actuator/health").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/assinatura/webhook").permitAll()

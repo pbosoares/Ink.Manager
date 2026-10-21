@@ -5,6 +5,7 @@
   <meta name="theme-color" content="#E9DDBF">
   <meta name="description" content="Escolha seu serviço e um horário livre. Agende sem criar conta.">
   <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
   <title>Agendar — Marcaê</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css"><script src="/agendar.js" defer></script>
@@ -47,6 +48,39 @@
         <button id="another-booking" type="button" class="secondary">Fazer outro agendamento</button>
       </section>
     </main>
+      <details id="waitlist-panel" class="waitlist-panel" hidden>
+        <summary>Quer outro hor&#225;rio? Entre na lista de espera</summary>
+        <p>Informe o servi&#231;o, o per&#237;odo que prefere e seus dados. Se surgir uma vaga compat&#237;vel, o estabelecimento poder&#225; entrar em contato.</p>
+        <p id="waitlist-catalog-status" class="muted" role="status"></p>
+        <form id="waitlist-form">
+          <fieldset id="waitlist-fields" disabled>
+            <legend class="sr-only">Prefer&#234;ncias para a lista de espera</legend>
+            <label>Servico<select name="servicoId" id="waitlist-service" required><option value="">Selecione o servico</option></select></label>
+            <label>Profissional (opcional)<select name="profissionalId" id="waitlist-professional"><option value="">Qualquer profissional</option></select></label>
+            <div class="form-row"><label>A partir de<input name="inicio" type="datetime-local" required></label><label>At&#233;<input name="fim" type="datetime-local" required></label></div>
+            <label>Seu nome<input name="nome" autocomplete="name" maxlength="100" required></label>
+            <label>E-mail<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+            <label>Telefone<input name="telefone" type="tel" autocomplete="tel" maxlength="30" minlength="8" placeholder="(11) 99999-9999" required></label>
+            <details class="privacy-notice"><summary>Aviso de privacidade <span id="waitlist-privacy-version"></span></summary><p>O estabelecimento usa seu nome, e-mail e telefone para manter esta solicita&#231;&#227;o e organizar uma reserva se surgir uma vaga compat&#237;vel. Consulte o estabelecimento para saber mais sobre o uso dos seus dados.</p></details>
+            <label class="checkbox-label privacy-ack"><input name="avisoPrivacidadeLido" type="checkbox" required> Li o aviso de privacidade</label>
+          </fieldset>
+          <p id="waitlist-pending" class="booking-summary" hidden>Estamos verificando o mesmo pedido. Tente novamente para evitar uma entrada duplicada.</p>
+          <p id="waitlist-error" class="form-error" role="alert"></p><p id="waitlist-success" class="booking-summary" role="status" hidden></p>
+          <button id="waitlist-submit" type="submit" class="secondary wide" disabled>Entrar na lista de espera</button>
+          <p class="muted">A lista n&#227;o garante uma vaga e n&#227;o realiza pagamento.</p>
+        </form>
+      </details>
+      <section id="offer-panel" class="offer-panel" hidden aria-labelledby="offer-heading" tabindex="-1">
+        <span class="eyebrow accent">VAGA DISPON&#205;VEL</span><h2 id="offer-heading">Uma vaga foi oferecida para voc&#234;</h2>
+        <p id="offer-loading" role="status" hidden>Consultando os detalhes da oferta...</p><p id="offer-error" class="form-error" role="alert"></p><button id="offer-retry" type="button" class="text-button" hidden>Tentar consultar novamente</button><button id="offer-check-accepted" type="button" class="text-button" hidden>Verificar se a reserva j&#225; foi confirmada</button>
+        <dl id="offer-details" class="offer-details" hidden></dl>
+        <p id="offer-deadline" class="booking-summary" hidden></p>
+        <button id="offer-accept" type="button" class="primary wide" hidden>Aceitar esta vaga</button>
+        <section id="offer-confirmation" class="booking-confirmation" hidden aria-labelledby="offer-confirmation-title">
+          <h2 id="offer-confirmation-title">Reserva confirmada</h2><dl id="offer-confirmation-details"></dl>
+          <p>Guarde os dados da reserva e fale com o estabelecimento para qualquer altera&#231;&#227;o.</p>
+        </section>
+      </section>
     <footer class="landing-footer"><span>MAIS TEMPO PARA ATENDER BEM.</span><span>Marcaê</span></footer>
   </div>
 </body>

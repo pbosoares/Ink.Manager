@@ -31,7 +31,7 @@ class StudioIntegrationTest {
     final ObjectMapper mapper=new ObjectMapper();
 
     @BeforeEach void clean(){
-        for(String table:List.of("assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","recebimentos","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","servicos","estudios")) jdbc.update("DELETE FROM "+table);
+        for(String table:List.of("email_action_tokens","ofertas_lista_espera","lista_espera","email_outbox","assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","recebimentos","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","servicos","estudios")) jdbc.update("DELETE FROM "+table);
     }
     HttpResponse<String> request(String method,String path,String body,String token)throws Exception{
         var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).timeout(Duration.ofSeconds(20));
@@ -740,5 +740,107 @@ class StudioIntegrationTest {
         LocalDateTime criadoEm=jdbc.queryForObject("SELECT criado_em FROM estudios WHERE id=?",(rs,row)->rs.getTimestamp(1).toLocalDateTime(),estudio);
         assertTrue(avaliacaoAte.isAfter(criadoEm.plusDays(14).minusMinutes(1)));assertTrue(avaliacaoAte.isBefore(criadoEm.plusDays(14).plusMinutes(1)));
         assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM assinatura_checkouts",Integer.class));assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos",Integer.class));verify(gateway).disponivel();verifyNoMoreInteractions(gateway);
+    }
+    @Test void listaEsperaEIdempotenteEIsoladaPorEstudio() throws Exception {
+        var a=publico("Lista A");var b=publico("Lista B");
+        var inicio=a.dia().atTime(10,0).atZone(ZoneId.of("America/Sao_Paulo")).toOffsetDateTime();
+        var pedido=new HashMap<String,Object>();pedido.put("chaveIdempotencia",UUID.randomUUID());pedido.put("servicoId",a.servico());
+        pedido.put("profissionalId",a.profissional());pedido.put("inicio",inicio.toString());pedido.put("fim",inicio.plusMinutes(30).toString());
+        pedido.put("nome","Interessada");pedido.put("email","interessada@example.com");pedido.put("telefone","21999998888");pedido.put("avisoPrivacidadeLido",true);
+        var primeira=request("POST","/publico/"+a.link()+"/lista-espera",stringify(pedido),null);
+        assertEquals(200,primeira.statusCode(),primeira.body());assertTrue(json(primeira).get("recebida").asBoolean());
+        var repetida=request("POST","/publico/"+a.link()+"/lista-espera",stringify(pedido),null);
+        assertEquals(200,repetida.statusCode(),repetida.body());
+        pedido.put("email","outro@example.com");
+        assertEquals(409,request("POST","/publico/"+a.link()+"/lista-espera",stringify(pedido),null).statusCode());
+        var dono=json(request("GET","/lista-espera",null,a.conta().token()));assertEquals(1,dono.size());
+        assertEquals("AGUARDANDO",dono.get(0).get("estado").asText());assertEquals("Interessada",dono.get(0).get("nome").asText());
+        long id=dono.get(0).get("id").asLong();
+        assertEquals(0,json(request("GET","/lista-espera",null,b.conta().token())).size());
+        assertEquals(404,request("POST","/lista-espera/"+id+"/cancelar",null,b.conta().token()).statusCode());
+        assertEquals(200,request("POST","/lista-espera/"+id+"/cancelar",null,a.conta().token()).statusCode());
+        assertEquals("CANCELADA",json(request("GET","/lista-espera",null,a.conta().token())).get(0).get("estado").asText());
+    }
+
+    @Test void cancelarReservaCriaUmaOfertaEUmOutboxSemTokenBruto() throws Exception {
+        var p=publico("Oferta transacional");var inicio=p.dia().atTime(9,0).atZone(ZoneId.of("America/Sao_Paulo")).toOffsetDateTime();
+        var wait=new HashMap<String,Object>();wait.put("chaveIdempotencia",UUID.randomUUID());wait.put("servicoId",p.servico());wait.put("profissionalId",p.profissional());
+        wait.put("inicio",inicio.toString());wait.put("fim",inicio.plusMinutes(30).toString());wait.put("nome","Fila");wait.put("email","fila@example.com");wait.put("telefone","21999998888");wait.put("avisoPrivacidadeLido",true);
+        var joined=request("POST","/publico/"+p.link()+"/lista-espera",stringify(wait),null);assertEquals(200,joined.statusCode(),joined.body());
+        var booked=reservar(p,pedido(p,"09:00"));assertEquals(201,booked.statusCode(),booked.body());
+        var agenda=json(request("GET","/marcacoes",null,p.conta().token()));
+        var saved=java.util.stream.StreamSupport.stream(agenda.spliterator(),false).filter(m->m.get("data").asText().equals(p.dia().toString())&&m.get("horario").asText().startsWith("09:00")).findFirst().orElseThrow();
+        long id=saved.get("id").asLong();var cancel=new HashMap<String,Object>();cancel.put("cliente",Map.of("id",saved.get("cliente").get("id").asLong()));cancel.put("data",saved.get("data").asText());
+        cancel.put("horario",saved.get("horario").asText());cancel.put("descricao",saved.get("descricao").asText());cancel.put("status","CANCELADA");
+        cancel.put("duracaoMinutos",saved.get("duracaoMinutos").asInt());cancel.put("version",saved.get("version").asLong());cancel.put("profissionalId",p.profissional());
+        var cancelled=request("PUT","/marcacoes/"+id,stringify(cancel),p.conta().token());assertEquals(200,cancelled.statusCode(),cancelled.body());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ofertas_lista_espera WHERE estudio_id=?",Integer.class,p.conta().estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM email_outbox WHERE estudio_id=? AND tipo='LISTA_ESPERA_OFERTA'",Integer.class,p.conta().estudio()));
+        var outbox=jdbc.queryForMap("SELECT estado,dados_json FROM email_outbox WHERE estudio_id=? AND tipo='LISTA_ESPERA_OFERTA'",p.conta().estudio());
+        assertEquals("PENDENTE",outbox.get("estado"));assertFalse(((String)outbox.get("dados_json")).toLowerCase(Locale.ROOT).contains("token"));
+        var other=publico("Oferta outro tenant");byte[] raw=new byte[32];new java.security.SecureRandom().nextBytes(raw);String token=HexFormat.of().formatHex(raw);
+        String hash=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        long offerId=jdbc.queryForObject("SELECT id FROM ofertas_lista_espera WHERE estudio_id=?",Long.class,p.conta().estudio());
+        jdbc.update("UPDATE ofertas_lista_espera SET estado='OFERTADA',token_hash=?,token_prazo=? WHERE id=?",hash,OffsetDateTime.now(ZoneOffset.UTC).minusSeconds(1),offerId);
+        String tokenBody=stringify(Map.of("token",token));
+        var expired=request("POST","/publico/"+p.link()+"/oferta/visualizar",tokenBody,null);assertEquals(410,expired.statusCode(),expired.body());
+        assertFalse(expired.body().contains("fila@example.com"));
+        assertEquals(404,request("POST","/publico/"+other.link()+"/oferta/visualizar",tokenBody,null).statusCode());
+        jdbc.update("UPDATE ofertas_lista_espera SET token_prazo=? WHERE id=?",OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(10),offerId);
+        var preview=request("POST","/publico/"+p.link()+"/oferta/visualizar",tokenBody,null);assertEquals(200,preview.statusCode(),preview.body());
+        assertEquals("Corte simples",json(preview).get("servico").asText());assertEquals(30,json(preview).get("duracaoMinutos").asInt());
+        assertEquals(8,json(preview).size());for(var privateField:List.of("nome","email","telefone","cliente","clienteId","marcacaoId"))assertFalse(json(preview).has(privateField),privateField);
+        var competitorBody=reserva(cliente(p.conta()),p.profissional(),"09:00");competitorBody.put("data",p.dia().toString());competitorBody.put("duracaoMinutos",30);
+        var competitor=request("POST","/marcacoes",stringify(competitorBody),p.conta().token());assertEquals(201,competitor.statusCode(),competitor.body());
+        assertEquals(409,request("POST","/publico/"+p.link()+"/oferta/aceitar",tokenBody,null).statusCode());
+        var rival=json(competitor);var rivalCancel=new HashMap<String,Object>();rivalCancel.put("cliente",Map.of("id",rival.get("cliente").get("id").asLong()));
+        rivalCancel.put("data",rival.get("data").asText());rivalCancel.put("horario",rival.get("horario").asText());rivalCancel.put("descricao",rival.get("descricao").asText());
+        rivalCancel.put("status","CANCELADA");rivalCancel.put("duracaoMinutos",rival.get("duracaoMinutos").asInt());rivalCancel.put("version",rival.get("version").asLong());rivalCancel.put("profissionalId",p.profissional());
+        var freed=request("PUT","/marcacoes/"+rival.get("id").asLong(),stringify(rivalCancel),p.conta().token());assertEquals(200,freed.statusCode(),freed.body());
+        var accepted=concorrentes(()->request("POST","/publico/"+p.link()+"/oferta/aceitar",tokenBody,null),()->request("POST","/publico/"+p.link()+"/oferta/aceitar",tokenBody,null));
+        assertEquals(List.of(200,200),accepted.stream().map(HttpResponse::statusCode).sorted().toList());
+        long firstId=json(accepted.get(0)).get("reservaId").asLong();assertEquals(firstId,json(accepted.get(1)).get("reservaId").asLong());
+        var replay=request("POST","/publico/"+p.link()+"/oferta/aceitar",tokenBody,null);assertEquals(200,replay.statusCode(),replay.body());assertEquals(firstId,json(replay).get("reservaId").asLong());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM marcacoes WHERE estudio_id=? AND data=? AND horario='09:00' AND status<>'CANCELADA'",Integer.class,p.conta().estudio(),java.sql.Date.valueOf(p.dia())));
+        var reservedEntry=java.util.stream.StreamSupport.stream(json(request("GET","/lista-espera",null,p.conta().token())).spliterator(),false).filter(entry->entry.get("email").asText().equals("fila@example.com")).findFirst().orElseThrow();
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM email_outbox WHERE estudio_id=? AND referencia=? AND tipo IN ('LEMBRETE_24H','LEMBRETE_2H') AND estado='INVALIDADO'",Integer.class,p.conta().estudio(),Long.toString(id)));
+
+        var secondWait=new HashMap<String,Object>();secondWait.put("chaveIdempotencia",UUID.randomUUID());secondWait.put("servicoId",p.servico());secondWait.put("profissionalId",p.profissional());
+        var secondStart=p.dia().atTime(10,0).atZone(ZoneId.of("America/Sao_Paulo")).toOffsetDateTime();secondWait.put("inicio",secondStart.toString());secondWait.put("fim",secondStart.plusMinutes(30).toString());
+        secondWait.put("nome","Fila cancelada");secondWait.put("email","fila-cancelada@example.com");secondWait.put("telefone","21999998888");secondWait.put("avisoPrivacidadeLido",true);
+        assertEquals(200,request("POST","/publico/"+p.link()+"/lista-espera",stringify(secondWait),null).statusCode());
+        var secondBooking=reservar(p,pedido(p,"10:00"));assertEquals(201,secondBooking.statusCode(),secondBooking.body());
+        var secondAgenda=json(request("GET","/marcacoes",null,p.conta().token()));
+        var secondSaved=java.util.stream.StreamSupport.stream(secondAgenda.spliterator(),false).filter(m->m.get("data").asText().equals(p.dia().toString())&&m.get("horario").asText().startsWith("10:00")&&m.get("status").asText().equals("AGENDADA")).findFirst().orElseThrow();
+        long secondId=secondSaved.get("id").asLong();var secondCancel=new HashMap<String,Object>();secondCancel.put("cliente",Map.of("id",secondSaved.get("cliente").get("id").asLong()));
+        secondCancel.put("data",secondSaved.get("data").asText());secondCancel.put("horario",secondSaved.get("horario").asText());secondCancel.put("descricao",secondSaved.get("descricao").asText());
+        secondCancel.put("status","CANCELADA");secondCancel.put("duracaoMinutos",secondSaved.get("duracaoMinutos").asInt());secondCancel.put("version",secondSaved.get("version").asLong());secondCancel.put("profissionalId",p.profissional());
+        assertEquals(200,request("PUT","/marcacoes/"+secondId,stringify(secondCancel),p.conta().token()).statusCode());
+        var secondEntry=java.util.stream.StreamSupport.stream(json(request("GET","/lista-espera",null,p.conta().token())).spliterator(),false).filter(e->e.get("email").asText().equals("fila-cancelada@example.com")).findFirst().orElseThrow();
+        assertEquals("OFERTADA",secondEntry.get("estado").asText());long secondEntryId=secondEntry.get("id").asLong();
+        assertEquals(200,request("POST","/lista-espera/"+secondEntryId+"/cancelar",null,p.conta().token()).statusCode());
+        long invalidatedOffer=jdbc.queryForObject("SELECT id FROM ofertas_lista_espera WHERE estudio_id=? AND lista_espera_id=?",Long.class,p.conta().estudio(),secondEntryId);
+        assertEquals("INVALIDADA",jdbc.queryForObject("SELECT estado FROM ofertas_lista_espera WHERE id=?",String.class,invalidatedOffer));
+        assertEquals(409,request("POST","/lista-espera/"+reservedEntry.get("id").asLong()+"/cancelar",null,p.conta().token()).statusCode());
+        byte[] staleRaw=new byte[32];new java.security.SecureRandom().nextBytes(staleRaw);String staleToken=HexFormat.of().formatHex(staleRaw);
+        String staleHash=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(staleToken.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        jdbc.update("UPDATE ofertas_lista_espera SET token_hash=?,token_prazo=? WHERE id=?",staleHash,OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(10),invalidatedOffer);
+        var stale=request("POST","/publico/"+p.link()+"/oferta/visualizar",stringify(Map.of("token",staleToken)),null);
+        assertEquals(410,stale.statusCode(),stale.body());assertFalse(stale.body().contains("fila-cancelada@example.com"));
+
+        var boundaryWait=new HashMap<String,Object>();boundaryWait.put("chaveIdempotencia",UUID.randomUUID());boundaryWait.put("servicoId",p.servico());boundaryWait.put("profissionalId",p.profissional());
+        var boundaryStart=p.dia().atTime(11,0).atZone(ZoneId.of("America/Sao_Paulo")).toOffsetDateTime();boundaryWait.put("inicio",boundaryStart.toString());boundaryWait.put("fim",boundaryStart.plusMinutes(30).toString());
+        boundaryWait.put("nome","Limite superior");boundaryWait.put("email","limite@example.com");boundaryWait.put("telefone","21999998888");boundaryWait.put("avisoPrivacidadeLido",true);
+        assertEquals(200,request("POST","/publico/"+p.link()+"/lista-espera",stringify(boundaryWait),null).statusCode());
+        var boundaryBooking=reservar(p,pedido(p,"11:30"));assertEquals(201,boundaryBooking.statusCode(),boundaryBooking.body());
+        var boundaryAgenda=json(request("GET","/marcacoes",null,p.conta().token()));
+        var boundarySaved=java.util.stream.StreamSupport.stream(boundaryAgenda.spliterator(),false).filter(m->m.get("data").asText().equals(p.dia().toString())&&m.get("horario").asText().startsWith("11:30")).findFirst().orElseThrow();
+        long boundaryId=boundarySaved.get("id").asLong();var boundaryCancel=new HashMap<String,Object>();boundaryCancel.put("cliente",Map.of("id",boundarySaved.get("cliente").get("id").asLong()));
+        boundaryCancel.put("data",boundarySaved.get("data").asText());boundaryCancel.put("horario",boundarySaved.get("horario").asText());boundaryCancel.put("descricao",boundarySaved.get("descricao").asText());
+        boundaryCancel.put("status","CANCELADA");boundaryCancel.put("duracaoMinutos",boundarySaved.get("duracaoMinutos").asInt());boundaryCancel.put("version",boundarySaved.get("version").asLong());boundaryCancel.put("profissionalId",p.profissional());
+        assertEquals(200,request("PUT","/marcacoes/"+boundaryId,stringify(boundaryCancel),p.conta().token()).statusCode());
+        var boundaryEntry=java.util.stream.StreamSupport.stream(json(request("GET","/lista-espera",null,p.conta().token())).spliterator(),false).filter(e->e.get("email").asText().equals("limite@example.com")).findFirst().orElseThrow();
+        assertEquals("AGUARDANDO",boundaryEntry.get("estado").asText());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM ofertas_lista_espera WHERE estudio_id=? AND lista_espera_id=?",Integer.class,p.conta().estudio(),boundaryEntry.get("id").asLong()));
     }
 }

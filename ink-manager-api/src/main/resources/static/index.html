@@ -13,6 +13,7 @@
   <script src="/billing.js" defer></script>
   <script src="/simple.js" defer></script>
   <script src="/analytics.js" defer></script>
+  <script src="/waitlist.js" defer></script>
 </head>
 <body>
   <section id="auth" class="auth-layout">
@@ -126,7 +127,11 @@
   <div class="link-controls"><button id="copy-public-link" type="button" class="secondary" disabled>Copiar link</button><a id="open-public-link" class="text-button" target="_blank" rel="noopener noreferrer" hidden>Abrir página de reservas</a></div>
   <p id="public-link-error" role="status"></p>
 </section>
-<section id="schedule-config" class="settings-section owner-only" aria-labelledby="schedule-config-title"><h2 id="schedule-config-title">Regras de agendamento</h2><p>Defina a antecedência mínima e o limite de reservas abertas por email.</p><form id="schedule-config-form"><div class="form-row"><label>Antecedência mínima (minutos)<input name="antecedenciaMinimaMinutos" type="number" min="0" max="43200" step="1" required></label><label>Reservas abertas por email<input name="limiteAgendamentosPorEmail" type="number" min="1" max="50" step="1" required></label></div><p>Fuso horário do estabelecimento: <strong id="schedule-timezone">Consultando…</strong></p><button type="submit" class="primary">Salvar regras</button><p id="schedule-config-message" role="status"></p></form></section><div id="studio-settings"></div></section>
+<section id="schedule-config" class="settings-section owner-only" aria-labelledby="schedule-config-title"><h2 id="schedule-config-title">Regras de agendamento</h2><p>Defina a antecedência mínima e o limite de reservas abertas por email.</p><form id="schedule-config-form"><div class="form-row"><label>Antecedência mínima (minutos)<input name="antecedenciaMinimaMinutos" type="number" min="0" max="43200" step="1" required></label><label>Reservas abertas por email<input name="limiteAgendamentosPorEmail" type="number" min="1" max="50" step="1" required></label></div><p>Fuso horário do estabelecimento: <strong id="schedule-timezone">Consultando…</strong></p><button type="submit" class="primary">Salvar regras</button><p id="schedule-config-message" role="status"></p></form></section><section id="waitlist-management" class="settings-section owner-only" hidden aria-labelledby="waitlist-management-title">
+  <div class="section-title"><div><h2 id="waitlist-management-title">Lista de espera</h2><p class="muted">Entradas do seu estabelecimento e estado atual.</p></div><button id="waitlist-reload" type="button" class="secondary">Atualizar lista</button></div>
+  <p id="waitlist-management-loading" role="status" hidden>Consultando a lista...</p><p id="waitlist-management-error" class="form-error" role="alert"></p>
+  <div id="waitlist-management-list" aria-live="polite"></div>
+</section><div id="studio-settings"></div></section>
 
 <section id="receipts-view" hidden aria-labelledby="receipts-title">
   <h2 id="receipts-title">Recebimentos confirmados</h2>

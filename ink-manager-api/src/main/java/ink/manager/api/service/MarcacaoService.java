@@ -21,10 +21,14 @@ public class MarcacaoService {
     private final AcessoAtual acesso;
     private final Clock clock;
     private final RecebimentoRepository recebimentos;
+    private final AgendamentoEmailService agendamentoEmail;
+    private final ListaEsperaService listaEspera;
     public MarcacaoService(MarcacaoRepository marcacoes,ClienteRepository clientes,EstudioRepository estudios,
-            AgendaGuard guard,DisponibilidadeService disponibilidade,AcessoAtual acesso,Clock clock,RecebimentoRepository recebimentos){
+            AgendaGuard guard,DisponibilidadeService disponibilidade,AcessoAtual acesso,Clock clock,RecebimentoRepository recebimentos,
+            AgendamentoEmailService agendamentoEmail,ListaEsperaService listaEspera){
         this.marcacoes=marcacoes;this.clientes=clientes;this.estudios=estudios;this.guard=guard;
         this.disponibilidade=disponibilidade;this.acesso=acesso;this.clock=clock;this.recebimentos=recebimentos;
+        this.agendamentoEmail=agendamentoEmail;this.listaEspera=listaEspera;
     }
     @Transactional(readOnly=true) public List<Marcacao> listarTodas(){
         var lista=marcacoes.findByEstudioIdOrderByDataAscHorarioAscIdAsc(acesso.estudioId());
@@ -36,7 +40,8 @@ public class MarcacaoService {
         informarRecebimento(m,recebimentos.existsByMarcacaoIdAndEstudioId(id,acesso.estudioId()));return m;
     }
     public Marcacao salvar(Marcacao marcacao){
-        guard.bloquear();marcacao.setId(null);marcacao.setVersion(null);resolverVinculos(marcacao);validarAgenda(marcacao,null);return marcacoes.saveAndFlush(marcacao);
+        guard.bloquear();marcacao.setId(null);marcacao.setVersion(null);resolverVinculos(marcacao);validarAgenda(marcacao,null);
+        Marcacao criada=marcacoes.saveAndFlush(marcacao);agendamentoEmail.sincronizar(criada,null,null);return criada;
     }
     public Marcacao salvarComCliente(Long id,MarcacaoComClienteRequest request){
         guard.bloquear();var atual=id==null?null:buscarPorId(id);
@@ -50,16 +55,19 @@ public class MarcacaoService {
         marcacao.setEstudio(estudios.getReferenceById(acesso.estudioId()));
         marcacao.setDuracaoMinutos(request.duracaoMinutos()==null?60:request.duracaoMinutos());marcacao.setVersion(request.version());
         if(atual!=null) return atualizarInterno(atual,marcacao);
-        validarAgenda(marcacao,null);return marcacoes.saveAndFlush(marcacao);
+        validarAgenda(marcacao,null);Marcacao criada=marcacoes.saveAndFlush(marcacao);agendamentoEmail.sincronizar(criada,null,null);return criada;
     }
     public Marcacao atualizar(Long id,Marcacao marcacao){guard.bloquear();return atualizarInterno(buscarPorId(id),marcacao);}
     private Marcacao atualizarInterno(Marcacao atual,Marcacao marcacao){
         protegerRecebimento(atual.getId());
         if(marcacao.getVersion()==null||!Objects.equals(atual.getVersion(),marcacao.getVersion())) throw new ApiException(HttpStatus.CONFLICT,"Registro alterado. Recarregue antes de salvar.");
+        var inicioAnterior=atual.getData().atTime(atual.getHorario());var statusAnterior=atual.getStatus();
         marcacao.setId(atual.getId());resolverVinculos(marcacao);validarAgenda(marcacao,atual);
         atual.setCliente(marcacao.getCliente());atual.setProfissional(marcacao.getProfissional());atual.setData(marcacao.getData());
         atual.setHorario(marcacao.getHorario());atual.setDescricao(marcacao.getDescricao());atual.setStatus(marcacao.getStatus());atual.setDuracaoMinutos(marcacao.getDuracaoMinutos());
-        return marcacoes.saveAndFlush(atual);
+        Marcacao salva=marcacoes.saveAndFlush(atual);agendamentoEmail.sincronizar(salva,inicioAnterior,statusAnterior);
+        if(statusAnterior!=StatusMarcacao.CANCELADA&&salva.getStatus()==StatusMarcacao.CANCELADA)listaEspera.processarCancelamento(salva.getEstudio().getId(),salva.getId());
+        return salva;
     }
     private void resolverVinculos(Marcacao m){
         if(m.getCliente()==null||m.getCliente().getId()==null||m.getCliente().getId()<=0) throw new ApiException(HttpStatus.BAD_REQUEST,"Informe um cliente valido.");
@@ -87,5 +95,35 @@ public class MarcacaoService {
         var permitido=!confirmado&&m.getStatus()!=StatusMarcacao.CANCELADA&&!"FALTOU".equals(m.getPresenca())&&terminou;
         m.informarRecebimento(confirmado,permitido);
     }
-    public void deletar(Long id){guard.bloquear();var m=buscarPorId(id);protegerRecebimento(id);marcacoes.delete(m);}
+    public Marcacao aplicarAcaoEmail(long estudioId,long id,String acao,LocalDate data,LocalTime horario){
+        guard.bloquear(estudioId);
+        var m=marcacoes.findByIdAndEstudioId(id,estudioId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Agendamento nao encontrado."));
+        var inicioAnterior=m.getData().atTime(m.getHorario());var statusAnterior=m.getStatus();
+        if(statusAnterior==StatusMarcacao.CANCELADA)throw new ApiException(HttpStatus.CONFLICT,"Agendamento cancelado nao pode ser alterado.");
+        switch(acao){
+            case "CONFIRMAR" -> m.setStatus(StatusMarcacao.CONFIRMADA);
+            case "CANCELAR" -> m.setStatus(StatusMarcacao.CANCELADA);
+            case "REAGENDAR" -> {
+                if(data==null||horario==null)throw new ApiException(HttpStatus.BAD_REQUEST,"Informe o novo dia e horario.");
+                var zone=java.time.ZoneId.of(m.getEstudio().getFusoHorario());var now=LocalDateTime.now(clock.withZone(zone));var start=data.atTime(horario);
+                if(data.isBefore(now.toLocalDate())||data.isAfter(now.toLocalDate().plusDays(365))||start.isBefore(now.plusMinutes(m.getEstudio().getAntecedenciaMinimaMinutos())))
+                    throw new ApiException(HttpStatus.CONFLICT,"Escolha um horario futuro com a antecedencia necessaria.");
+                if(!disponibilidade.consultarEstudio(estudioId,m.getProfissional().getId(),data,m.getDuracaoMinutos(),id).horarios().contains(horario))
+                    throw new ApiException(HttpStatus.CONFLICT,"Esse horario nao esta mais disponivel.");
+                m.setData(data);m.setHorario(horario);m.setStatus(StatusMarcacao.AGENDADA);
+            }
+            default -> throw new ApiException(HttpStatus.BAD_REQUEST,"Acao de agendamento invalida.");
+        }
+        Marcacao salva=marcacoes.saveAndFlush(m);agendamentoEmail.sincronizar(salva,inicioAnterior,statusAnterior);
+        if(acao.equals("CANCELAR"))listaEspera.processarCancelamento(estudioId,salva.getId());
+        return salva;
+    }
+
+    public void deletar(Long id){
+        guard.bloquear();var m=buscarPorId(id);protegerRecebimento(id);
+        var inicioAnterior=m.getData().atTime(m.getHorario());var statusAnterior=m.getStatus();
+        if(statusAnterior!=StatusMarcacao.CANCELADA)m.setStatus(StatusMarcacao.CANCELADA);
+        Marcacao salva=marcacoes.saveAndFlush(m);agendamentoEmail.sincronizar(salva,inicioAnterior,statusAnterior);
+        if(statusAnterior!=StatusMarcacao.CANCELADA)listaEspera.processarCancelamento(salva.getEstudio().getId(),salva.getId());
+    }
 }

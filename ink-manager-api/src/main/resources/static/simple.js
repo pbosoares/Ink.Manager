@@ -122,7 +122,7 @@
   $('receipts-date').onchange = loadReceipts;
   $('reload-receipts').onclick = loadReceipts;
   function close() {
-    activeContext = ''; catalogLoaded = false; catalogBusy = false; services = []; serviceEdit = null; receiptEdit = null; receiptBusy = false;
+    activeContext = ''; catalogLoaded = false; catalogBusy = false; services = []; serviceEdit = null; receiptEdit = null; receiptBusy = false; window.inkWaitlist?.close();
     receiptsKey = ''; ++receiptsRequest; knownReceipts.clear(); $('receipt-dialog').close();
     $('service-list').replaceChildren(); $('receipts-list').replaceChildren(); $('receipts-data').hidden = true;
     ['receipts-week','receipts-month','receipts-week-period','receipts-month-period','receipts-timezone','receipt-description'].forEach(id => { $(id).textContent = ''; });
@@ -136,6 +136,7 @@
     const key = context();
     if (activeContext !== key) { close(); activeContext = key; }
     if (state.view === 'studio' && !catalogLoaded) loadServices();
+    window.inkWaitlist?.render();
     if (state.view === 'receipts' && receiptsKey !== key + '|' + $('receipts-date').value) loadReceipts();
   }
   window.inkSimple = { render: renderSimple, close, receiptAction, appointmentDetails };

@@ -1412,3 +1412,23 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .trial-price span,.trial-offer small { display:block; font-size:13px; line-height:1.6; }
 .trial-offer .primary { border-radius:0; border:2px solid #201e19; background:#a52c28; color:#fbf6ea; }
 .trial-offer .primary:hover { background:#82221f; }
+
+/* Waiting list and secure offer flow */
+.waitlist-panel,.offer-panel { margin:24px 0; padding:24px; background:#f5ecd7; border:2px solid #201e19; box-shadow:4px 4px 0 #201e19; }
+.waitlist-panel>summary { cursor:pointer; font-family:'Rye',Georgia,serif; font-size:20px; }
+.waitlist-panel form { margin-top:20px; }
+.waitlist-panel fieldset { border:0; padding:0; min-width:0; }
+.waitlist-panel input,.waitlist-panel select { min-height:46px; background:#fbf6ea; border:1px solid #70654f; border-radius:0; font-size:16px; }
+.waitlist-panel .secondary,.offer-panel .primary { border-radius:0; border:2px solid #201e19; min-height:50px; }
+.waitlist-panel .secondary { background:#46513a; color:#fbf6ea; }
+.offer-panel h2 { font-family:'Rye',Georgia,serif; }
+.offer-details { display:grid; grid-template-columns:minmax(90px,140px) minmax(0,1fr); gap:10px 16px; margin:20px 0; padding:18px; background:#e9ddbf; }
+.offer-details dt { font-weight:700; }
+.offer-details dd { margin:0; overflow-wrap:anywhere; }
+.waitlist-entry p { margin:8px 0; overflow-wrap:anywhere; }
+.waitlist-entry small { display:block; margin:6px 0; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+@media(max-width:600px) {
+  .waitlist-panel,.offer-panel { padding:18px; }
+  .offer-details { grid-template-columns:minmax(0,1fr); gap:4px; }
+  .offer-details dd { margin-bottom:8px; }
+}

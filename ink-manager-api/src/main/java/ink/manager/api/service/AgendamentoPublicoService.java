@@ -34,8 +34,9 @@ public class AgendamentoPublicoService {
     private final AgendaGuard guard;
     private final AssinaturaService assinatura;
     private final Clock clock;
-    public AgendamentoPublicoService(EstudioRepository estudios,ServicoRepository servicos,ProfissionalRepository profissionais,ClienteRepository clientes,MarcacaoRepository marcacoes,DisponibilidadeService disponibilidade,AgendaGuard guard,AssinaturaService assinatura,Clock clock){
-        this.estudios=estudios;this.servicos=servicos;this.profissionais=profissionais;this.clientes=clientes;this.marcacoes=marcacoes;this.disponibilidade=disponibilidade;this.guard=guard;this.assinatura=assinatura;this.clock=clock;
+    private final AgendamentoEmailService agendamentoEmail;
+    public AgendamentoPublicoService(EstudioRepository estudios,ServicoRepository servicos,ProfissionalRepository profissionais,ClienteRepository clientes,MarcacaoRepository marcacoes,DisponibilidadeService disponibilidade,AgendaGuard guard,AssinaturaService assinatura,Clock clock,AgendamentoEmailService agendamentoEmail){
+        this.estudios=estudios;this.servicos=servicos;this.profissionais=profissionais;this.clientes=clientes;this.marcacoes=marcacoes;this.disponibilidade=disponibilidade;this.guard=guard;this.assinatura=assinatura;this.clock=clock;this.agendamentoEmail=agendamentoEmail;
     }
     private Estudio local(String link){return estudios.findByLinkPublico(link).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
     private Servico servico(Long estudio,Long id){return servicos.findByIdAndEstudioId(id,estudio).filter(Servico::isAtivo).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Servico indisponivel."));}
@@ -73,7 +74,7 @@ public class AgendamentoPublicoService {
         var c=new Cliente();c.setEstudio(e);c.setNome(r.nome().trim());c.setTelefone(r.telefone().trim());c.setEmail(email);c=clientes.save(c);
         var m=new Marcacao(c,r.data(),r.horario(),s.getNome(),StatusMarcacao.AGENDADA);
         m.setEstudio(e);m.setProfissional(p);m.setDuracaoMinutos(s.getDuracaoMinutos());m.definirServico(s);m.definirPedidoPublico(r.chave().toString(),hash);m.registrarAvisoPrivacidade("2026-10-18-v1",clock.instant());
-        return resposta(marcacoes.saveAndFlush(m));
+        Marcacao salva=marcacoes.saveAndFlush(m);agendamentoEmail.sincronizar(salva,null,null);return resposta(salva);
     }
     private Confirmacao resposta(Marcacao m){return new Confirmacao(m.getChavePublica(),m.getServicoNome(),m.getProfissional().getNome(),m.getData(),m.getHorario(),clock.getZone().getId(),m.getPrecoPrevisto(),m.getDuracaoMinutos());}
     private String hash(Pedido r){

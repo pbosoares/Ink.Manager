@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ink.manager.api.exception.ApiException;
 
-@Service @Transactional(readOnly=true) @PreAuthorize("hasRole('PROPRIETARIO')")
+@Service @Transactional(readOnly=true)
 public class RelatorioMensalService {
     public record Metricas(long agendamentos,long comparecimentos,long faltas,long cancelamentos,
             long denominadorComparecimento,BigDecimal taxaComparecimento,BigDecimal receitaRealizada,
@@ -35,8 +35,10 @@ public class RelatorioMensalService {
     private final AcessoAtual acesso;
     private final Clock clock;
     public RelatorioMensalService(MarcacaoRepository marcacoes,RecebimentoRepository recebimentos,EstudioRepository estudios,AcessoAtual acesso,Clock clock){this.marcacoes=marcacoes;this.recebimentos=recebimentos;this.estudios=estudios;this.acesso=acesso;this.clock=clock;}
-    public Relatorio obter(YearMonth mes){
-        long estudioId=acesso.estudioId();ZoneId zona=ZoneId.of(estudios.findById(estudioId).orElseThrow().getFusoHorario());
+    @PreAuthorize("hasRole('PROPRIETARIO')")
+    public Relatorio obter(YearMonth mes){return obterParaEstudio(acesso.estudioId(),mes);}
+    public Relatorio obterParaEstudio(long estudioId,YearMonth mes){
+        ZoneId zona=ZoneId.of(estudios.findById(estudioId).orElseThrow().getFusoHorario());
         YearMonth atualMes=YearMonth.now(clock.withZone(zona));if(mes==null)mes=atualMes;
         if(mes.isAfter(atualMes.plusMonths(1))||mes.isBefore(atualMes.minusYears(5)))throw new ApiException(HttpStatus.BAD_REQUEST,"Escolha um mes entre os ultimos cinco anos e o proximo mes.");
         YearMonth anterior=mes.minusMonths(1);

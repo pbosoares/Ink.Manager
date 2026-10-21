@@ -166,5 +166,8 @@
   };
   setInterval(() => { if (!document.hidden) loadSlots(); }, 20000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadSlots(); });
-  loadCatalog();
+  const offerHash = new URLSearchParams(location.hash.replace(/^#/, ''));
+  if (offerHash.has('token') || offerHash.has('oferta')) {
+    byId('public-loading').hidden = true;
+  } else loadCatalog();
 })();
