@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service @Transactional(readOnly=true)
 public class ListaEsperaService {
+    private static final String VERSAO_AVISO_PRIVACIDADE = "2026-10-18-v1";
     public record Pedido(@NotNull UUID chaveIdempotencia,@NotNull @Positive Long servicoId,@Positive Long profissionalId,
             @NotNull OffsetDateTime inicio,@NotNull OffsetDateTime fim,@NotBlank @Size(max=100) String nome,
             @NotBlank @jakarta.validation.constraints.Email @Size(max=254) String email,
@@ -66,6 +67,7 @@ public class ListaEsperaService {
         e.setInicioDesejado(pedido.inicio());e.setFimDesejado(pedido.fim());e.setNome(pedido.nome().trim());
         e.setEmail(pedido.email().trim().toLowerCase(Locale.ROOT));e.setTelefone(pedido.telefone().trim());
         e.setChaveIdempotencia(pedido.chaveIdempotencia());e.setEstado(EstadoListaEspera.AGUARDANDO);e.setCriadoEm(agora);
+        e.setAvisoPrivacidadeVersao(VERSAO_AVISO_PRIVACIDADE);e.setAvisoPrivacidadeLidoEm(agora);
         entradas.saveAndFlush(e);return new EntradaCriada(true,"Voce esta na lista de espera.");
     }
 
@@ -100,6 +102,7 @@ public class ListaEsperaService {
             if(e.getEstado()!=EstadoListaEspera.AGUARDANDO)continue;
             long dur=e.getServico().getDuracaoMinutos();
             if(!cancelada.getData().atTime(cancelada.getHorario()).plusMinutes(dur).toLocalDate().equals(cancelada.getData()))continue;
+            if(!cabeNaJanela(e,cancelada.getData(),cancelada.getHorario(),(int)dur))continue;
             if(e.getProfissional()!=null&&!Objects.equals(e.getProfissional().getId(),cancelada.getProfissional().getId()))continue;
             if(!disponibilidade.consultarEstudio(estudioId,cancelada.getProfissional().getId(),cancelada.getData(),(int)dur,null).horarios().contains(cancelada.getHorario()))continue;
             OfertaListaEspera o=new OfertaListaEspera();o.setEstudio(cancelada.getEstudio());o.setEntrada(e);o.setMarcacaoCancelada(cancelada);
@@ -120,6 +123,7 @@ public class ListaEsperaService {
         ZoneId zone=ZoneId.of(estudio.getFusoHorario());LocalDateTime inicio=o.getData().atTime(o.getHorario());
         boolean utilizavel=e.getEstado()==EstadoListaEspera.OFERTADA&&cancelada.getStatus()==StatusMarcacao.CANCELADA
             &&e.getServico().isAtivo()&&cancelada.getProfissional().isAtivo()
+            &&cabeNaJanela(e,o.getData(),o.getHorario(),e.getServico().getDuracaoMinutos())
             &&!inicio.isBefore(LocalDateTime.ofInstant(agora,zone).plusMinutes(estudio.getAntecedenciaMinimaMinutos()))
             &&disponibilidade.consultarEstudio(estudioId,cancelada.getProfissional().getId(),o.getData(),e.getServico().getDuracaoMinutos(),null).horarios().contains(o.getHorario());
         Instant prazo=inicio.atZone(zone).toInstant().minus(Duration.ofMinutes(estudio.getAntecedenciaMinimaMinutos()));
@@ -163,14 +167,16 @@ public class ListaEsperaService {
     }
     private OfertaListaEspera ofertaPorToken(long tenant,String raw){return ofertas.findByEstudioIdAndTokenHash(tenant,sha256(raw)).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Oferta indisponivel."));}
     public OfertaPublica consultarOferta(String link,String raw){Estudio e=porLink(link);OfertaListaEspera o=ofertaPorToken(e.getId(),raw);validarOfertaAberta(o);
-        ListaEspera l=o.getEntrada();return new OfertaPublica(l.getServico().getNome(),o.getMarcacaoCancelada().getProfissional().getNome(),o.getData(),o.getHorario(),e.getFusoHorario(),l.getServico().getPreco(),l.getServico().getDuracaoMinutos(),o.getTokenPrazo());}
+        ListaEspera l=o.getEntrada();if(!cabeNaJanela(l,o.getData(),o.getHorario(),l.getServico().getDuracaoMinutos()))throw new ApiException(HttpStatus.GONE,"Oferta indisponivel.");
+        return new OfertaPublica(l.getServico().getNome(),o.getMarcacaoCancelada().getProfissional().getNome(),o.getData(),o.getHorario(),e.getFusoHorario(),l.getServico().getPreco(),l.getServico().getDuracaoMinutos(),o.getTokenPrazo());}
 
     @Transactional public ReservaAceita aceitarOferta(String link,String raw){Estudio e=porLink(link);guard.bloquear(e.getId());OfertaListaEspera o=ofertaPorToken(e.getId(),raw);
         if(o.getEstado()==EstadoOfertaListaEspera.ACEITA&&o.getReserva()!=null)return resposta(o.getReserva(),e);
         validarOfertaAberta(o);ListaEspera l=o.getEntrada();if(l.getEstado()!=EstadoListaEspera.OFERTADA)throw new ApiException(HttpStatus.CONFLICT,"Oferta ja utilizada.");
         Servico s=servico(e.getId(),l.getServico().getId());Profissional p=disponibilidade.profissional(e.getId(),o.getMarcacaoCancelada().getProfissional().getId());
         LocalDateTime start=o.getData().atTime(o.getHorario());ZoneId zone=ZoneId.of(e.getFusoHorario());
-        if(start.isBefore(LocalDateTime.now(clock.withZone(zone)).plusMinutes(e.getAntecedenciaMinimaMinutos()))
+        if(!cabeNaJanela(l,o.getData(),o.getHorario(),s.getDuracaoMinutos())
+                ||start.isBefore(LocalDateTime.now(clock.withZone(zone)).plusMinutes(e.getAntecedenciaMinimaMinutos()))
                 ||!disponibilidade.consultarEstudio(e.getId(),p.getId(),o.getData(),s.getDuracaoMinutos(),null).horarios().contains(o.getHorario()))
             throw new ApiException(HttpStatus.CONFLICT,"A vaga ja nao esta disponivel.");
         Cliente c=new Cliente();c.setEstudio(e);c.setNome(l.getNome());c.setEmail(l.getEmail());c.setTelefone(l.getTelefone());c=clientes.save(c);
@@ -180,6 +186,11 @@ public class ListaEsperaService {
         return resposta(reserva,e);
     }
     private void validarOfertaAberta(OfertaListaEspera o){if(o.getEstado()!=EstadoOfertaListaEspera.OFERTADA||o.getTokenPrazo()==null||!o.getTokenPrazo().isAfter(clock.instant()))throw new ApiException(HttpStatus.GONE,"Oferta expirada ou encerrada.");}
+    private boolean cabeNaJanela(ListaEspera entrada,LocalDate data,LocalTime horario,int duracaoMinutos){
+        Instant inicio=data.atTime(horario).atZone(ZoneId.of(entrada.getEstudio().getFusoHorario())).toInstant();
+        Instant fim=inicio.plus(Duration.ofMinutes(duracaoMinutos));
+        return !inicio.isBefore(entrada.getInicioDesejado().toInstant())&&!fim.isAfter(entrada.getFimDesejado().toInstant());
+    }
     private ReservaAceita resposta(Marcacao m,Estudio e){return new ReservaAceita(m.getId(),m.getServicoNome(),m.getProfissional().getNome(),m.getData(),m.getHorario(),e.getFusoHorario(),m.getPrecoPrevisto(),m.getDuracaoMinutos());}
     private String sha256(String value){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}
         catch(java.security.NoSuchAlgorithmException ex){throw new IllegalStateException(ex);}}

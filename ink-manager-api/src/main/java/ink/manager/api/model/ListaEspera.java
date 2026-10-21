@@ -20,6 +20,8 @@ public class ListaEspera {
     @Column(name="chave_idempotencia",nullable=false) private UUID chaveIdempotencia;
     @Enumerated(EnumType.STRING) @Column(nullable=false,length=20) private EstadoListaEspera estado;
     @Column(name="criado_em",nullable=false) private Instant criadoEm;
+    @Column(name="aviso_privacidade_versao",length=30) private String avisoPrivacidadeVersao;
+    @Column(name="aviso_privacidade_lido_em") private Instant avisoPrivacidadeLidoEm;
     @Version private Long version;
     public ListaEspera() {}
     public Long getId(){return id;} public Estudio getEstudio(){return estudio;} public void setEstudio(Estudio v){estudio=v;}
@@ -33,4 +35,6 @@ public class ListaEspera {
     public UUID getChaveIdempotencia(){return chaveIdempotencia;} public void setChaveIdempotencia(UUID v){chaveIdempotencia=v;}
     public EstadoListaEspera getEstado(){return estado;} public void setEstado(EstadoListaEspera v){estado=v;}
     public Instant getCriadoEm(){return criadoEm;} public void setCriadoEm(Instant v){criadoEm=v;}
+    public String getAvisoPrivacidadeVersao(){return avisoPrivacidadeVersao;} public void setAvisoPrivacidadeVersao(String v){avisoPrivacidadeVersao=v;}
+    public Instant getAvisoPrivacidadeLidoEm(){return avisoPrivacidadeLidoEm;} public void setAvisoPrivacidadeLidoEm(Instant v){avisoPrivacidadeLidoEm=v;}
 }

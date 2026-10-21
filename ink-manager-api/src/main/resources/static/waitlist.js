@@ -158,6 +158,7 @@
     try { return new Date(value).toLocaleString('pt-BR', { timeZone: zone, dateStyle: 'short', timeStyle: 'short' }); }
     catch { return new Date(value).toLocaleString('pt-BR'); }
   }
+  if (offerPanel) {
   async function loadOffer() {
     $('public-loading').hidden = true;
     $('booking-form').hidden = true;
@@ -223,6 +224,8 @@
       $('offer-accept').disabled = false;
     }
   };
+
+  }
 
   const adminPanel = $('waitlist-management');
   let adminKey = '', adminRequest = 0, adminRows = [];

@@ -756,6 +756,8 @@ class StudioIntegrationTest {
         var dono=json(request("GET","/lista-espera",null,a.conta().token()));assertEquals(1,dono.size());
         assertEquals("AGUARDANDO",dono.get(0).get("estado").asText());assertEquals("Interessada",dono.get(0).get("nome").asText());
         long id=dono.get(0).get("id").asLong();
+        var aviso=jdbc.queryForMap("SELECT aviso_privacidade_versao,aviso_privacidade_lido_em FROM lista_espera WHERE id=? AND estudio_id=?",id,a.conta().estudio());
+        assertEquals("2026-10-18-v1",aviso.get("aviso_privacidade_versao"));assertNotNull(aviso.get("aviso_privacidade_lido_em"));
         assertEquals(0,json(request("GET","/lista-espera",null,b.conta().token())).size());
         assertEquals(404,request("POST","/lista-espera/"+id+"/cancelar",null,b.conta().token()).statusCode());
         assertEquals(200,request("POST","/lista-espera/"+id+"/cancelar",null,a.conta().token()).statusCode());
@@ -842,5 +844,23 @@ class StudioIntegrationTest {
         var boundaryEntry=java.util.stream.StreamSupport.stream(json(request("GET","/lista-espera",null,p.conta().token())).spliterator(),false).filter(e->e.get("email").asText().equals("limite@example.com")).findFirst().orElseThrow();
         assertEquals("AGUARDANDO",boundaryEntry.get("estado").asText());
         assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM ofertas_lista_espera WHERE estudio_id=? AND lista_espera_id=?",Integer.class,p.conta().estudio(),boundaryEntry.get("id").asLong()));
+    }
+
+    @Test void listaEsperaExigeQueDuracaoInteiraCaibaNaJanelaPedida() throws Exception {
+        var p=publico("Janela integral da lista");var inicio=p.dia().atTime(9,0).atZone(ZoneId.of("America/Sao_Paulo")).toOffsetDateTime();
+        var wait=new HashMap<String,Object>();wait.put("chaveIdempotencia",UUID.randomUUID());wait.put("servicoId",p.servico());wait.put("profissionalId",p.profissional());
+        wait.put("inicio",inicio.toString());wait.put("fim",inicio.plusMinutes(15).toString());wait.put("nome","Janela curta");wait.put("email","janela-curta@example.com");wait.put("telefone","21999998888");wait.put("avisoPrivacidadeLido",true);
+        assertEquals(200,request("POST","/publico/"+p.link()+"/lista-espera",stringify(wait),null).statusCode());
+        var booked=reservar(p,pedido(p,"09:00"));assertEquals(201,booked.statusCode(),booked.body());
+        var agenda=json(request("GET","/marcacoes",null,p.conta().token()));
+        var saved=java.util.stream.StreamSupport.stream(agenda.spliterator(),false).filter(m->m.get("data").asText().equals(p.dia().toString())&&m.get("horario").asText().startsWith("09:00")).findFirst().orElseThrow();
+        var cancel=new HashMap<String,Object>();cancel.put("cliente",Map.of("id",saved.get("cliente").get("id").asLong()));cancel.put("data",saved.get("data").asText());
+        cancel.put("horario",saved.get("horario").asText());cancel.put("descricao",saved.get("descricao").asText());cancel.put("status","CANCELADA");
+        cancel.put("duracaoMinutos",saved.get("duracaoMinutos").asInt());cancel.put("version",saved.get("version").asLong());cancel.put("profissionalId",p.profissional());
+        var cancelled=request("PUT","/marcacoes/"+saved.get("id").asLong(),stringify(cancel),p.conta().token());assertEquals(200,cancelled.statusCode(),cancelled.body());
+        var entry=java.util.stream.StreamSupport.stream(json(request("GET","/lista-espera",null,p.conta().token())).spliterator(),false).filter(e->e.get("email").asText().equals("janela-curta@example.com")).findFirst().orElseThrow();
+        assertEquals("AGUARDANDO",entry.get("estado").asText());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM ofertas_lista_espera WHERE estudio_id=? AND lista_espera_id=?",Integer.class,p.conta().estudio(),entry.get("id").asLong()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM email_outbox WHERE estudio_id=? AND tipo='LISTA_ESPERA_OFERTA'",Integer.class,p.conta().estudio()));
     }
 }
