@@ -18,3 +18,7 @@
         format json
     }
 }
+
+www.{$INK_DOMAIN} {
+    redir https://{$INK_DOMAIN}{uri} permanent
+}

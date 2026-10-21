@@ -9,6 +9,11 @@ on:
     branches:
       - main
 
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   test:
 
@@ -34,3 +39,43 @@ jobs:
 
       - name: Executar testes
         run: ./mvnw clean test
+
+  deploy-production:
+    name: Deploy VPS (producao)
+    needs: test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    concurrency:
+      group: marcae-production
+      cancel-in-progress: false
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Preparar deploy SSH e release
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VPS_SSH_KEY:-}" ]; then
+            echo "Missing required repository secret: VPS_SSH_KEY" >&2
+            exit 1
+          fi
+
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' '179.199.155.163 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWnXNw3bUdWZoj/5o/uZ00R7E1CsFwaI0I98+UmvPhz' > "$HOME/.ssh/known_hosts"
+          key_file="$RUNNER_TEMP/marcae-vps-key"
+          trap 'rm -f "$key_file" "$RUNNER_TEMP/marcae-release.tar.gz"' EXIT
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > "$key_file"
+          chmod 600 "$key_file"
+
+          git archive --format=tar.gz "$GITHUB_SHA" ink-manager-api > "$RUNNER_TEMP/marcae-release.tar.gz"
+          ssh -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes root@179.199.155.163 \
+            "install -d -m 700 /opt/marcae/incoming"
+          scp -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$RUNNER_TEMP/marcae-release.tar.gz" root@179.199.155.163:"/opt/marcae/incoming/$GITHUB_SHA.tar.gz"
+          scp -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "ink-manager-api/deploy/deploy-release.sh" root@179.199.155.163:"/opt/marcae/incoming/deploy-release.sh"
+          ssh -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes root@179.199.155.163 \
+            "bash /opt/marcae/incoming/deploy-release.sh $GITHUB_SHA"
