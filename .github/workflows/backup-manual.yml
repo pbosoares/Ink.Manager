@@ -1,0 +1,145 @@
+name: Backup manual cifrado Marcae
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+    inputs:
+      confirmacao:
+        description: Digite COPIAR_BACKUP_PRODUCAO para iniciar uma copia real
+        required: true
+        type: string
+
+permissions:
+  # The metadata GET needs read; the artifact upload uses the runner's artifact service token.
+  actions: read
+  contents: none
+
+concurrency:
+  group: marcae-backup-production
+  cancel-in-progress: false
+
+jobs:
+  backup-cifrado:
+    if: github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.confirmacao == 'COPIAR_BACKUP_PRODUCAO') || github.event_name == 'schedule')
+    environment:
+      name: production-backup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Validar credenciais preparadas
+        env:
+          BACKUP_SSH_KEY: ${{ secrets.MARCAE_BACKUP_SSH_KEY }}
+          AGE_RECIPIENT: ${{ vars.MARCAE_BACKUP_AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$BACKUP_SSH_KEY" || -z "$AGE_RECIPIENT" ]]; then
+            echo "Backup ainda não provisionado: faltam MARCAE_BACKUP_SSH_KEY e/ou MARCAE_BACKUP_AGE_RECIPIENT." >&2
+            exit 1
+          fi
+          if [[ ! "$AGE_RECIPIENT" =~ ^age1[0-9a-z]+$ ]]; then
+            echo "A variável de destino age não tem formato válido." >&2
+            exit 1
+          fi
+
+      - name: Capturar e cifrar fluxo sem gravar dump em claro
+        id: dump
+        env:
+          BACKUP_SSH_KEY: ${{ secrets.MARCAE_BACKUP_SSH_KEY }}
+          AGE_RECIPIENT: ${{ vars.MARCAE_BACKUP_AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          umask 077
+          sudo apt-get update -qq
+          sudo apt-get install --yes age
+
+          ssh_dir="$RUNNER_TEMP/marcae-backup-ssh"
+          artifact_dir="$RUNNER_TEMP/marcae-backup-${GITHUB_RUN_ID}"
+          install -m 700 -d "$ssh_dir"
+          install -m 700 -d "$artifact_dir"
+          key_file="$ssh_dir/id_ed25519"
+          encrypted_file="$artifact_dir/marcae-production-${GITHUB_RUN_ID}.dump.age"
+          metadata_file="$artifact_dir/metadata.json"
+          trap 'rm -f "$key_file" "$ssh_dir/known_hosts"; rmdir "$ssh_dir" 2>/dev/null || true' EXIT
+
+          printf '%s\n' "$BACKUP_SSH_KEY" | tr -d '\r' > "$key_file"
+          chmod 600 "$key_file"
+          printf '%s\n' '179.199.155.163 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWnXNw3bUdWZoj/5o/uZ00R7E1CsFwaI0I98+UmvPhz' > "$ssh_dir/known_hosts"
+
+          stream_started_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          timeout 1800s ssh -T \
+            -i "$key_file" \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+            marcae-backup@179.199.155.163 \
+            | age -r "$AGE_RECIPIENT" -o "$encrypted_file"
+
+          ciphertext_completed_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          test -s "$encrypted_file"
+          digest="$(sha256sum "$encrypted_file" | cut -d ' ' -f 1)"
+          bytes="$(stat --format='%s' "$encrypted_file")"
+          jq -n \
+            --arg stream_started_at "$stream_started_at" \
+            --arg ciphertext_completed_at "$ciphertext_completed_at" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg workflow_commit "$GITHUB_SHA" \
+            --arg sha256 "$digest" \
+            --argjson bytes "$bytes" \
+            '{format:"postgres-custom+age", stream_started_at_utc:$stream_started_at,
+              ciphertext_completed_at_utc:$ciphertext_completed_at,
+              github_run_id:$run_id, workflow_commit_sha:$workflow_commit,
+              ciphertext_sha256:$sha256, ciphertext_bytes:$bytes}' > "$metadata_file"
+          printf 'path=%s\nsha256=%s\nbytes=%s\nstream_started_at=%s\nciphertext_completed_at=%s\n' \
+            "$artifact_dir" "$digest" "$bytes" "$stream_started_at" "$ciphertext_completed_at" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar backup cifrado com metadados tecnicos
+        id: publish
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: marcae-db-${{ github.run_id }}
+          path: ${{ steps.dump.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
+      - name: Conferir expiração efetiva do artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.publish.outputs.artifact-id }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$ARTIFACT_ID" =~ ^[0-9]+$ ]]; then
+            echo "O upload não retornou um identificador válido de artifact." >&2
+            exit 1
+          fi
+          metadata="$(curl --fail --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
+          created_at="$(jq -er '.created_at' <<< "$metadata")"
+          expires_at="$(jq -er '.expires_at' <<< "$metadata")"
+          created_epoch="$(date -u -d "$created_at" +%s)"
+          expires_epoch="$(date -u -d "$expires_at" +%s)"
+          retention_seconds=$((expires_epoch - created_epoch))
+          expected_retention_seconds=$((30 * 24 * 60 * 60))
+          tolerance_seconds=300
+          if (( retention_seconds < expected_retention_seconds - tolerance_seconds || \
+                retention_seconds > expected_retention_seconds + tolerance_seconds )); then
+            echo "A expiração efetiva do artifact não corresponde a 30 dias." >&2
+            exit 1
+          fi
+          printf 'Artifact %s expira em %s; retenção verificada em 30 dias (tolerância de 5 minutos).\n' \
+            "$ARTIFACT_ID" "$expires_at"
+
+      - name: Registrar metadados não sensíveis
+        env:
+          BACKUP_SHA256: ${{ steps.dump.outputs.sha256 }}
+          BACKUP_BYTES: ${{ steps.dump.outputs.bytes }}
+        run: |
+          set -euo pipefail
+          printf 'Artifact cifrado concluído. SHA-256=%s; bytes=%s; retenção configurada=30 dias.\n' \
+            "$BACKUP_SHA256" "$BACKUP_BYTES"
