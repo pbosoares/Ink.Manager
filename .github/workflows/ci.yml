@@ -56,7 +56,17 @@ jobs:
             exit 1
           fi
 
-          if git diff --quiet "$BEFORE_SHA" "$HEAD_SHA" -- ink-manager-api/; then
+          # Deploy only when files consumed by the production image/runtime changed.
+          # Documentation and test-only changes under ink-manager-api must not redeploy.
+          if git diff --quiet "$BEFORE_SHA" "$HEAD_SHA" -- \
+            ink-manager-api/.dockerignore \
+            ink-manager-api/.mvn/ \
+            ink-manager-api/Dockerfile \
+            ink-manager-api/compose.production.yml \
+            ink-manager-api/deploy/ \
+            ink-manager-api/mvnw \
+            ink-manager-api/pom.xml \
+            ink-manager-api/src/; then
             echo "app_changed=false" >> "$GITHUB_OUTPUT"
           else
             diff_status=$?
