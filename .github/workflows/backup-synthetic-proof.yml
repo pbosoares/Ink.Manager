@@ -1,0 +1,211 @@
+name: Synthetic backup artifact proof
+
+on:
+  push:
+    branches:
+      - ops/backup-proof
+
+permissions:
+  actions: read
+  contents: none
+
+jobs:
+  synthetic-roundtrip:
+    name: Synthetic pg_dump, age, artifact, and restore
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:18.4@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636
+        env:
+          POSTGRES_USER: synthetic
+          POSTGRES_DB: synthetic_source
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U synthetic -d synthetic_source"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Install synthetic proof tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install --yes age ca-certificates curl gnupg jq
+          sudo install -d -m 0755 /etc/apt/keyrings
+          curl --fail --silent --show-error --location \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor --yes -o /etc/apt/keyrings/postgresql.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install --yes postgresql-client-18
+          pg_dump --version
+
+      - name: Create fictional source data and encrypted dump
+        id: pack
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGUSER: synthetic
+          PGDATABASE: synthetic_source
+        run: |
+          set -euo pipefail
+          umask 077
+          workdir="$RUNNER_TEMP/marcae-synthetic-$GITHUB_RUN_ID"
+          artifact_dir="$workdir/artifact"
+          install -d -m 700 "$artifact_dir" "$workdir/download"
+
+          identity="$workdir/age-identity.txt"
+          encrypted="$artifact_dir/synthetic.dump.age"
+          marker='MARCAE_SYNTHETIC_BACKUP_PROOF_V1'
+
+          age-keygen -o "$identity" 2>/dev/null
+          chmod 600 "$identity"
+          recipient="$(age-keygen -y "$identity")"
+
+          psql --no-psqlrc --set ON_ERROR_STOP=1 <<'SQL'
+          CREATE TABLE backup_proof (
+            id integer PRIMARY KEY,
+            marker text NOT NULL
+          );
+          INSERT INTO backup_proof (id, marker)
+          VALUES (1, 'MARCAE_SYNTHETIC_BACKUP_PROOF_V1');
+          SQL
+
+          pg_dump --format=custom \
+            --host="$PGHOST" --port="$PGPORT" --username="$PGUSER" \
+            --dbname="$PGDATABASE" \
+            | age --recipient "$recipient" --output "$encrypted"
+
+          ciphertext_sha256="$(sha256sum "$encrypted" | awk '{print $1}')"
+          ciphertext_bytes="$(stat --format=%s "$encrypted")"
+          marker_sha256="$(printf '%s' "$marker" | sha256sum | awk '{print $1}')"
+          jq --null-input \
+            --arg generated_at_utc "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg workflow_commit_sha "$GITHUB_SHA" \
+            --arg ciphertext_sha256 "$ciphertext_sha256" \
+            --arg marker_sha256 "$marker_sha256" \
+            --argjson ciphertext_bytes "$ciphertext_bytes" \
+            '{synthetic: true,
+              format: "postgres-custom+age",
+              generated_at_utc: $generated_at_utc,
+              run_id: $run_id,
+              workflow_commit_sha: $workflow_commit_sha,
+              ciphertext_sha256: $ciphertext_sha256,
+              ciphertext_bytes: $ciphertext_bytes,
+              marker_sha256: $marker_sha256}' \
+            > "$artifact_dir/metadata.json"
+
+          test "$(find "$artifact_dir" -maxdepth 1 -type f | wc -l)" -eq 2
+          printf 'artifact_path=%s\n' "$artifact_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Upload encrypted synthetic artifact for 30 days
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: marcae-synthetic-backup-proof-${{ github.run_id }}
+          path: ${{ steps.pack.outputs.artifact_path }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Download the artifact uploaded by this run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: ${{ steps.upload.outputs.artifact-id }}
+          path: ${{ runner.temp }}/marcae-synthetic-${{ github.run_id }}/download
+
+      - name: Decrypt into an isolated synthetic database and assert integrity
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGUSER: synthetic
+          PGDATABASE: synthetic_source
+        run: |
+          set -euo pipefail
+          workdir="$RUNNER_TEMP/marcae-synthetic-$GITHUB_RUN_ID"
+          identity="$workdir/age-identity.txt"
+          downloaded_ciphertext="$workdir/download/synthetic.dump.age"
+          metadata="$workdir/download/metadata.json"
+          dump="$workdir/restore.dump"
+          marker='MARCAE_SYNTHETIC_BACKUP_PROOF_V1'
+
+          test -s "$identity"
+          test -s "$downloaded_ciphertext"
+          test -s "$metadata"
+          test "$(jq -er '.synthetic' "$metadata")" = true
+
+          actual_ciphertext_sha256="$(sha256sum "$downloaded_ciphertext" | awk '{print $1}')"
+          expected_ciphertext_sha256="$(jq -er '.ciphertext_sha256' "$metadata")"
+          actual_ciphertext_bytes="$(stat --format=%s "$downloaded_ciphertext")"
+          expected_ciphertext_bytes="$(jq -er '.ciphertext_bytes' "$metadata")"
+          test "$actual_ciphertext_sha256" = "$expected_ciphertext_sha256"
+          test "$actual_ciphertext_bytes" = "$expected_ciphertext_bytes"
+
+          age --decrypt --identity "$identity" \
+            --output "$dump" "$downloaded_ciphertext"
+          createdb synthetic_restore
+          pg_restore --no-owner --no-privileges \
+            --host="$PGHOST" --port="$PGPORT" --username="$PGUSER" \
+            --dbname=synthetic_restore "$dump"
+
+          restored_marker="$(psql --no-psqlrc --tuples-only --no-align \
+            --dbname=synthetic_restore \
+            --command='SELECT marker FROM backup_proof WHERE id = 1')"
+          restored_marker_sha256="$(printf '%s' "$restored_marker" | sha256sum | awk '{print $1}')"
+          expected_marker_sha256="$(jq -er '.marker_sha256' "$metadata")"
+          test "$restored_marker" = "$marker"
+          test "$restored_marker_sha256" = "$expected_marker_sha256"
+          printf 'Synthetic restore passed; marker SHA-256: %s\n' "$restored_marker_sha256"
+
+      - name: Verify effective artifact expiry through the read-only API
+        shell: bash
+        env:
+          API_URL: ${{ github.api_url }}
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          EXPECTED_ARTIFACT_NAME: marcae-synthetic-backup-proof-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          workdir="$RUNNER_TEMP/marcae-synthetic-$GITHUB_RUN_ID"
+          api_metadata="$workdir/artifact-api-metadata.json"
+
+          curl --fail --silent --show-error \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID" \
+            --output "$api_metadata"
+
+          actual_id="$(jq -er '.id | tostring' "$api_metadata")"
+          actual_name="$(jq -er '.name' "$api_metadata")"
+          is_expired="$(jq -r '.expired' "$api_metadata")"
+          created_epoch="$(jq -er '.created_at | fromdateiso8601' "$api_metadata")"
+          expires_epoch="$(jq -er '.expires_at | fromdateiso8601' "$api_metadata")"
+          retention_seconds=$((expires_epoch - created_epoch))
+
+          test "$actual_id" = "$ARTIFACT_ID"
+          test "$actual_name" = "$EXPECTED_ARTIFACT_NAME"
+          test "$is_expired" = false
+          test "$expires_epoch" -gt "$(date -u +%s)"
+          test "$retention_seconds" -ge 2591700
+          test "$retention_seconds" -le 2592300
+          printf 'Artifact %s expiry verified: %s (effective retention %s seconds)\n' \
+            "$actual_id" "$(jq -er '.expires_at' "$api_metadata")" "$retention_seconds"
+
+      - name: Remove ephemeral key and synthetic runner files
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          workdir="$RUNNER_TEMP/marcae-synthetic-$GITHUB_RUN_ID"
+          rm -rf -- "$workdir"
