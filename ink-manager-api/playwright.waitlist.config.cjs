@@ -4,9 +4,16 @@ const { defineConfig } = require('@playwright/test');
 const { requireLoopbackMail } = require('./e2e/validation-env.cjs');
 
 const baseURL = 'http://127.0.0.1:8087';
-// This module is evaluated before Playwright starts webServer. Reject unsafe
-// database or mail configuration before the JAR can run Flyway or its worker.
-const { db, mailbox } = requireLoopbackMail(baseURL);
+// Evaluate every guard and probe the known loopback Mailpit before webServer
+// can launch the JAR, run Flyway, or start the outbox worker.
+const { testEnv, serverEnv } = requireLoopbackMail(baseURL);
+// The existing spec checks its process environment. These values are fixed
+// sentinels in this short-lived Playwright process; external shell values were
+// validated and are never copied into the app process.
+for (const key of Object.keys(process.env)) {
+  if (/^(STRIPE_|MP_|MERCADOPAGO_|RESEND_)/i.test(key)) delete process.env[key];
+}
+Object.assign(process.env, testEnv);
 
 module.exports = defineConfig({
   expect: { timeout: 20000 },
@@ -20,17 +27,6 @@ module.exports = defineConfig({
     url: `${baseURL}/actuator/health`,
     timeout: 120000,
     reuseExistingServer: false,
-    env: {
-      DB_URL: db.url, DB_USERNAME: db.username, DB_PASSWORD: db.password,
-      MAIL_ENABLED: 'true', MAIL_HOST: process.env.MAIL_HOST, MAIL_PORT: process.env.MAIL_PORT,
-      MAIL_USERNAME: process.env.MAIL_USERNAME, MAIL_PASSWORD: process.env.MAIL_PASSWORD,
-      MAIL_FROM: process.env.MAIL_FROM,
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: 'false',
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: 'false',
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED: 'false',
-      PUBLIC_URL: baseURL,
-      E2E_MAILBOX_API: mailbox.href,
-      JWT_SECRET: 'e2e-only-secret-with-more-than-32-bytes'
-    }
+    env: serverEnv
   }
 });

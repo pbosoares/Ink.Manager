@@ -9,14 +9,19 @@ import org.springframework.web.bind.annotation.*;
 import ink.manager.api.config.AcessoAtual;
 import ink.manager.api.exception.ApiException;
 import ink.manager.api.repository.EstudioRepository;
+import ink.manager.api.service.EncerramentoEstudioService;
 @RestController
 @RequestMapping("/estudio")
 public class EstudioController {
     public record Request(@NotBlank @Size(max = 100) String nome, @NotNull @PositiveOrZero Long version) {}
     public record Response(Long id, String nome, Long version) {}
+    public record EncerramentoRequest(@NotBlank @Size(max = 20) String confirmacao) {}
     private final EstudioRepository estudios;
     private final AcessoAtual acesso;
-    public EstudioController(EstudioRepository estudios, AcessoAtual acesso) { this.estudios = estudios; this.acesso = acesso; }
+    private final EncerramentoEstudioService encerramento;
+    public EstudioController(EstudioRepository estudios, AcessoAtual acesso, EncerramentoEstudioService encerramento) {
+        this.estudios = estudios; this.acesso = acesso; this.encerramento = encerramento;
+    }
     @GetMapping
     public Response consultar() {
         var estudio = estudios.findById(acesso.estudioId()).orElseThrow();
@@ -28,5 +33,10 @@ public class EstudioController {
         if (!Objects.equals(estudio.getVersion(), request.version())) throw new ApiException(HttpStatus.CONFLICT, "Estudio alterado. Recarregue a pagina.");
         estudio.setNome(request.nome().trim()); estudios.saveAndFlush(estudio);
         return new Response(estudio.getId(), estudio.getNome(), estudio.getVersion());
+    }
+
+    @PostMapping("/encerramento") @ResponseStatus(HttpStatus.ACCEPTED) @PreAuthorize("hasRole('PROPRIETARIO')")
+    public EncerramentoEstudioService.Resultado encerrar(@Valid @RequestBody EncerramentoRequest request) {
+        return encerramento.encerrar(request.confirmacao());
     }
 }

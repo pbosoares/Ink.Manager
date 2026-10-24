@@ -14,15 +14,17 @@ public interface EmailOutboxRepository extends JpaRepository<EmailOutbox, Long> 
     Optional<EmailOutbox> findByEstudioIdAndChaveIdempotencia(long estudioId, String chaveIdempotencia);
 
     @Query("select e.id from EmailOutbox e where " +
-        "(e.estado = 'PENDENTE' and e.disponivelEm <= :agora) or " +
-        "(e.estado = 'ENVIANDO' and e.leaseAte <= :agora) " +
+        "exists (select s.id from Estudio s where s.id = e.estudioId and s.encerradoEm is null) and " +
+        "((e.estado = 'PENDENTE' and e.disponivelEm <= :agora) or " +
+        "(e.estado = 'ENVIANDO' and e.leaseAte <= :agora)) " +
         "order by e.disponivelEm asc, e.id asc")
     List<Long> encontrarProntos(@Param("agora") Instant agora, Pageable pageable);
 
     @Modifying
     @Query("update EmailOutbox e set e.estado = 'ENVIANDO', e.leaseAte = :leaseAte, " +
         "e.leaseToken = :leaseToken, e.tentativas = e.tentativas + 1 " +
-        "where e.id = :id and ((e.estado = 'PENDENTE' and e.disponivelEm <= :agora) or " +
+        "where e.id = :id and exists (select s.id from Estudio s where s.id = e.estudioId and s.encerradoEm is null) and " +
+        "((e.estado = 'PENDENTE' and e.disponivelEm <= :agora) or " +
         "(e.estado = 'ENVIANDO' and e.leaseAte <= :agora))")
     int reclamar(@Param("id") long id, @Param("agora") Instant agora,
         @Param("leaseAte") Instant leaseAte, @Param("leaseToken") String leaseToken);
@@ -51,4 +53,9 @@ public interface EmailOutboxRepository extends JpaRepository<EmailOutbox, Long> 
         "and e.estado in ('PENDENTE','ENVIANDO')")
     int invalidar(@Param("estudioId") long estudioId, @Param("tipo") String tipo,
         @Param("referencia") String referencia);
+
+    @Modifying
+    @Query("update EmailOutbox e set e.estado = 'INVALIDADO', e.leaseAte = null, e.leaseToken = null " +
+        "where e.estudioId = :estudioId and e.estado in ('PENDENTE','ENVIANDO')")
+    int invalidarDoEstudio(@Param("estudioId") long estudioId);
 }

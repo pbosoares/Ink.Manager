@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /actuator/
+
+Sitemap: https://usemarcae.com.br/sitemap.xml

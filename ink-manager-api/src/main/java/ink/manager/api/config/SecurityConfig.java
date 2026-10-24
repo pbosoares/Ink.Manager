@@ -17,6 +17,8 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 @Configuration
 @org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
@@ -60,7 +62,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionJwtConverter sessions, ink.manager.api.service.AssinaturaService assinatura)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionJwtConverter sessions,
+            ink.manager.api.service.AssinaturaService assinatura, RetentionOperatorFilter retentionOperatorFilter,
+            ManifestoRestauracaoGateFilter manifestoRestauracaoGateFilter)
             throws Exception {
 
         http
@@ -78,7 +82,9 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/publico/*/reservas", "/publico/*/lista-espera", "/publico/*/oferta/visualizar", "/publico/*/oferta/aceitar", "/publico/acoes/visualizar", "/publico/acoes").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/auth/login", "/auth/estudios", "/auth/recuperar-senha", "/auth/redefinir-senha").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/auth/config", "/actuator/health").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/assinatura/webhook").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/robots.txt", "/sitemap.xml").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/assinatura/webhook", "/assinatura/stripe-webhook").permitAll()
+                .requestMatchers("/internal/retencoes-financeiras/**").permitAll()
                 .anyRequest().authenticated()
             )
 
@@ -86,7 +92,25 @@ public class SecurityConfig {
                 oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(sessions))
             );
 
+        http.addFilterBefore(retentionOperatorFilter, BearerTokenAuthenticationFilter.class);
+        http.addFilterAfter(manifestoRestauracaoGateFilter, RetentionOperatorFilter.class);
         http.addFilterAfter(new AssinaturaAccessFilter(assinatura), org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    public FilterRegistrationBean<RetentionOperatorFilter> retentionOperatorFilterRegistration(
+            RetentionOperatorFilter filter) {
+        FilterRegistrationBean<RetentionOperatorFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<ManifestoRestauracaoGateFilter> manifestoRestauracaoGateFilterRegistration(
+            ManifestoRestauracaoGateFilter filter) {
+        FilterRegistrationBean<ManifestoRestauracaoGateFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 }

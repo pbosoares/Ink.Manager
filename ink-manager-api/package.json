@@ -2,7 +2,8 @@
   "name": "ink-manager-browser-tests",
   "private": true,
   "scripts": {
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:waitlist-matrix": "node e2e/run-waitlist-matrix.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0"

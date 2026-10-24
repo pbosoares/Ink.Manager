@@ -2,9 +2,14 @@ package ink.manager.api;
 
 import java.net.URI;
 import java.net.http.*;
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,7 +24,7 @@ import static org.mockito.Mockito.*;
  "spring.datasource.url=${INK_TEST_DB_URL:jdbc:h2:mem:studio;DB_CLOSE_DELAY=-1}",
  "spring.datasource.driver-class-name=${INK_TEST_DB_DRIVER:org.h2.Driver}",
  "spring.datasource.username=${INK_TEST_DB_USER:sa}","spring.datasource.password=${INK_TEST_DB_PASSWORD:}",
- "jwt.secret=test-only-secret-with-more-than-32-bytes","studio.auth-attempts-per-minute=1000","studio.public-bookings-per-minute=1000","studio.public-queries-per-minute=1000","studio.time-zone=America/Sao_Paulo","billing.mp-webhook-secret=webhook-secret-for-test-only","billing.sync-initial-delay-ms=3600000"})
+ "jwt.secret=test-only-secret-with-more-than-32-bytes","studio.auth-attempts-per-minute=1000","studio.public-bookings-per-minute=1000","studio.public-queries-per-minute=1000","studio.time-zone=America/Sao_Paulo","billing.provider=mercadopago","billing.mp-webhook-secret=webhook-secret-for-test-only","billing.stripe-webhook-secret=stripe-webhook-secret-for-tests","billing.sync-initial-delay-ms=3600000","marcae.retencao.worker-ativo=false","marcae.retencao.lista-espera-horas=24","marcae.retencao.operacional-dias=30","MAIL_ENABLED=false","MARCAE_CLOSURE_MANIFEST_PATH=target/studio-test-manifest.log","MARCAE_CLOSURE_MANIFEST_KEY=closure-test-secret-with-more-than-32-bytes"})
 class StudioIntegrationTest {
     record Conta(String token,long profissional,long estudio,long usuario,String email){}
     @Value("${local.server.port}") int port;
@@ -27,11 +32,23 @@ class StudioIntegrationTest {
     @Autowired org.springframework.security.oauth2.jwt.JwtEncoder encoder;
     @MockitoBean RecuperacaoEmail emailSender;
     @MockitoBean ink.manager.api.service.MercadoPagoGateway gateway;
+    @MockitoBean ink.manager.api.service.StripeGateway stripe;
+    @Autowired ink.manager.api.service.AssinaturaService assinaturaService;
+    @Autowired ink.manager.api.service.AssinaturaConciliacao assinaturaConciliacao;
+    @Autowired ink.manager.api.service.ExpurgoEstudioWorker expurgoEstudioWorker;
+    @Autowired ink.manager.api.service.EmailOutboxService emailOutboxService;
+    @Autowired ink.manager.api.repository.EstudioRepository estudioRepository;
+    @Autowired ink.manager.api.service.ManifestoEncerramentoStore manifesto;
+    @Autowired ink.manager.api.service.ManifestoRestauracaoGate gateRestauracao;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
+    @Autowired Clock clock;
     final HttpClient client=HttpClient.newHttpClient();
     final ObjectMapper mapper=new ObjectMapper();
 
     @BeforeEach void clean(){
-        for(String table:List.of("email_action_tokens","ofertas_lista_espera","lista_espera","email_outbox","assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","recebimentos","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","servicos","estudios")) jdbc.update("DELETE FROM "+table);
+        try{java.nio.file.Files.deleteIfExists(java.nio.file.Path.of("target/studio-test-manifest.log"));}catch(java.io.IOException failure){throw new IllegalStateException(failure);}
+        org.springframework.test.util.ReflectionTestUtils.setField(assinaturaService,"provider","MERCADOPAGO");
+        for(String table:List.of("email_action_tokens","ofertas_lista_espera","lista_espera","email_outbox","retencoes_legais_financeiras","recebimentos_arquivo","expurgos_estudio","assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","recebimentos","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","servicos","estudios")) jdbc.update("DELETE FROM "+table);
     }
     HttpResponse<String> request(String method,String path,String body,String token)throws Exception{
         var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).timeout(Duration.ofSeconds(20));
@@ -248,6 +265,221 @@ class StudioIntegrationTest {
         assertTrue(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
     }
 
+    HttpResponse<String> webhookStripe(String raw)throws Exception{
+        String timestamp=Long.toString(Instant.now().getEpochSecond());var mac=Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec("stripe-webhook-secret-for-tests".getBytes(StandardCharsets.UTF_8),"HmacSHA256"));
+        String signature=HexFormat.of().formatHex(mac.doFinal((timestamp+"."+raw).getBytes(StandardCharsets.UTF_8)));
+        var request=HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/assinatura/stripe-webhook"))
+            .header("Content-Type","application/json").header("Stripe-Signature","t="+timestamp+",v1="+signature)
+            .POST(HttpRequest.BodyPublishers.ofString(raw)).build();return client.send(request,HttpResponse.BodyHandlers.ofString());
+    }
+    @SuppressWarnings("unchecked")
+    String stripeCheckoutForm(String metodo,String checkoutId)throws Exception{
+        var http=mock(HttpClient.class);
+        HttpResponse<String> providerResponse=(HttpResponse<String>)mock(HttpResponse.class);
+        when(providerResponse.statusCode()).thenReturn(200);
+        when(providerResponse.body()).thenReturn("{\"id\":\"cs_test_capture\",\"url\":\"https://checkout.stripe.com/c/pay/cs_test_capture\"}");
+        var forms=new ArrayList<String>();
+        doAnswer(invocation->{forms.add(requestFormBody(invocation.getArgument(0)));return providerResponse;})
+            .when(http).send(any(HttpRequest.class),any(HttpResponse.BodyHandler.class));
+        var gateway=new ink.manager.api.service.StripeGateway("sk_test_only","whsec_test_only","https://ink.test");
+        org.springframework.test.util.ReflectionTestUtils.setField(gateway,"client",http);
+        gateway.criarCheckout(checkoutId,7,metodo,"trial@example.test",14,2990);
+        assertEquals(1,forms.size());
+        return java.net.URLDecoder.decode(forms.getFirst(),StandardCharsets.UTF_8);
+    }
+    String requestFormBody(HttpRequest request)throws Exception{
+        var bytes=new ByteArrayOutputStream();var result=new CompletableFuture<String>();
+        request.bodyPublisher().orElseThrow().subscribe(new Flow.Subscriber<ByteBuffer>(){
+            public void onSubscribe(Flow.Subscription subscription){subscription.request(Long.MAX_VALUE);}
+            public void onNext(ByteBuffer item){byte[] chunk=new byte[item.remaining()];item.get(chunk);bytes.write(chunk,0,chunk.length);}
+            public void onError(Throwable failure){result.completeExceptionally(failure);}
+            public void onComplete(){result.complete(bytes.toString(StandardCharsets.UTF_8));}
+        });
+        return result.get(5,TimeUnit.SECONDS);
+    }
+    record StripeCardFixture(Conta conta,String checkoutId,String subscriptionId){}
+    StripeCardFixture stripeCardFixture(String nome,String sessionId,String subscriptionId)throws Exception{
+        var conta=conta(nome);org.springframework.test.util.ReflectionTestUtils.setField(assinaturaService,"provider","STRIPE");
+        when(stripe.disponivel()).thenReturn(true);
+        when(stripe.criarCheckout(anyString(),eq(conta.estudio()),eq("CARTAO"),eq(conta.email()),eq(14),eq(2990)))
+            .thenReturn(mapper.readTree(stringify(Map.of("id",sessionId,"url","https://checkout.stripe.com/c/pay/"+sessionId))));
+        var created=request("POST","/assinatura/checkout","{\"metodo\":\"CARTAO\"}",conta.token());
+        assertEquals(200,created.statusCode(),created.body());String checkoutId=json(created).get("id").asText();
+        var metadata=Map.of("checkout_id",checkoutId,"studio_id",Long.toString(conta.estudio()));
+        when(stripe.subscription(subscriptionId)).thenReturn(mapper.readTree(stringify(Map.of("id",subscriptionId,"status","trialing","metadata",metadata))));
+        String completed=stringify(Map.of("id","evt_"+sessionId,"type","checkout.session.completed","created",Instant.now().getEpochSecond(),
+            "data",Map.of("object",Map.of("id",sessionId,"mode","subscription","subscription",subscriptionId,"metadata",metadata))));
+        var linked=webhookStripe(completed);assertEquals(200,linked.statusCode(),linked.body());
+        return new StripeCardFixture(conta,checkoutId,subscriptionId);
+    }
+    Map<String,Object> paidInvoicePayment(String id,String invoiceId,int amount,String paymentIntentId){
+        return Map.of("id",id,"status","paid","invoice",invoiceId,"amount_paid",amount,"currency","brl",
+            "payment",Map.of("type","payment_intent","payment_intent",paymentIntentId));
+    }
+    @Test void stripeGatewayCartaoComTrialSolicitaPaymentMethodCollectionAlways()throws Exception{
+        String form=stripeCheckoutForm("CARTAO","checkout_card_trial");
+        assertTrue(form.contains("payment_method_collection=always"),form);
+        assertTrue(form.contains("subscription_data[trial_period_days]=14"),form);
+    }
+    @Test void stripeGatewayPixOmitePaymentMethodCollection()throws Exception{
+        String form=stripeCheckoutForm("PIX","checkout_pix");
+        assertFalse(form.contains("payment_method_collection"),form);
+    }
+    @Test void stripeCheckoutPagoSemPaymentIntentRetorna502SemCreditarNoReplay()throws Exception{
+        var conta=conta("Stripe checkout pago sem PaymentIntent");org.springframework.test.util.ReflectionTestUtils.setField(assinaturaService,"provider","STRIPE");
+        when(stripe.disponivel()).thenReturn(true);
+        when(stripe.criarCheckout(anyString(),eq(conta.estudio()),eq("PIX"),eq(conta.email()),anyInt(),eq(2990)))
+            .thenReturn(mapper.readTree("{\"id\":\"cs_test_paid_without_pi\",\"url\":\"https://checkout.stripe.com/c/pay/cs_test_paid_without_pi\"}"));
+        var created=request("POST","/assinatura/checkout","{\"metodo\":\"PIX\"}",conta.token());assertEquals(200,created.statusCode(),created.body());
+        String checkoutId=json(created).get("id").asText();var metadata=Map.of("checkout_id",checkoutId,"studio_id",Long.toString(conta.estudio()));
+        String event=stringify(Map.of("id","evt_checkout_paid_without_pi","type","checkout.session.async_payment_succeeded","created",Instant.now().getEpochSecond(),
+            "data",Map.of("object",Map.of("id","cs_test_paid_without_pi","mode","payment","payment_status","paid","client_reference_id",checkoutId,
+                "currency","brl","amount_total",2990,"metadata",metadata))));
+        for(int attempt=0;attempt<2;attempt++){
+            var response=webhookStripe(event);assertEquals(502,response.statusCode(),response.body());
+            assertTrue(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
+            assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,conta.estudio()));
+        }
+        verify(stripe,never()).paymentIntent(anyString());
+    }
+    @Test void stripeInvoiceMultiAllocationReturns503WithoutCreditEvenOnReplay()throws Exception{
+        var fixture=stripeCardFixture("Stripe invoice multi allocation","cs_test_invoice_multi","sub_test_invoice_multi");
+        String invoiceId="in_test_invoice_multi";
+        var allocations=List.of(paidInvoicePayment("inpay_multi_1",invoiceId,1495,"pi_multi_1"),paidInvoicePayment("inpay_multi_2",invoiceId,1495,"pi_multi_2"));
+        when(stripe.invoicePaymentsPorInvoice(eq(invoiceId),eq(100),isNull()))
+            .thenReturn(mapper.readTree(stringify(Map.of("data",allocations,"has_more",false))));
+        String event=stringify(Map.of("id","evt_invoice_multi","type","invoice.paid","created",Instant.now().getEpochSecond(),
+            "data",Map.of("object",Map.of("id",invoiceId,"subscription",fixture.subscriptionId(),"currency","brl","amount_paid",2990))));
+        for(int attempt=0;attempt<2;attempt++){
+            var response=webhookStripe(event);assertEquals(503,response.statusCode(),response.body());
+            assertTrue(json(request("GET","/assinatura",null,fixture.conta().token())).get("pagoAte").isNull());
+            assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,fixture.conta().estudio()));
+        }
+    }
+    @Test void stripeRefundMultiAllocationReturns503WithoutRevokingOnReplay()throws Exception{
+        var fixture=stripeCardFixture("Stripe refund multi allocation","cs_test_refund_multi","sub_test_refund_multi");
+        String invoiceId="in_test_refund_multi",paymentIntentId="pi_test_refund_multi";
+        var single=paidInvoicePayment("inpay_refund_single",invoiceId,2990,paymentIntentId);
+        when(stripe.invoicePaymentsPorInvoice(eq(invoiceId),eq(100),isNull()))
+            .thenReturn(mapper.readTree(stringify(Map.of("data",List.of(single),"has_more",false))));
+        String paid=stringify(Map.of("id","evt_invoice_refund_multi_seed","type","invoice.paid","created",Instant.now().getEpochSecond(),
+            "data",Map.of("object",Map.of("id",invoiceId,"subscription",fixture.subscriptionId(),"currency","brl","amount_paid",2990))));
+        var paidResponse=webhookStripe(paid);assertEquals(200,paidResponse.statusCode(),paidResponse.body());
+        String paidAte=json(request("GET","/assinatura",null,fixture.conta().token())).get("pagoAte").asText();assertFalse(paidAte.isBlank());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=? AND aprovado=TRUE",Integer.class,fixture.conta().estudio()));
+        var allocations=List.of(paidInvoicePayment("inpay_refund_multi_1",invoiceId,1495,paymentIntentId),
+            paidInvoicePayment("inpay_refund_multi_2",invoiceId,1495,"pi_other_allocation"));
+        when(stripe.paymentIntent(paymentIntentId)).thenReturn(mapper.readTree(stringify(Map.of("id",paymentIntentId,"metadata",Map.of()))));
+        when(stripe.invoicePaymentsPorPaymentIntent(eq(paymentIntentId),eq(100),isNull()))
+            .thenReturn(mapper.readTree(stringify(Map.of("data",List.of(single),"has_more",false))));
+        when(stripe.invoicePaymentsPorInvoice(eq(invoiceId),eq(100),isNull()))
+            .thenReturn(mapper.readTree(stringify(Map.of("data",allocations,"has_more",false))));
+        String refund=stringify(Map.of("id","evt_refund_multi","type","charge.refunded","created",Instant.now().getEpochSecond(),
+            "data",Map.of("object",Map.of("id","ch_refund_multi","payment_intent",paymentIntentId,"refunded",true,"amount",2990,"amount_refunded",2990,"currency","brl"))));
+        for(int attempt=0;attempt<2;attempt++){
+            var response=webhookStripe(refund);assertEquals(503,response.statusCode(),response.body());
+            assertEquals(paidAte,json(request("GET","/assinatura",null,fixture.conta().token())).get("pagoAte").asText());
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=? AND aprovado=TRUE",Integer.class,fixture.conta().estudio()));
+        }
+    }
+    @Test void stripePixIsPaidOnlyBySignedConfirmationAndReplayDoesNotDuplicate()throws Exception{
+        var conta=conta("Stripe Pix");org.springframework.test.util.ReflectionTestUtils.setField(assinaturaService,"provider","STRIPE");
+        when(stripe.disponivel()).thenReturn(true);
+        when(stripe.criarCheckout(anyString(),eq(conta.estudio()),eq("PIX"),eq(conta.email()),anyInt(),eq(2990)))
+            .thenReturn(mapper.readTree("{\"id\":\"cs_test_pix_1\",\"url\":\"https://checkout.stripe.com/c/pay/cs_test_pix_1\"}"));
+        var response=request("POST","/assinatura/checkout","{\"metodo\":\"PIX\"}",conta.token());assertEquals(200,response.statusCode(),response.body());
+        String checkoutId=json(response).get("id").asText();
+        var session=Map.of("id","cs_test_pix_1","mode","payment","payment_status","unpaid","client_reference_id",checkoutId,
+            "currency","brl","amount_total",2990,"payment_intent","pi_test_pix_1","metadata",Map.of("checkout_id",checkoutId,"studio_id",Long.toString(conta.estudio())));
+        String completed=stringify(Map.of("id","evt_test_completed","type","checkout.session.completed","created",Instant.now().getEpochSecond(),"data",Map.of("object",session)));
+        String ts=Long.toString(Instant.now().getEpochSecond());var invalid=HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/assinatura/stripe-webhook"))
+            .header("Content-Type","application/json").header("Stripe-Signature","t="+ts+",v1=deadbeef").POST(HttpRequest.BodyPublishers.ofString(completed)).build();
+        assertEquals(401,client.send(invalid,HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertEquals(200,webhookStripe(completed).statusCode());assertTrue(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
+        var paidSession=new HashMap<>(session);paidSession.put("payment_status","paid");
+        String paid=stringify(Map.of("id","evt_test_paid","type","checkout.session.async_payment_succeeded","created",Instant.now().getEpochSecond(),"data",Map.of("object",paidSession)));
+        assertEquals(200,webhookStripe(paid).statusCode());String paidAte=json(request("GET","/assinatura",null,conta.token())).get("pagoAte").asText();assertFalse(paidAte.isBlank());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,conta.estudio()));
+        assertEquals(200,webhookStripe(paid).statusCode());assertEquals(paidAte,json(request("GET","/assinatura",null,conta.token())).get("pagoAte").asText());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,conta.estudio()));
+        when(stripe.paymentIntent("pi_test_pix_1")).thenReturn(mapper.readTree(stringify(Map.of("id","pi_test_pix_1","metadata",Map.of("checkout_id",checkoutId,"studio_id",Long.toString(conta.estudio()))))));
+        String refund=stringify(Map.of("id","evt_test_refund","type","charge.refunded","created",Instant.now().getEpochSecond(),"data",Map.of("object",Map.of("id","ch_test_pix_1","payment_intent","pi_test_pix_1","refunded",true,"amount",2990,"amount_refunded",2990,"currency","brl"))));
+        assertEquals(200,webhookStripe(refund).statusCode());assertTrue(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=? AND aprovado=TRUE",Integer.class,conta.estudio()));
+        assertEquals(200,webhookStripe(paid).statusCode());assertTrue(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
+        verify(gateway,never()).criar(anyString(),anyMap(),anyString());
+    }
+    @Test void stripeCartaoComecaEmTrialSemCreditarAteFaturaPaga()throws Exception{
+        var conta=conta("Stripe Cartao");org.springframework.test.util.ReflectionTestUtils.setField(assinaturaService,"provider","STRIPE");
+        when(stripe.disponivel()).thenReturn(true);
+        when(stripe.criarCheckout(anyString(),eq(conta.estudio()),eq("CARTAO"),eq(conta.email()),eq(14),eq(2990)))
+            .thenReturn(mapper.readTree("{\"id\":\"cs_test_card_1\",\"url\":\"https://checkout.stripe.com/c/pay/cs_test_card_1\"}"));
+        var response=request("POST","/assinatura/checkout","{\"metodo\":\"CARTAO\"}",conta.token());assertEquals(200,response.statusCode(),response.body());
+        String checkoutId=json(response).get("id").asText();String subscriptionId="sub_test_card_1";
+        when(stripe.subscription(subscriptionId)).thenReturn(mapper.readTree(stringify(Map.of("id",subscriptionId,"status","trialing","metadata",Map.of("checkout_id",checkoutId,"studio_id",Long.toString(conta.estudio()))))));
+        String completed=stringify(Map.of("id","evt_test_card","type","checkout.session.completed","created",Instant.now().getEpochSecond(),"data",Map.of("object",Map.of("id","cs_test_card_1","mode","subscription","subscription",subscriptionId,"metadata",Map.of("checkout_id",checkoutId,"studio_id",Long.toString(conta.estudio()))))));
+        assertEquals(200,webhookStripe(completed).statusCode());var summary=json(request("GET","/assinatura",null,conta.token()));assertTrue(summary.get("cartaoEmRecorrencia").asBoolean());assertTrue(summary.get("pagoAte").isNull());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,conta.estudio()));
+        var invoicePayment=Map.of("id","inpay_test_card_1","status","paid","invoice","in_test_card_1","amount_paid",2990,"currency","brl","payment",Map.of("type","payment_intent","payment_intent","pi_test_card_1"));
+        when(stripe.invoicePaymentsPorInvoice(eq("in_test_card_1"),eq(100),isNull())).thenReturn(mapper.readTree(stringify(Map.of("data",List.of(invoicePayment),"has_more",false))));
+        String invoice=stringify(Map.of("id","evt_test_invoice","type","invoice.paid","created",Instant.now().getEpochSecond(),"data",Map.of("object",Map.of("id","in_test_card_1","subscription",subscriptionId,"currency","brl","amount_paid",2990))));
+        var invoiceResponse=webhookStripe(invoice);assertEquals(200,invoiceResponse.statusCode(),invoiceResponse.body());assertFalse(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,conta.estudio()));
+    }
+
+    @Test void stripeRefundAssociationTransientFailureReturnsRetryableStatus()throws Exception{
+        var conta=conta("Stripe refund association retry");org.springframework.test.util.ReflectionTestUtils.setField(assinaturaService,"provider","STRIPE");
+        when(stripe.disponivel()).thenReturn(true);
+        String paymentIntentId="pi_refund_lookup_retry";
+        when(stripe.paymentIntent(paymentIntentId)).thenReturn(mapper.readTree(stringify(Map.of("id",paymentIntentId,"metadata",Map.of()))));
+        when(stripe.invoicePaymentsPorPaymentIntent(eq(paymentIntentId),eq(100),isNull()))
+            .thenThrow(new ink.manager.api.exception.ApiException(org.springframework.http.HttpStatus.BAD_GATEWAY,"Stripe lookup temporarily unavailable"));
+        String refund=stringify(Map.of("id","evt_refund_lookup_retry","type","charge.refunded","created",Instant.now().getEpochSecond(),
+            "data",Map.of("object",Map.of("id","ch_refund_lookup_retry","refunded",true,"payment_intent",paymentIntentId))));
+        var response=webhookStripe(refund);
+        assertTrue(response.statusCode()>=500&&response.statusCode()<600,"A transient Stripe association failure must be retried, not acknowledged: "+response.statusCode()+" "+response.body());
+    }
+
+    @Test void stripeConciliationRecoversMissedFullRefundWithoutDuplicatePayment()throws Exception{
+        var conta=conta("Stripe reconciliation refund");org.springframework.test.util.ReflectionTestUtils.setField(assinaturaService,"provider","STRIPE");
+        when(stripe.disponivel()).thenReturn(true);
+        when(stripe.criarCheckout(anyString(),eq(conta.estudio()),eq("CARTAO"),eq(conta.email()),eq(14),eq(2990)))
+            .thenReturn(mapper.readTree("{\"id\":\"cs_test_reconcile_refund\",\"url\":\"https://checkout.stripe.com/c/pay/cs_test_reconcile_refund\"}"));
+        var checkoutResponse=request("POST","/assinatura/checkout","{\"metodo\":\"CARTAO\"}",conta.token());
+        assertEquals(200,checkoutResponse.statusCode(),checkoutResponse.body());
+        String checkoutId=json(checkoutResponse).get("id").asText(),subscriptionId="sub_test_reconcile_refund";
+        var metadata=Map.of("checkout_id",checkoutId,"studio_id",Long.toString(conta.estudio()));
+        var subscription=mapper.readTree(stringify(Map.of("id",subscriptionId,"status","active","metadata",metadata)));
+        when(stripe.subscription(subscriptionId)).thenReturn(subscription);
+        var session=mapper.readTree(stringify(Map.of("id","cs_test_reconcile_refund","mode","subscription","subscription",subscriptionId,"metadata",metadata)));
+        when(stripe.checkout("cs_test_reconcile_refund")).thenReturn(session);
+        String invoiceId="in_test_reconcile_refund",paymentIntentId="pi_test_reconcile_refund";
+        var invoiceObject=Map.of("id",invoiceId,"subscription",subscriptionId,"currency","brl","amount_paid",2990);
+        var invoicePayment=Map.of("id","inpay_test_reconcile_refund","status","paid","invoice",invoiceId,"amount_paid",2990,"currency","brl",
+            "payment",Map.of("type","payment_intent","payment_intent",paymentIntentId));
+        when(stripe.invoicePaymentsPorInvoice(eq(invoiceId),eq(100),isNull()))
+            .thenReturn(mapper.readTree(stringify(Map.of("data",List.of(invoicePayment),"has_more",false))));
+        when(stripe.invoicePaymentsPorPaymentIntent(eq(paymentIntentId),eq(100),isNull()))
+            .thenReturn(mapper.readTree(stringify(Map.of("data",List.of(invoicePayment),"has_more",false))));
+        when(stripe.invoicesPagas(eq(subscriptionId),eq(100),isNull()))
+            .thenReturn(mapper.readTree(stringify(Map.of("data",List.of(invoiceObject),"has_more",false))));
+        String paid=stringify(Map.of("id","evt_invoice_reconcile_seed","type","invoice.paid","created",Instant.now().getEpochSecond(),"data",Map.of("object",invoiceObject)));
+        assertEquals(200,webhookStripe(paid).statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=? AND aprovado=TRUE",Integer.class,conta.estudio()));
+        assertFalse(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
+        when(stripe.paymentIntent(paymentIntentId)).thenReturn(mapper.readTree(stringify(Map.of("id",paymentIntentId,
+            "latest_charge",Map.of("id","ch_test_reconcile_refund","refunded",true,"amount",2990,"amount_refunded",2990)))));
+        var refundEvent=Map.of("id","evt_refund_reconcile_seed","type","charge.refunded","created",Instant.now().getEpochSecond(),"data",Map.of("object",Map.of("id","ch_test_reconcile_refund","payment_intent",paymentIntentId,"refunded",true,"amount",2990,"amount_refunded",2990,"currency","brl")));
+        when(stripe.reembolsosDesde(anyLong(),eq(100),isNull()))
+            .thenReturn(mapper.readTree(stringify(Map.of("data",List.of(refundEvent),"has_more",false))));
+
+        assinaturaConciliacao.conciliar();
+
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,conta.estudio()),"Reconciliation must preserve a single payment row");
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=? AND aprovado=TRUE",Integer.class,conta.estudio()),"A missed full refund must revoke the paid credit");
+        assertTrue(json(request("GET","/assinatura",null,conta.token())).get("pagoAte").isNull());
+    }
     // Contract tests for docs/MARCAE-CONTRATOS.md. HTTP is the assertion boundary;
     // JDBC only prepares historical dates that cannot be booked through the UI.
     record Publico(Conta conta, String link, long servico, long profissional, LocalDate dia) {}
@@ -331,6 +563,99 @@ class StudioIntegrationTest {
     JsonNode resumo(Conta owner,String data) throws Exception {
         var response=request("GET","/recebimentos"+(data==null?"":"?data="+data),null,owner.token());
         assertEquals(200,response.statusCode(),response.body());return json(response);
+    }
+
+    HttpResponse<String> fechar(Conta owner,String confirmacao)throws Exception{
+        return request("POST","/estudio/encerramento",stringify(Map.of("confirmacao",confirmacao)),owner.token());
+    }
+    ink.manager.api.service.ExpurgoEstudioWorker worker(){
+        return new ink.manager.api.service.ExpurgoEstudioWorker(jdbc,estudioRepository,transactionManager,clock,true,20,manifesto,gateRestauracao);
+    }
+    void tornarFilaVencida(long estudio){
+        var before=java.time.OffsetDateTime.ofInstant(clock.instant().minusSeconds(1),ZoneOffset.UTC);
+        jdbc.update("UPDATE expurgos_estudio SET lista_espera_ate=?,proxima_tentativa_em=NULL WHERE estudio_id=?",before,estudio);
+    }
+    void tornarOperacionalVencido(long estudio){
+        var before=java.time.OffsetDateTime.ofInstant(clock.instant().minusSeconds(1),ZoneOffset.UTC);
+        jdbc.update("UPDATE expurgos_estudio SET operacional_ate=?,proxima_tentativa_em=NULL WHERE estudio_id=?",before,estudio);
+    }
+    String inserirCheckout(Conta owner,String metodo,String status){
+        String id=UUID.randomUUID().toString();
+        jdbc.update("INSERT INTO assinatura_checkouts(id,estudio_id,metodo,valor,status,criado_em,provedor) VALUES (?,?,?,?,?,?,?)",
+            id,owner.estudio(),metodo,new java.math.BigDecimal("29.90"),status,java.sql.Timestamp.from(clock.instant()),"MERCADOPAGO");
+        return id;
+    }
+    String inserirLedger(Conta owner,String status){
+        String checkout=inserirCheckout(owner,"PIX",status);String payment="purge-payment-"+UUID.randomUUID();
+        jdbc.update("INSERT INTO assinatura_pagamentos(id,checkout_id,estudio_id,aprovado,fim,aprovado_em,provider_updated_at) VALUES (?,?,?,TRUE,?,?,?)",
+            payment,checkout,owner.estudio(),java.sql.Timestamp.from(clock.instant()),java.sql.Timestamp.from(clock.instant()),1L);
+        return payment;
+    }
+    void inserirOutbox(Conta owner,String state,String suffix){
+        var now=java.time.OffsetDateTime.ofInstant(clock.instant(),ZoneOffset.UTC);
+        var lease=state.equals("ENVIANDO")?now.plusMinutes(2):null;
+        var leaseToken=lease==null?null:UUID.randomUUID().toString();
+        jdbc.update("INSERT INTO email_outbox(estudio_id,destinatario,tipo,chave_idempotencia,disponivel_em,referencia,dados_json,estado,tentativas,lease_ate,lease_token,criado_em) " +
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",owner.estudio(),"purge-"+suffix+"@example.test","LEMBRETE_24H","purge-"+suffix,
+            now,"purge-"+suffix,"{}",state,state.equals("ENVIANDO")?1:0,lease,leaseToken,now);
+    }
+    void entrarNaLista(Publico p,String hora,String email)throws Exception{
+        var inicio=p.dia().atTime(LocalTime.parse(hora)).atZone(ZoneId.of("America/Sao_Paulo")).toOffsetDateTime();
+        var pedido=new HashMap<String,Object>();pedido.put("chaveIdempotencia",UUID.randomUUID());pedido.put("servicoId",p.servico());
+        pedido.put("profissionalId",p.profissional());pedido.put("inicio",inicio.toString());pedido.put("fim",inicio.plusMinutes(30).toString());
+        pedido.put("nome","Contato expurgo");pedido.put("email",email);pedido.put("telefone","21999998888");pedido.put("avisoPrivacidadeLido",true);
+        var response=request("POST","/publico/"+p.link()+"/lista-espera",stringify(pedido),null);
+        assertEquals(200,response.statusCode(),response.body());
+    }
+    long cancelarReservaQueGeraOferta(Publico p,String hora,String email)throws Exception{
+        entrarNaLista(p,hora,email);var created=reservar(p,pedido(p,hora));assertEquals(201,created.statusCode(),created.body());
+        var agenda=json(request("GET","/marcacoes",null,p.conta().token()));
+        var saved=java.util.stream.StreamSupport.stream(agenda.spliterator(),false)
+            .filter(m->m.get("data").asText().equals(p.dia().toString())&&m.get("horario").asText().startsWith(hora)).findFirst().orElseThrow();
+        long id=saved.get("id").asLong();var cancel=new HashMap<String,Object>();
+        cancel.put("cliente",Map.of("id",saved.get("cliente").get("id").asLong()));cancel.put("data",saved.get("data").asText());
+        cancel.put("horario",saved.get("horario").asText());cancel.put("descricao",saved.get("descricao").asText());cancel.put("status","CANCELADA");
+        cancel.put("duracaoMinutos",saved.get("duracaoMinutos").asInt());cancel.put("version",saved.get("version").asLong());cancel.put("profissionalId",p.profissional());
+        var response=request("PUT","/marcacoes/"+id,stringify(cancel),p.conta().token());assertEquals(200,response.statusCode(),response.body());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ofertas_lista_espera WHERE estudio_id=?",Integer.class,p.conta().estudio()));
+        return id;
+    }
+    String inserirTokenAcao(long estudio,long marcacao)throws Exception{
+        byte[] bytes=new byte[32];new java.security.SecureRandom().nextBytes(bytes);String token=HexFormat.of().formatHex(bytes);
+        String hash=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8)));
+        var now=java.time.OffsetDateTime.ofInstant(clock.instant(),ZoneOffset.UTC);
+        jdbc.update("INSERT INTO email_action_tokens(token_hash,estudio_id,marcacao_id,acao,criado_em,expira_em) VALUES (?,?,?,?,?,?)",
+            hash,estudio,marcacao,"CONFIRMAR",now,now.plusDays(1));
+        return token;
+    }
+    String inserirTokenOferta(long estudio,long oferta)throws Exception{
+        byte[] bytes=new byte[32];new java.security.SecureRandom().nextBytes(bytes);String token=HexFormat.of().formatHex(bytes);
+        String hash=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8)));
+        var prazo=java.time.OffsetDateTime.ofInstant(clock.instant().plus(Duration.ofDays(1)),ZoneOffset.UTC);
+        jdbc.update("UPDATE ofertas_lista_espera SET estado='OFERTADA',token_hash=?,token_prazo=? WHERE id=? AND estudio_id=?",hash,prazo,oferta,estudio);
+        return token;
+    }
+    Instant instanteBanco(Object value){
+        if(value instanceof Instant instant)return instant;
+        if(value instanceof java.time.OffsetDateTime offset)return offset.toInstant();
+        if(value instanceof java.sql.Timestamp timestamp)return timestamp.toInstant();
+        throw new AssertionError("Timestamp type inesperado: "+(value==null?"null":value.getClass().getName()));
+    }
+    java.time.OffsetDateTime utc(Instant value){return java.time.OffsetDateTime.ofInstant(value,ZoneOffset.UTC);}
+    Set<String> tabelasReferenciadas(String tabela){
+        return jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Set<String>>)connection->{
+            var referenced=new HashSet<String>();var metadata=connection.getMetaData();
+            for(String candidate:List.of(tabela,tabela.toUpperCase(Locale.ROOT))){
+                try(var keys=metadata.getImportedKeys(connection.getCatalog(),null,candidate)){
+                    while(keys.next())referenced.add(keys.getString("PKTABLE_NAME").toLowerCase(Locale.ROOT));
+                }
+            }
+            return referenced;
+        });
+    }
+    void assertSegundosEntre(Instant inicio,Instant fim,long esperado,long tolerancia){
+        assertTrue(Math.abs(Duration.between(inicio,fim).toSeconds()-esperado)<=tolerancia,
+            "Intervalo esperado: "+esperado+"s, atual: "+Duration.between(inicio,fim).toSeconds()+"s");
     }
 
     @Test void catalogoPublicoLinkFixoESemContatos() throws Exception {
@@ -637,11 +962,16 @@ class StudioIntegrationTest {
         var prof=json(request("GET","/profissionais",null,p.conta().token())).get(0);
         var updated=request("PUT","/profissionais/"+p.profissional(),stringify(Map.of("nome","Dia todo","ativo",true,"horarios",turnos,"version",prof.get("version").asLong())),p.conta().token());assertEquals(200,updated.statusCode(),updated.body());
         assertEquals(200,request("PUT","/configuracao/agendamento",stringify(Map.of("antecedenciaMinimaMinutos",120,"limiteAgendamentosPorEmail",3,"fusoHorario","America/Sao_Paulo")),p.conta().token()).statusCode());
-        var limite=now.plusMinutes(120).toLocalDateTime();int remainder=limite.getMinute()%15;var slot=limite.plusMinutes(remainder==0?0:15-remainder).withSecond(0).withNano(0);
-        if(!slot.toLocalDate().equals(now.toLocalDate())||slot.toLocalTime().isBefore(LocalTime.of(1,0))||slot.toLocalTime().isAfter(LocalTime.of(23,0)))slot=slot.plusDays(1).toLocalDate().atTime(2,0);
+        var limiteMinimo=now.plusMinutes(120).toLocalDateTime();var slot=limiteMinimo.withSecond(0).withNano(0);
+        int remainder=slot.getMinute()%15;slot=slot.plusMinutes((15-remainder)%15);
+        // A boundary can include seconds/nanos; if it is exactly on a slot, leave one full slot
+        // of margin so the HTTP requests cannot consume the boundary before the server checks it.
+        if(!slot.isAfter(limiteMinimo))slot=slot.plusMinutes(15);
+        if(!slot.toLocalDate().equals(now.toLocalDate())||slot.toLocalTime().isBefore(LocalTime.of(1,0))||slot.toLocalTime().isAfter(LocalTime.of(23,0)))slot=now.toLocalDate().plusDays(1).atTime(2,0);
+        assertFalse(slot.isBefore(limiteMinimo),"slot permitido deve ser >= limite exato com segundos/nanos");
         var candidate=new Publico(p.conta(),p.link(),p.servico(),p.profissional(),slot.toLocalDate());
-        var limiteExato=now.plusMinutes(105).withSecond(0).withNano(0);
-        var tooSoon=pedido(candidate,limiteExato.toLocalTime().toString());tooSoon.put("data",limiteExato.toLocalDate().toString());
+        var limiteRecusa=now.plusMinutes(105).withSecond(0).withNano(0);
+        var tooSoon=pedido(candidate,limiteRecusa.toLocalTime().toString());tooSoon.put("data",limiteRecusa.toLocalDate().toString());
         var refused=reservar(candidate,tooSoon);assertEquals(409,refused.statusCode(),refused.body());assertTrue(refused.body().contains("antecedencia"));
         var available=slots(p,p.servico(),p.profissional(),slot.toLocalDate());assertEquals(200,available.statusCode(),available.body());
         var listed=json(available).get("horarios");assertTrue(contem(listed,slot.toLocalTime().toString()+":00"));
@@ -862,5 +1192,277 @@ class StudioIntegrationTest {
         assertEquals("AGUARDANDO",entry.get("estado").asText());
         assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM ofertas_lista_espera WHERE estudio_id=? AND lista_espera_id=?",Integer.class,p.conta().estudio(),entry.get("id").asLong()));
         assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM email_outbox WHERE estudio_id=? AND tipo='LISTA_ESPERA_OFERTA'",Integer.class,p.conta().estudio()));
+    }
+
+    @Test void encerramentoV17ExigePermissaoConfirmacaoEBloqueiaBillingAberto()throws Exception{
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM \"flyway_schema_history\" WHERE \"version\"='17' AND \"success\"=TRUE",Integer.class));
+        assertDoesNotThrow(()->jdbc.queryForList("SELECT encerrado_em FROM estudios WHERE 1=0"));
+        assertDoesNotThrow(()->jdbc.queryForList("SELECT operacional_ate,recebimentos_arquivo_concluido_em FROM expurgos_estudio WHERE 1=0"));
+        assertDoesNotThrow(()->jdbc.queryForList("SELECT recebimento_origem_id,estudio_id,valor,confirmado_em,moeda,arquivado_em,ano_calendario,expira_em FROM recebimentos_arquivo WHERE 1=0"));
+        assertDoesNotThrow(()->jdbc.queryForList("SELECT estudio_id,recebimento_origem_id,tipo,justificativa,escopo,revisar_em,revisada_em,encerrada_em FROM retencoes_legais_financeiras WHERE 1=0"));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM information_schema.columns WHERE LOWER(table_name)='expurgos_estudio' AND LOWER(column_name)='financeiro_ate'",Integer.class));
+        assertEquals(Set.of("estudios"),tabelasReferenciadas("recebimentos_arquivo"));
+        assertEquals(Set.of("estudios"),tabelasReferenciadas("retencoes_legais_financeiras"));
+
+        var recorrente=conta("Encerramento recorrencia");String staff=funcionario(recorrente);
+        assertEquals(401,request("POST","/estudio/encerramento","{\"confirmacao\":\"ENCERRAR\"}",null).statusCode());
+        assertEquals(403,fechar(new Conta(staff,recorrente.profissional(),recorrente.estudio(),recorrente.usuario(),recorrente.email()),"ENCERRAR").statusCode());
+        assertEquals(400,fechar(recorrente,"ENCERRAR AGORA").statusCode());
+        inserirCheckout(recorrente,"CARTAO","authorized");
+        assertEquals(409,fechar(recorrente,"ENCERRAR").statusCode());
+
+        var periodoPago=conta("Encerramento periodo pago");
+        jdbc.update("UPDATE estudios SET pago_ate=? WHERE id=?",java.sql.Timestamp.valueOf(LocalDateTime.now(clock).plusDays(1)),periodoPago.estudio());
+        assertEquals(409,fechar(periodoPago,"ENCERRAR").statusCode());
+
+        var checkoutPendente=conta("Encerramento checkout pendente");inserirCheckout(checkoutPendente,"PIX","pending");
+        assertEquals(409,fechar(checkoutPendente,"ENCERRAR").statusCode());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM expurgos_estudio",Integer.class));
+        assertEquals(3,jdbc.queryForObject("SELECT count(*) FROM estudios WHERE encerrado_em IS NULL",Integer.class));
+    }
+
+    @Test void fechamentoAutenticadoRevogaAcessoTokensLinksEOutboxEGravaPrazos()throws Exception{
+        var p=publico("Fechamento autenticacao e outbox");var owner=p.conta();String staff=funcionario(owner);
+        cancelarReservaQueGeraOferta(p,"09:00","offer-target@example.test");
+        long offerId=jdbc.queryForObject("SELECT id FROM ofertas_lista_espera WHERE estudio_id=?",Long.class,owner.estudio());
+        String offerToken=inserirTokenOferta(owner.estudio(),offerId);
+        long booking=marcacaoParaReceber(owner,"10:00","AGENDADA").get("id").asLong();
+        assertEquals(200,receber(owner,booking,"19.90").statusCode());
+        String actionToken=inserirTokenAcao(owner.estudio(),booking);
+        jdbc.update("INSERT INTO recuperacoes_senha(token_hash,usuario_id,prazo) VALUES (?,?,?)","a".repeat(64),owner.usuario(),LocalDateTime.now(clock).plusDays(1));
+        inserirOutbox(owner,"PENDENTE","pending");inserirOutbox(owner,"ENVIANDO","leased");
+        String publicLink=p.link();
+
+        assertEquals(403,fechar(new Conta(staff,owner.profissional(),owner.estudio(),owner.usuario(),owner.email()),"ENCERRAR").statusCode());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM expurgos_estudio WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(409,fechar(owner,"ENCERRAR").statusCode());
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM expurgos_estudio WHERE estudio_id=?",Integer.class,owner.estudio()));
+        jdbc.update("UPDATE email_outbox SET lease_ate=? WHERE estudio_id=? AND chave_idempotencia=?",
+            java.time.OffsetDateTime.ofInstant(clock.instant().minusSeconds(1),ZoneOffset.UTC),owner.estudio(),"purge-leased");
+        var response=fechar(owner,"ENCERRAR");assertEquals(202,response.statusCode(),response.body());var result=json(response);
+        assertEquals("ENCERRAMENTO_CONFIRMADO",result.get("estado").asText());assertTrue(result.get("arquivoFinanceiroAguardaPrazo").asBoolean());
+        Instant closed=Instant.parse(result.get("encerradoEm").asText());
+        assertSegundosEntre(closed,Instant.parse(result.get("expurgoListaEsperaEm").asText()),24*60*60,1);
+        assertSegundosEntre(closed,Instant.parse(result.get("expurgoOperacionalEm").asText()),30*24*60*60,1);
+        var job=jdbc.queryForMap("SELECT * FROM expurgos_estudio WHERE estudio_id=?",owner.estudio());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM expurgos_estudio WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertNull(job.get("recebimentos_arquivo_concluido_em"));assertNotNull(jdbc.queryForObject("SELECT encerrado_em FROM estudios WHERE id=?",Object.class,owner.estudio()));
+        assertNotEquals(publicLink,jdbc.queryForObject("SELECT link_publico FROM estudios WHERE id=?",String.class,owner.estudio()));
+        var account=jdbc.queryForMap("SELECT ativo,token_version FROM usuarios WHERE id=?",owner.usuario());
+        assertFalse((Boolean)account.get("ativo"));assertTrue(((Number)account.get("token_version")).longValue()>0);
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM usuarios WHERE estudio_id=? AND ativo=TRUE",Integer.class,owner.estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM email_action_tokens WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recuperacoes_senha WHERE usuario_id=?",Integer.class,owner.usuario()));
+        for(String key:List.of("purge-pending","purge-leased")){
+            var row=jdbc.queryForMap("SELECT estado,lease_ate,lease_token FROM email_outbox WHERE estudio_id=? AND chave_idempotencia=?",owner.estudio(),key);
+            assertEquals("INVALIDADO",row.get("estado"));assertNull(row.get("lease_ate"));assertNull(row.get("lease_token"));
+        }
+        assertTrue(emailOutboxService.claimReady(clock.instant()).isEmpty());
+        assertEquals(401,request("GET","/auth/me",null,owner.token()).statusCode());
+        assertEquals(401,request("POST","/auth/login",stringify(Map.of("email",owner.email(),"senha","SenhaTeste123")),null).statusCode());
+        assertEquals(404,request("GET","/publico/"+publicLink,null,null).statusCode());
+        assertEquals(404,reservar(new Publico(owner,publicLink,p.servico(),p.profissional(),p.dia()),pedido(p,"11:00")).statusCode());
+        var offerView=request("POST","/publico/"+publicLink+"/oferta/visualizar",stringify(Map.of("token",offerToken)),null);
+        assertTrue(Set.of(404,410).contains(offerView.statusCode()),offerView.body());assertFalse(offerView.body().contains("offer-target@example.test"));
+        assertEquals(410,request("POST","/publico/acoes/visualizar",stringify(Map.of("token",actionToken)),null).statusCode());
+        assertEquals(401,fechar(owner,"ENCERRAR").statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM expurgos_estudio WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE marcacao_id=?",Integer.class,booking));
+    }
+
+    @Test void expurgoWorkerDesligadoNaoApagaMesmoComPrazosVencidos()throws Exception{
+        var owner=conta("Expurgo desligado");long booking=marcacaoParaReceber(owner,"10:00","AGENDADA").get("id").asLong();
+        assertEquals(200,receber(owner,booking,"29.90").statusCode());assertEquals(202,fechar(owner,"ENCERRAR").statusCode());
+        tornarFilaVencida(owner.estudio());tornarOperacionalVencido(owner.estudio());
+        assertFalse((Boolean)org.springframework.test.util.ReflectionTestUtils.getField(expurgoEstudioWorker,"enabled"));
+        expurgoEstudioWorker.poll();
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM marcacoes WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE estudio_id=?",Integer.class,owner.estudio()));
+        var job=jdbc.queryForMap("SELECT lista_espera_concluido_em,operacional_concluido_em FROM expurgos_estudio WHERE estudio_id=?",owner.estudio());
+        assertNull(job.get("lista_espera_concluido_em"));assertNull(job.get("operacional_concluido_em"));
+    }
+
+    @Test void expurgoExecutaEtapasArquivaRecebimentoSemPiiEIsolaTenant()throws Exception{
+        var a=publico("Expurgo alvo A");var b=publico("Expurgo preservado B");
+        cancelarReservaQueGeraOferta(a,"09:00","fila-a@example.test");cancelarReservaQueGeraOferta(b,"09:00","fila-b@example.test");
+        long bookingA=marcacaoParaReceber(a.conta(),"10:00","AGENDADA").get("id").asLong();
+        long bookingB=marcacaoParaReceber(b.conta(),"10:00","AGENDADA").get("id").asLong();
+        assertEquals(200,receber(a.conta(),bookingA,"19.90").statusCode());assertEquals(200,receber(b.conta(),bookingB,"7.25").statusCode());
+        long receiptA=jdbc.queryForObject("SELECT id FROM recebimentos WHERE marcacao_id=?",Long.class,bookingA);
+        Instant confirmedA=instanteBanco(jdbc.queryForObject("SELECT confirmado_em FROM recebimentos WHERE id=?",Object.class,receiptA));
+        inserirLedger(a.conta(),"cancelled");inserirLedger(b.conta(),"cancelled");
+        inserirOutbox(a.conta(),"ENVIANDO","target-lease");inserirOutbox(b.conta(),"PENDENTE","other-pending");
+
+        var blockedByLease=fechar(a.conta(),"ENCERRAR");assertEquals(409,blockedByLease.statusCode(),blockedByLease.body());
+        jdbc.update("UPDATE email_outbox SET lease_ate=? WHERE estudio_id=? AND estado='ENVIANDO'",
+            java.time.OffsetDateTime.ofInstant(clock.instant().minusSeconds(1),ZoneOffset.UTC),a.conta().estudio());
+        var closed=fechar(a.conta(),"ENCERRAR");assertEquals(202,closed.statusCode(),closed.body());
+        assertTrue(jdbc.queryForObject("SELECT count(*) FROM email_outbox WHERE estudio_id=? AND estado='INVALIDADO'",Integer.class,a.conta().estudio())>=1);
+        tornarFilaVencida(a.conta().estudio());worker().poll();
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM ofertas_lista_espera WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM lista_espera WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM email_outbox WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM marcacoes WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM ofertas_lista_espera WHERE estudio_id=?",Integer.class,b.conta().estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM lista_espera WHERE estudio_id=?",Integer.class,b.conta().estudio()));
+        assertTrue(jdbc.queryForObject("SELECT count(*) FROM email_outbox WHERE estudio_id=? AND estado='PENDENTE'",Integer.class,b.conta().estudio())>=1);
+
+        tornarOperacionalVencido(a.conta().estudio());worker().poll();
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM marcacoes WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM cliente WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM usuarios WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        var archive=jdbc.queryForMap("SELECT recebimento_origem_id AS \"source_id\",estudio_id AS \"studio_id\",valor AS \"amount\",confirmado_em AS \"confirmed_at\",moeda AS \"currency\",arquivado_em AS \"archived_at\",ano_calendario AS \"calendar_year\",expira_em AS \"expires_at\" FROM recebimentos_arquivo WHERE estudio_id=?",a.conta().estudio());
+        assertEquals(Set.of("source_id","studio_id","amount","confirmed_at","currency","archived_at","calendar_year","expires_at"),archive.keySet());
+        assertEquals(receiptA,((Number)archive.get("source_id")).longValue());assertEquals(a.conta().estudio(),((Number)archive.get("studio_id")).longValue());
+        assertEquals(0,new java.math.BigDecimal("19.90").compareTo((java.math.BigDecimal)archive.get("amount")));
+        int receiptYear=LocalDate.ofInstant(confirmedA,ZoneId.of("America/Sao_Paulo")).getYear();
+        Instant expectedExpiry=LocalDate.of(receiptYear+6,1,1).atStartOfDay(ZoneId.of("America/Sao_Paulo")).toInstant();
+        assertEquals(confirmedA,instanteBanco(archive.get("confirmed_at")));assertEquals(receiptYear,((Number)archive.get("calendar_year")).intValue());
+        assertEquals("BRL",archive.get("currency"));assertEquals(expectedExpiry,instanteBanco(archive.get("expires_at")));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,a.conta().estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_checkouts WHERE estudio_id=? AND checkout_url IS NULL",Integer.class,a.conta().estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE estudio_id=? AND marcacao_id=?",Integer.class,b.conta().estudio(),bookingB));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE estudio_id=?",Integer.class,b.conta().estudio()));
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM marcacoes WHERE estudio_id=?",Integer.class,b.conta().estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM usuarios WHERE estudio_id=? AND ativo=TRUE",Integer.class,b.conta().estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,b.conta().estudio()));
+    }
+
+    @Test void falhaDeFkReverteEtapaInteiraAgendaRetryESucessoRepetidoNaoDuplicaArquivo()throws Exception{
+        var owner=conta("Expurgo retry");long booking=marcacaoParaReceber(owner,"10:00","AGENDADA").get("id").asLong();
+        assertEquals(200,receber(owner,booking,"31.40").statusCode());assertEquals(202,fechar(owner,"ENCERRAR").statusCode());
+        tornarFilaVencida(owner.estudio());tornarOperacionalVencido(owner.estudio());
+        jdbc.execute("CREATE TABLE expurgo_test_barrier (marcacao_id BIGINT PRIMARY KEY REFERENCES marcacoes(id))");
+        jdbc.update("INSERT INTO expurgo_test_barrier(marcacao_id) VALUES (?)",booking);
+        try{
+            worker().poll();
+            var failed=jdbc.queryForMap("SELECT tentativas,proxima_tentativa_em,ultimo_erro,lista_espera_concluido_em,operacional_concluido_em FROM expurgos_estudio WHERE estudio_id=?",owner.estudio());
+            assertEquals(1,((Number)failed.get("tentativas")).intValue());assertSegundosEntre(clock.instant(),instanteBanco(failed.get("proxima_tentativa_em")),30,1);
+            assertEquals("EXPURGO_RETRY",failed.get("ultimo_erro"));assertNull(failed.get("lista_espera_concluido_em"));assertNull(failed.get("operacional_concluido_em"));
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE estudio_id=?",Integer.class,owner.estudio()));
+            assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE estudio_id=?",Integer.class,owner.estudio()));
+            assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM marcacoes WHERE estudio_id=?",Integer.class,owner.estudio()));
+        }finally{
+            jdbc.execute("DROP TABLE IF EXISTS expurgo_test_barrier");
+        }
+        jdbc.update("UPDATE expurgos_estudio SET proxima_tentativa_em=? WHERE estudio_id=?",
+            java.time.OffsetDateTime.ofInstant(clock.instant().minusSeconds(1),ZoneOffset.UTC),owner.estudio());
+        worker().poll();
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM marcacoes WHERE estudio_id=?",Integer.class,owner.estudio()));
+        worker().poll();
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT tentativas FROM expurgos_estudio WHERE estudio_id=?",Integer.class,owner.estudio()));
+    }
+
+    @Test void retencaoFinanceiraPorRecebimentoRespeitaAnoCalendarioEFusoNaVirada()throws Exception{
+        var owner=conta("Retencao por recebimento e virada de ano");
+        long bookingBefore=marcacaoParaReceber(owner,"10:00","AGENDADA").get("id").asLong();
+        long bookingAfter=marcacaoParaReceber(owner,"11:00","AGENDADA").get("id").asLong();
+        assertEquals(200,receber(owner,bookingBefore,"42.00").statusCode());
+        assertEquals(200,receber(owner,bookingAfter,"17.25").statusCode());
+        long receiptBefore=jdbc.queryForObject("SELECT id FROM recebimentos WHERE marcacao_id=?",Long.class,bookingBefore);
+        long receiptAfter=jdbc.queryForObject("SELECT id FROM recebimentos WHERE marcacao_id=?",Long.class,bookingAfter);
+        // 02:59:59Z is still 31/12 in São Paulo; 03:00:00Z is exactly local midnight.
+        Instant beforeLocalYearBoundary=Instant.parse("2022-01-01T02:59:59Z");
+        Instant atLocalYearBoundary=Instant.parse("2022-01-01T03:00:00Z");
+        jdbc.update("UPDATE recebimentos SET confirmado_em=? WHERE id=?",utc(beforeLocalYearBoundary),receiptBefore);
+        jdbc.update("UPDATE recebimentos SET confirmado_em=? WHERE id=?",utc(atLocalYearBoundary),receiptAfter);
+        assertEquals(2021,LocalDate.ofInstant(beforeLocalYearBoundary,ZoneId.of("America/Sao_Paulo")).getYear());
+        assertEquals(2022,LocalDate.ofInstant(atLocalYearBoundary,ZoneId.of("America/Sao_Paulo")).getYear());
+        inserirLedger(owner,"cancelled");
+        assertEquals(202,fechar(owner,"ENCERRAR").statusCode());
+        tornarFilaVencida(owner.estudio());tornarOperacionalVencido(owner.estudio());
+
+        worker().poll();
+        var before=jdbc.queryForMap("SELECT estudio_id,valor,confirmado_em,ano_calendario,expira_em FROM recebimentos_arquivo WHERE recebimento_origem_id=?",receiptBefore);
+        var after=jdbc.queryForMap("SELECT estudio_id,valor,confirmado_em,ano_calendario,expira_em FROM recebimentos_arquivo WHERE recebimento_origem_id=?",receiptAfter);
+        assertEquals(owner.estudio(),((Number)before.get("estudio_id")).longValue());
+        assertEquals(2021,((Number)before.get("ano_calendario")).intValue());
+        assertEquals(beforeLocalYearBoundary,instanteBanco(before.get("confirmado_em")));
+        assertEquals(Instant.parse("2027-01-01T03:00:00Z"),instanteBanco(before.get("expira_em")));
+        assertEquals(2022,((Number)after.get("ano_calendario")).intValue());
+        assertEquals(atLocalYearBoundary,instanteBanco(after.get("confirmado_em")));
+        assertEquals(Instant.parse("2028-01-01T03:00:00Z"),instanteBanco(after.get("expira_em")));
+        assertTrue(instanteBanco(before.get("expira_em")).isAfter(clock.instant()));
+        assertTrue(instanteBanco(after.get("expira_em")).isAfter(instanteBanco(before.get("expira_em"))));
+
+        // The financial snapshot has no FK to the operational rows: those can be deleted first.
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM marcacoes WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM cliente WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM usuarios WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_checkouts WHERE estudio_id=?",Integer.class,owner.estudio()));
+        worker().poll();
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE estudio_id=?",Integer.class,owner.estudio()));
+    }
+
+    @Test void retencoesLegaisPorRecebimentoBloqueiamAteEncerramentoExplicitoEIsolamTenant()throws Exception{
+        var owner=conta("Holds financeiros");
+        long activeBooking=marcacaoParaReceber(owner,"10:00","AGENDADA").get("id").asLong();
+        long overdueBooking=marcacaoParaReceber(owner,"11:00","AGENDADA").get("id").asLong();
+        long releasedBooking=marcacaoParaReceber(owner,"12:00","AGENDADA").get("id").asLong();
+        long unmatchedBooking=marcacaoParaReceber(owner,"13:00","AGENDADA").get("id").asLong();
+        assertEquals(200,receber(owner,activeBooking,"10.00").statusCode());
+        assertEquals(200,receber(owner,overdueBooking,"20.00").statusCode());
+        assertEquals(200,receber(owner,releasedBooking,"30.00").statusCode());
+        assertEquals(200,receber(owner,unmatchedBooking,"40.00").statusCode());
+        long activeReceipt=jdbc.queryForObject("SELECT id FROM recebimentos WHERE marcacao_id=?",Long.class,activeBooking);
+        long overdueReceipt=jdbc.queryForObject("SELECT id FROM recebimentos WHERE marcacao_id=?",Long.class,overdueBooking);
+        long releasedReceipt=jdbc.queryForObject("SELECT id FROM recebimentos WHERE marcacao_id=?",Long.class,releasedBooking);
+        long unmatchedReceipt=jdbc.queryForObject("SELECT id FROM recebimentos WHERE marcacao_id=?",Long.class,unmatchedBooking);
+        inserirLedger(owner,"cancelled");
+        assertEquals(202,fechar(owner,"ENCERRAR").statusCode());
+        Instant now=clock.instant(),started=now.minus(Duration.ofDays(2)),reviewExpired=now.minus(Duration.ofDays(1));
+        Instant oldConfirmed=Instant.parse("2018-06-01T12:00:00Z");
+        for(long receiptId:List.of(activeReceipt,overdueReceipt,releasedReceipt,unmatchedReceipt))
+            jdbc.update("UPDATE recebimentos SET confirmado_em=? WHERE id=?",utc(oldConfirmed),receiptId);
+        // Holds may exist before the minimized archive row; their receipt ID is scoped by studio in worker queries.
+        inserirHold(owner.estudio(),activeReceipt,"OBRIGACAO_ESPECIFICA","Obrigação identificada","Somente este recebimento",started,now.plus(Duration.ofDays(30)),null,null);
+        inserirHold(owner.estudio(),overdueReceipt,"PROCESSO_PENDENTE","Processo em andamento","Valor e data deste recebimento",started,reviewExpired,null,null);
+        inserirHold(owner.estudio(),releasedReceipt,"FISCALIZACAO_PENDENTE","Fiscalização encerrada","Somente este recebimento",started,reviewExpired,now,now);
+
+        var other=conta("Outro tenant para escopo do hold");
+        inserirHold(other.estudio(),unmatchedReceipt,"OBRIGACAO_ESPECIFICA","Hold de outro estúdio","Não deve alcançar o recebimento",started,now.plus(Duration.ofDays(30)),null,null);
+        tornarFilaVencida(owner.estudio());tornarOperacionalVencido(owner.estudio());
+
+        worker().poll();
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE recebimento_origem_id=?",Integer.class,activeReceipt));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE recebimento_origem_id=?",Integer.class,overdueReceipt),
+                "revisar_em vencido sem encerramento explícito ainda deve bloquear o expurgo");
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE recebimento_origem_id=?",Integer.class,releasedReceipt));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE recebimento_origem_id=?",Integer.class,unmatchedReceipt),
+                "hold de outro tenant não pode bloquear o recebimento");
+        var activeHold=jdbc.queryForMap("SELECT tipo,justificativa,escopo,revisar_em,revisada_em,encerrada_em FROM retencoes_legais_financeiras WHERE estudio_id=? AND recebimento_origem_id=?",owner.estudio(),activeReceipt);
+        assertEquals("OBRIGACAO_ESPECIFICA",activeHold.get("tipo"));assertEquals("Obrigação identificada",activeHold.get("justificativa"));
+        assertEquals("Somente este recebimento",activeHold.get("escopo"));assertNull(activeHold.get("revisada_em"));assertNull(activeHold.get("encerrada_em"));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM retencoes_legais_financeiras WHERE estudio_id=? AND recebimento_origem_id=? AND encerrada_em IS NULL",Integer.class,owner.estudio(),activeReceipt));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM retencoes_legais_financeiras WHERE estudio_id=? AND recebimento_origem_id=? AND revisar_em<? AND revisada_em IS NULL AND encerrada_em IS NULL",Integer.class,owner.estudio(),overdueReceipt,utc(now)));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM retencoes_legais_financeiras WHERE estudio_id=? AND recebimento_origem_id=?",Integer.class,owner.estudio(),releasedReceipt),
+                "hold encerrado deve ser limpo antes de remover o arquivo referenciado");
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM retencoes_legais_financeiras WHERE estudio_id=? AND recebimento_origem_id=? AND encerrada_em IS NULL",Integer.class,other.estudio(),unmatchedReceipt));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(0,jdbc.queryForObject("SELECT count(*) FROM marcacoes WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_pagamentos WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM assinatura_checkouts WHERE estudio_id=?",Integer.class,owner.estudio()),
+                "o ledger Stripe/assinatura está fora do expurgo de recebimentos");
+
+        worker().poll();
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM recebimentos_arquivo WHERE estudio_id=?",Integer.class,owner.estudio()));
+        assertEquals(2,jdbc.queryForObject("SELECT count(*) FROM retencoes_legais_financeiras WHERE estudio_id=? AND encerrada_em IS NULL",Integer.class,owner.estudio()));
+    }
+
+    void inserirHold(long estudio,long recebimento,String tipo,String justificativa,String escopo,Instant iniciada,
+            Instant revisar,Instant revisada,Instant encerrada){
+        jdbc.update("INSERT INTO retencoes_legais_financeiras(estudio_id,recebimento_origem_id,tipo,justificativa,escopo,iniciada_em,revisar_em,revisada_em,encerrada_em) " +
+                "VALUES (?,?,?,?,?,?,?,?,?)",estudio,recebimento,tipo,justificativa,escopo,utc(iniciada),utc(revisar),
+                revisada==null?null:utc(revisada),encerrada==null?null:utc(encerrada));
     }
 }

@@ -15,7 +15,7 @@ Não prometer aumento de receita, redução de faltas ou economia de tempo medid
 ## Landing
 
 - Título: **Seu cliente escolhe o horário. Você acompanha a agenda.**
-- Apoio: **Configure serviços, preços, duração e expediente. Compartilhe seu link fixo para receber reservas com nome e telefone, sem conta para o cliente.**
+- Apoio: **Configure serviços, preços, duração e expediente. Compartilhe seu link fixo para receber reservas sem conta para o cliente.**
 - Identificação de público, se houver espaço: **Para tatuagem, manicure, barbearia e sobrancelhas.**
 - Ação principal: **Testar grátis por 14 dias** — direcionar ao cadastro do estabelecimento com teste implementado. Se houver somente login, manter **Entrar**; não simular ativação de teste.
 - Ação de acesso existente: **Já tenho conta**.
@@ -65,15 +65,15 @@ Não prometer aumento de receita, redução de faltas ou economia de tempo medid
 ## Página pública de reservas
 
 - Título: **Reserve seu horário em {nome do negócio}**.
-- Apoio: **Escolha o serviço, o profissional e um horário disponível. Para reservar, informe seu nome e telefone. Não precisa criar conta.**
-- Campos: **Serviço · Profissional · Dia · Horário · Seu nome · Telefone**.
+- Apoio: **Escolha o serviço, o profissional e um horário disponível. Para reservar, informe seu nome, e-mail e telefone. Não precisa criar conta.**
+- Campos: **Serviço · Profissional · Dia · Horário · Seu nome · E-mail · Telefone**.
 - Opção do serviço: **{serviço} — {preço} · {duração} min**. Usar os dados do servidor; formatar preço em reais, inclusive R$ 0,00.
 - Resumo antes de enviar: **{serviço} com {profissional}, em {data}, às {horário}. Duração: {duração} min. Preço: {preço}.**
 - Identificação do fuso: **Horários no fuso {fuso do negócio}.**
 - Botão: **Reservar horário**.
 - Durante envio: **Reservando…**.
 - Apoio: **Esta etapa registra a reserva e não realiza pagamento.**
-- Não solicitar e-mail, senha ou criação de conta. Não sugerir envio automático de confirmação.
+- Solicitar o e-mail exigido pelo formulário vigente, além do nome e telefone. Não solicitar senha nem criação de conta ao cliente.
 
 ### Confirmação pública — apenas após resposta de sucesso
 
@@ -119,7 +119,7 @@ Esta seção atualiza a oferta e o CTA da landing. Textos para o negócio que as
 
 - Título preferencial: **Seu link de reservas. Sua agenda em um só lugar.**
 - Alternativa curta: **Seu link. Sua agenda.**
-- Apoio: **Configure serviços, preços, duração e expediente uma vez. Compartilhe um link fixo para seus clientes consultarem os horários disponíveis e reservarem com nome e telefone, sem criar conta. Atualize sua configuração quando precisar.**
+- Apoio: **Configure serviços, preços, duração e expediente uma vez. Compartilhe um link fixo para seus clientes consultarem horários disponíveis e reservarem sem criar conta. Atualize sua configuração quando precisar.**
 - Oferta: **Teste grátis por 14 dias, sem cartão. Depois, R$ 29,90/mês.**
 - CTA principal: **Testar grátis por 14 dias**.
 - Apoio junto ao CTA: **Sem cartão para começar. R$ 29,90/mês após o teste.**

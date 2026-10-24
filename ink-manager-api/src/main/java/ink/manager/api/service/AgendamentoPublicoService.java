@@ -38,7 +38,7 @@ public class AgendamentoPublicoService {
     public AgendamentoPublicoService(EstudioRepository estudios,ServicoRepository servicos,ProfissionalRepository profissionais,ClienteRepository clientes,MarcacaoRepository marcacoes,DisponibilidadeService disponibilidade,AgendaGuard guard,AssinaturaService assinatura,Clock clock,AgendamentoEmailService agendamentoEmail){
         this.estudios=estudios;this.servicos=servicos;this.profissionais=profissionais;this.clientes=clientes;this.marcacoes=marcacoes;this.disponibilidade=disponibilidade;this.guard=guard;this.assinatura=assinatura;this.clock=clock;this.agendamentoEmail=agendamentoEmail;
     }
-    private Estudio local(String link){return estudios.findByLinkPublico(link).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
+    private Estudio local(String link){return estudios.findByLinkPublicoAndEncerradoEmIsNull(link).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
     private Servico servico(Long estudio,Long id){return servicos.findByIdAndEstudioId(id,estudio).filter(Servico::isAtivo).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Servico indisponivel."));}
     public Catalogo catalogo(String link){
         var e=local(link);var zona=ZoneId.of(e.getFusoHorario());
@@ -57,7 +57,7 @@ public class AgendamentoPublicoService {
         return new DisponibilidadeService.HorariosDisponiveis(horarios.profissionalId(),horarios.data(),horarios.duracaoMinutos(),zona.getId(),livres);
     }
     @Transactional public Confirmacao reservar(String link,Pedido r){
-        var e=local(link);guard.bloquear(e.getId());
+        var e=local(link);guard.bloquear(e.getId());e=local(link);
         String hash=hash(r);var anterior=marcacoes.findByEstudioIdAndChavePublica(e.getId(),r.chave().toString());
         if(anterior.isPresent()){
             if(!hash.equals(anterior.get().getPedidoPublicoHash()))throw new ApiException(HttpStatus.CONFLICT,"Pedido ja utilizado. Inicie outra reserva.");

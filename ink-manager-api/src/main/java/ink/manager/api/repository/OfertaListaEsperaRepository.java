@@ -12,6 +12,8 @@ public interface OfertaListaEsperaRepository extends JpaRepository<OfertaListaEs
     Optional<OfertaListaEspera> bloquearPorEstudio(@Param("estudio") Long estudio,@Param("id") Long id);
     Optional<OfertaListaEspera> findByEstudioIdAndTokenHash(Long estudio,String tokenHash);
     List<OfertaListaEspera> findByEstudioIdAndEntradaIdOrderByCriadoEmDesc(Long estudio,Long entrada);
-    List<OfertaListaEspera> findByEstadoAndTokenPrazoLessThanEqual(EstadoOfertaListaEspera estado,java.time.Instant limite);
+    @Query("select o from OfertaListaEspera o where o.estado=:estado and o.tokenPrazo<=:limite and o.estudio.encerradoEm is null")
+    List<OfertaListaEspera> encontrarExpiradasEmEstudiosAbertos(@Param("estado") EstadoOfertaListaEspera estado,
+            @Param("limite") java.time.Instant limite);
     boolean existsByEstudioIdAndMarcacaoCanceladaIdAndEstado(Long estudio,Long marcacaoCancelada,EstadoOfertaListaEspera estado);
 }

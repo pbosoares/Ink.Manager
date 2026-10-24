@@ -1,3 +1,5 @@
 *.class 
 marcacoes.txt 
 clientes.txt 
+
+/deploy-artifacts/

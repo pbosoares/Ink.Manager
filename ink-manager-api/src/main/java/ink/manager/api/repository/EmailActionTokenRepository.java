@@ -16,4 +16,7 @@ public interface EmailActionTokenRepository extends JpaRepository<EmailActionTok
     @Modifying
     @Query("delete from EmailActionToken t where t.estudioId=:estudio and t.marcacaoId=:marcacao and t.usadoEm is null")
     int invalidarNaoUsados(@Param("estudio") long estudioId,@Param("marcacao") long marcacaoId);
+    @Modifying
+    @Query("delete from EmailActionToken t where t.estudioId=:estudio")
+    int excluirDoEstudio(@Param("estudio") long estudioId);
 }

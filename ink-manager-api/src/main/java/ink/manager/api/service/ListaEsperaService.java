@@ -48,7 +48,7 @@ public class ListaEsperaService {
         this.acesso=acesso;this.clock=clock;this.outbox=outbox;this.agendamentoEmail=agendamentoEmail;
     }
 
-    private Estudio porLink(String link){return estudios.findByLinkPublico(link).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
+    private Estudio porLink(String link){return estudios.findByLinkPublicoAndEncerradoEmIsNull(link).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
     private ListaEspera entrada(long estudio,long id){return entradas.findByIdAndEstudioId(id,estudio).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Entrada da lista nao encontrada."));}
     private Servico servico(long estudio,long id){return servicos.findByIdAndEstudioId(id,estudio).filter(Servico::isAtivo).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Servico indisponivel."));}
 
@@ -138,7 +138,7 @@ public class ListaEsperaService {
 
     /** Promove o proximo candidato apos a expiracao, inclusive quando o link nunca e aberto. */
     @Transactional public int expirarOfertas(Instant agora){
-        List<Long> ids=ofertas.findByEstadoAndTokenPrazoLessThanEqual(EstadoOfertaListaEspera.OFERTADA,agora)
+        List<Long> ids=ofertas.encontrarExpiradasEmEstudiosAbertos(EstadoOfertaListaEspera.OFERTADA,agora)
             .stream().map(OfertaListaEspera::getId).toList();
         int expiradas=0;
         for(Long id:ids){

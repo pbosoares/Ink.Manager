@@ -5,6 +5,7 @@ import ink.manager.api.model.EmailActionToken;
 import ink.manager.api.model.Marcacao;
 import ink.manager.api.model.StatusMarcacao;
 import ink.manager.api.repository.EmailActionTokenRepository;
+import ink.manager.api.repository.EstudioRepository;
 import ink.manager.api.repository.MarcacaoRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -31,15 +32,16 @@ public class EmailActionService {
 
     private static final SecureRandom RANDOM=new SecureRandom();
     private final EmailActionTokenRepository tokens;
+    private final EstudioRepository estudios;
     private final MarcacaoRepository marcacoes;
     private final MarcacaoService marcacaoService;
     private final AgendaGuard guard;
     private final Clock clock;
     private final String publicUrl;
 
-    public EmailActionService(EmailActionTokenRepository tokens,MarcacaoRepository marcacoes,MarcacaoService marcacaoService,
+    public EmailActionService(EmailActionTokenRepository tokens,EstudioRepository estudios,MarcacaoRepository marcacoes,MarcacaoService marcacaoService,
             AgendaGuard guard,Clock clock,@Value("${app.public-url:http://localhost:8080}") String publicUrl){
-        this.tokens=tokens;this.marcacoes=marcacoes;this.marcacaoService=marcacaoService;this.guard=guard;this.clock=clock;this.publicUrl=publicUrl.replaceAll("/+$","");
+        this.tokens=tokens;this.estudios=estudios;this.marcacoes=marcacoes;this.marcacaoService=marcacaoService;this.guard=guard;this.clock=clock;this.publicUrl=publicUrl.replaceAll("/+$","");
     }
 
     /** Token secrets exist only in this method's return value and outgoing message memory. */
@@ -59,6 +61,7 @@ public class EmailActionService {
     public Previa visualizar(String token){
         var row=tokens.findById(hash(token)).orElseThrow(this::indisponivel);
         validarToken(row);
+        if (!estudios.existsByIdAndEncerradoEmIsNull(row.getEstudioId())) throw indisponivel();
         Marcacao m=marcacoes.findByIdAndEstudioId(row.getMarcacaoId(),row.getEstudioId()).orElseThrow(this::indisponivel);
         return new Previa(m.getServicoNome()==null?m.getDescricao():m.getServicoNome(),m.getProfissional().getNome(),
                 m.getData(),m.getHorario(),m.getDuracaoMinutos(),m.getEstudio().getFusoHorario(),row.getAcao(),row.getExpiraEm());

@@ -76,14 +76,31 @@ async function findMailpitRaw(request, api, recipient) {
   return null;
 }
 
+function decodeQuotedPrintableBody(rawMessage) {
+  const separator = /\r?\n\r?\n/;
+  const match = separator.exec(rawMessage);
+  if (!match) return rawMessage;
+
+  const headers = rawMessage.slice(0, match.index);
+  const body = rawMessage.slice(match.index + match[0].length);
+  if (!/^content-transfer-encoding:[ \t]*quoted-printable[ \t]*\r?$/im.test(headers)) return body;
+
+  return body
+    .replace(/=\r?\n/g, '')
+    .replace(/=([a-f0-9]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
 async function waitForOfferLink(request, api, recipient, appOrigin) {
   let rawMessage = null;
+  let messageBody = '';
   await expect.poll(async () => {
     rawMessage = await findMailpitRaw(request, api, recipient);
-    return Boolean(rawMessage && rawMessage.includes('Surgiu uma vaga para voce'));
+    messageBody = rawMessage ? decodeQuotedPrintableBody(rawMessage) : '';
+    const subject = rawMessage?.match(/^Subject:[^\r\n]*/im)?.[0] || '';
+    return subject.includes('Surgiu uma vaga para voce') || messageBody.includes('Surgiu uma vaga para voce');
   }, { timeout: 60000, intervals: [500, 1000, 2000] }).toBe(true);
 
-  const candidates = rawMessage.match(/https?:\/\/[^\s<>"']+\/agendar\.html\?local=[^\s<>"']+#token=[a-f0-9]{64}/gi) || [];
+  const candidates = messageBody.match(/https?:\/\/[^\s<>"']+\/agendar\.html\?local=[^\s<>"']+#token=[a-f0-9]{64}/gi) || [];
   const link = candidates.map(value => value.replace(/[),.;]+$/, '')).find(value => {
     try { return new URL(value).origin === appOrigin; } catch { return false; }
   });
@@ -110,7 +127,8 @@ async function exerciseAuthenticationUi(page, baseURL) {
   await expect(page.locator('#password-form [name=email]')).toBeVisible();
   await expect(page.locator('#reset-fields')).toBeHidden();
   await page.locator('#close-password').click();
-  await page.goto(`${baseURL}/#redefinir=${'a'.repeat(64)}`);
+  // Change the query too so the fake reset token is read by a fresh document load.
+  await page.goto(`${baseURL}/?e2e-reset-smoke=1#redefinir=${'a'.repeat(64)}`);
   await expect(page.locator('#password-dialog')).toBeVisible();
   await expect(page.locator('#reset-fields')).toBeVisible();
   await expect(page.locator('#recovery-email')).toBeHidden();
@@ -192,7 +210,7 @@ for (const width of [1366, 390]) {
     });
     await page.goto(publicUrl);
     await expect(page.locator('#waitlist-panel')).toBeVisible();
-    await page.locator('#waitlist-panel summary').click();
+    await page.locator('#waitlist-panel > summary').click();
     await expect(page.locator('#waitlist-fields')).toBeEnabled();
     await page.locator('#waitlist-service').selectOption(String(fixture.service.id));
     await page.locator('#waitlist-professional').selectOption(String(fixture.professional.id));
@@ -229,6 +247,7 @@ for (const width of [1366, 390]) {
     expect(parsedLink.pathname).toBe('/agendar.html');
     expect(parsedLink.searchParams.get('local')).toBe(fixture.publicLink);
     expect(/^#token=[a-f0-9]{64}$/i.test(parsedLink.hash)).toBe(true);
+    await page.goto('about:blank');
     await page.goto(offerLink).catch(() => { throw new Error('The renderer-generated offer page could not be opened'); });
     await expect(page.locator('#offer-panel')).toBeVisible();
     await expect(page.locator('#offer-details')).toBeVisible();

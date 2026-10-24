@@ -9,6 +9,16 @@ public class Estudio {
     private String linkPublico;
     @PrePersist void prepararLink() { if (linkPublico == null) linkPublico = java.util.UUID.randomUUID().toString(); }
     public String getLinkPublico() { return linkPublico; }
+    @Column(name="encerrado_em")
+    private java.time.Instant encerradoEm;
+    public java.time.Instant getEncerradoEm() { return encerradoEm; }
+    public boolean isEncerrado() { return encerradoEm != null; }
+    public void encerrar(java.time.Instant quando, String novoLinkPublico) {
+        if (encerradoEm == null) {
+            encerradoEm = java.util.Objects.requireNonNull(quando);
+            linkPublico = java.util.Objects.requireNonNull(novoLinkPublico);
+        }
+    }
     @Column(nullable = false, length = 100)
     private String nome;
     @Version private Long version;

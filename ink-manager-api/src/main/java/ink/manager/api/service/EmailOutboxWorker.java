@@ -30,6 +30,10 @@ public class EmailOutboxWorker {
     }
 
     private void deliver(EmailOutboxService.ClaimedEmail claimed) {
+        if (!outbox.estudioAberto(claimed.job().estudioId())) {
+            outbox.markInvalidated(claimed);
+            return;
+        }
         var matches = renderers.stream().filter(r -> r.suporta(claimed.job().tipo())).toList();
         if (matches.size() != 1) {
             fail(claimed, "RENDERER_UNAVAILABLE", true, matches);
@@ -44,6 +48,10 @@ public class EmailOutboxWorker {
             if (content == null || content.assunto() == null || content.assunto().isBlank()
                     || content.texto() == null || content.texto().isBlank()) {
                 fail(claimed, "RENDERER_INVALID_CONTENT", true, matches);
+                return;
+            }
+            if (!outbox.estudioAberto(claimed.job().estudioId())) {
+                outbox.markInvalidated(claimed);
                 return;
             }
             sender.enviar(claimed.job().destinatario(), content);

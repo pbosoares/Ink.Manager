@@ -50,7 +50,8 @@ public class EmailOutboxService {
             throw new IllegalArgumentException("Invalid email outbox request");
         }
         // Serialize a tenant's enqueue-by-key check, then rely on the DB unique constraint as final guard.
-        estudios.bloquear(estudioId).orElseThrow(() -> new IllegalArgumentException("Unknown tenant"));
+        var estudio = estudios.bloquear(estudioId).orElseThrow(() -> new IllegalArgumentException("Unknown tenant"));
+        if (estudio.isEncerrado()) throw new IllegalStateException("Closed tenant cannot enqueue email");
         var existing = outbox.findByEstudioIdAndChaveIdempotencia(estudioId, chaveIdempotencia);
         if (existing.isPresent()) return existing.get().getId();
         return outbox.save(new EmailOutbox(estudioId, destinatario.trim(), tipo.trim(), chaveIdempotencia,
@@ -62,6 +63,11 @@ public class EmailOutboxService {
         var ids = outbox.encontrarProntos(now, PageRequest.of(0, batchSize));
         var claimed = new ArrayList<ClaimedEmail>();
         for (long id : ids) {
+            var candidate = outbox.findById(id).orElse(null);
+            if (candidate == null) continue;
+            // Serialize claim with tenant closure so no new job can pass the close boundary.
+            var estudio = estudios.bloquear(candidate.getEstudioId()).orElse(null);
+            if (estudio == null || estudio.isEncerrado()) continue;
             String leaseToken = UUID.randomUUID().toString();
             if (outbox.reclamar(id, now, now.plusSeconds(leaseSeconds), leaseToken) != 1) continue;
             outbox.findById(id).ifPresent(e -> claimed.add(new ClaimedEmail(
@@ -80,6 +86,16 @@ public class EmailOutboxService {
     @Transactional
     public void markInvalidated(ClaimedEmail claimed) {
         outbox.invalidarReivindicado(claimed.job().id(), claimed.leaseToken());
+    }
+
+    public boolean estudioAberto(long estudioId) {
+        return estudios.existsByIdAndEncerradoEmIsNull(estudioId);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public int invalidateForStudio(long estudioId) {
+        if (estudioId <= 0) throw new IllegalArgumentException("Invalid tenant id");
+        return outbox.invalidarDoEstudio(estudioId);
     }
 
     @Transactional
