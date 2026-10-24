@@ -21,11 +21,17 @@ concurrency:
 
 jobs:
   backup-cifrado:
-    if: github.ref == 'refs/heads/main' && ((github.event_name == 'workflow_dispatch' && inputs.confirmacao == 'COPIAR_BACKUP_PRODUCAO') || github.event_name == 'schedule')
+    # Keep the repository variable unset/false until the first controlled rehearsal is approved.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (
+        (github.event_name == 'workflow_dispatch' && inputs.confirmacao == 'COPIAR_BACKUP_PRODUCAO') ||
+        (github.event_name == 'schedule' && vars.MARCAE_BACKUP_SCHEDULE_ENABLED == 'true')
+      )
     environment:
       name: production-backup
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Validar credenciais preparadas
         env:
@@ -53,14 +59,29 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install --yes age
 
-          ssh_dir="$RUNNER_TEMP/marcae-backup-ssh"
-          artifact_dir="$RUNNER_TEMP/marcae-backup-${GITHUB_RUN_ID}"
-          install -m 700 -d "$ssh_dir"
-          install -m 700 -d "$artifact_dir"
+          if [[ ! "$GITHUB_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "Identificador de execução inválido." >&2
+            exit 1
+          fi
+
+          work_dir="$RUNNER_TEMP/marcae-backup-${GITHUB_RUN_ID}"
+          ssh_dir="$work_dir/ssh"
+          private_dir="$work_dir/private"
+          artifact_dir="$work_dir/artifact"
+          install -m 700 -d "$ssh_dir" "$private_dir" "$artifact_dir"
           key_file="$ssh_dir/id_ed25519"
+          restore_identity="$private_dir/restore-identity.txt"
           encrypted_file="$artifact_dir/marcae-production-${GITHUB_RUN_ID}.dump.age"
           metadata_file="$artifact_dir/metadata.json"
           trap 'rm -f "$key_file" "$ssh_dir/known_hosts"; rmdir "$ssh_dir" 2>/dev/null || true' EXIT
+
+          age-keygen -o "$restore_identity" >/dev/null 2>&1
+          chmod 600 "$restore_identity"
+          temporary_recipient="$(age-keygen -y "$restore_identity" 2>/dev/null)"
+          if [[ ! "$temporary_recipient" =~ ^age1[0-9a-z]+$ ]]; then
+            echo "Não foi possível gerar a identidade temporária age." >&2
+            exit 1
+          fi
 
           printf '%s\n' "$BACKUP_SSH_KEY" | tr -d '\r' > "$key_file"
           chmod 600 "$key_file"
@@ -75,7 +96,7 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$ssh_dir/known_hosts" \
             marcae-backup@179.199.155.163 \
-            | age -r "$AGE_RECIPIENT" -o "$encrypted_file"
+            | age -r "$AGE_RECIPIENT" -r "$temporary_recipient" -o "$encrypted_file"
 
           ciphertext_completed_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           test -s "$encrypted_file"
@@ -94,6 +115,122 @@ jobs:
               ciphertext_sha256:$sha256, ciphertext_bytes:$bytes}' > "$metadata_file"
           printf 'path=%s\nsha256=%s\nbytes=%s\nstream_started_at=%s\nciphertext_completed_at=%s\n' \
             "$artifact_dir" "$digest" "$bytes" "$stream_started_at" "$ciphertext_completed_at" >> "$GITHUB_OUTPUT"
+
+      - name: Restaurar e validar em PostgreSQL efêmero isolado
+        timeout-minutes: 60
+        env:
+          BACKUP_SHA256: ${{ steps.dump.outputs.sha256 }}
+          POSTGRES_IMAGE: postgres:18.4@sha256:a02db8cac496f15b094798a38254f14d6e00741f709360e5e00bb6668ea31636
+          RESTORE_SUMMARY_SQL: |
+            CREATE FUNCTION pg_temp.marcae_restore_summary()
+            RETURNS TABLE(restored_tables bigint, restored_rows numeric)
+            LANGUAGE plpgsql
+            AS $restore$
+            DECLARE
+              relation record;
+              relation_rows bigint;
+              table_total bigint := 0;
+              row_total numeric := 0;
+            BEGIN
+              FOR relation IN
+                SELECT schemaname, tablename
+                FROM pg_catalog.pg_tables
+                WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+              LOOP
+                EXECUTE format('SELECT count(*) FROM ONLY %I.%I', relation.schemaname, relation.tablename)
+                  INTO relation_rows;
+                table_total := table_total + 1;
+                row_total := row_total + relation_rows;
+              END LOOP;
+              IF table_total = 0 THEN
+                RAISE EXCEPTION 'restored schema contains no user tables';
+              END IF;
+              RETURN QUERY SELECT table_total, row_total;
+            END;
+            $restore$;
+            SELECT * FROM pg_temp.marcae_restore_summary();
+        run: |
+          set -euo pipefail
+          umask 077
+          if [[ ! "$GITHUB_RUN_ID" =~ ^[0-9]+$ || ! "$BACKUP_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "Metadados da execução ou hash do backup inválidos." >&2
+            exit 1
+          fi
+
+          work_dir="$RUNNER_TEMP/marcae-backup-${GITHUB_RUN_ID}"
+          private_dir="$work_dir/private"
+          artifact_dir="$work_dir/artifact"
+          restore_identity="$private_dir/restore-identity.txt"
+          encrypted_file="$artifact_dir/marcae-production-${GITHUB_RUN_ID}.dump.age"
+          metadata_file="$artifact_dir/metadata.json"
+          container_name="marcae-backup-restore-${GITHUB_RUN_ID}"
+          age_error="$private_dir/age-restore.stderr"
+          restore_error="$private_dir/pg-restore.stderr"
+          check_error="$private_dir/pg-check.stderr"
+
+          if [[ ! -s "$restore_identity" || ! -s "$encrypted_file" || ! -s "$metadata_file" ]]; then
+            echo "Faltam arquivos temporários necessários para a validação do backup." >&2
+            exit 1
+          fi
+          actual_sha256="$(sha256sum "$encrypted_file" | cut -d ' ' -f 1)"
+          if [[ "$actual_sha256" != "$BACKUP_SHA256" ]]; then
+            echo "O SHA-256 do ciphertext mudou antes do restore." >&2
+            exit 1
+          fi
+
+          docker run --detach --rm \
+            --name "$container_name" \
+            --network none \
+            --env POSTGRES_USER=restore_check \
+            --env POSTGRES_DB=restore_validation \
+            --env POSTGRES_HOST_AUTH_METHOD=trust \
+            "$POSTGRES_IMAGE" >/dev/null
+
+          ready=0
+          for attempt in {1..30}; do
+            if docker exec "$container_name" pg_isready -U restore_check -d restore_validation >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$ready" != 1 ]]; then
+            echo "PostgreSQL efêmero não ficou pronto." >&2
+            exit 1
+          fi
+
+          if ! age --decrypt --identity "$restore_identity" "$encrypted_file" 2>"$age_error" \
+            | docker exec --interactive "$container_name" pg_restore \
+                --exit-on-error --no-owner --no-privileges \
+                --username=restore_check --dbname=restore_validation \
+                >/dev/null 2>"$restore_error"; then
+            echo "A descriptografia ou restauração efêmera falhou; detalhes foram omitidos." >&2
+            exit 1
+          fi
+
+          if ! summary="$(docker exec "$container_name" psql \
+              --no-psqlrc --quiet --tuples-only --no-align --field-separator='|' \
+              --set ON_ERROR_STOP=1 --username=restore_check --dbname=restore_validation \
+              --command="$RESTORE_SUMMARY_SQL" 2>"$check_error")"; then
+            echo "A validação agregada do schema restaurado falhou; detalhes foram omitidos." >&2
+            exit 1
+          fi
+          if [[ ! "$summary" =~ ^([0-9]+)\|([0-9]+)$ ]]; then
+            echo "A validação agregada não retornou contagens no formato esperado." >&2
+            exit 1
+          fi
+          restored_tables="${BASH_REMATCH[1]}"
+          restored_rows="${BASH_REMATCH[2]}"
+
+          jq \
+            '. + {restore_validation: {status: "passed"}}' \
+            "$metadata_file" > "$metadata_file.tmp"
+          mv "$metadata_file.tmp" "$metadata_file"
+
+          rm -f "$restore_identity" "$age_error" "$restore_error" "$check_error"
+          test ! -e "$restore_identity"
+          unset summary restored_tables restored_rows
+          printf 'Restore efêmero validado: restore_validation.status=passed.\n'
 
       - name: Publicar backup cifrado com metadados tecnicos
         id: publish
@@ -141,5 +278,23 @@ jobs:
           BACKUP_BYTES: ${{ steps.dump.outputs.bytes }}
         run: |
           set -euo pipefail
-          printf 'Artifact cifrado concluído. SHA-256=%s; bytes=%s; retenção configurada=30 dias.\n' \
+          printf 'Artifact cifrado e restore efêmero concluídos. SHA-256=%s; bytes=%s; restore_validation.status=passed; retenção configurada=30 dias.\n' \
             "$BACKUP_SHA256" "$BACKUP_BYTES"
+
+      - name: Remover PostgreSQL efêmero e arquivos temporários
+        if: always()
+        run: |
+          set -euo pipefail
+          if [[ -z "${RUNNER_TEMP:-}" || "$RUNNER_TEMP" == "/" || ! "$GITHUB_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "Caminho de limpeza inválido." >&2
+            exit 1
+          fi
+          container_name="marcae-backup-restore-${GITHUB_RUN_ID}"
+          if docker inspect "$container_name" >/dev/null 2>&1; then
+            docker rm --force --volumes "$container_name" >/dev/null
+          fi
+          work_dir="${RUNNER_TEMP%/}/marcae-backup-${GITHUB_RUN_ID}"
+          case "$work_dir" in
+            "${RUNNER_TEMP%/}"/marcae-backup-[0-9]*) rm -rf -- "$work_dir" ;;
+            *) echo "Diretório temporário fora do prefixo esperado." >&2; exit 1 ;;
+          esac
