@@ -2007,3 +2007,33 @@ body:has(#workspace:not([hidden])) #login { display:none; }
   .routine-benefits strong { font-size:13px; }
   .routine-benefits small { font-size:11px; }
 }
+
+.whatsapp-contact {
+  position:fixed;
+  z-index:40;
+  right:24px;
+  bottom:24px;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-height:52px;
+  padding:0 19px;
+  border:1px solid #20b95a;
+  border-radius:999px;
+  background:#25d366;
+  color:#073b20;
+  font-size:14px;
+  font-weight:700;
+  box-shadow:0 8px 24px #073b2029;
+  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
+}
+.whatsapp-contact:hover { transform:translateY(-2px); background:#20c45d; color:#073b20; box-shadow:0 12px 28px #073b2033; }
+.whatsapp-contact:focus-visible { outline:3px solid #153a28; outline-offset:3px; }
+.whatsapp-contact svg { width:22px; height:22px; flex:0 0 auto; }
+@media(max-width:600px) {
+  .whatsapp-contact { right:14px; bottom:16px; min-height:48px; padding:0 15px; font-size:13px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .whatsapp-contact { transition:none; }
+  .whatsapp-contact:hover { transform:none; }
+}
