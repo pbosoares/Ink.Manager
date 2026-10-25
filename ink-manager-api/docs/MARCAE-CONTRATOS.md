@@ -51,8 +51,13 @@ Nao enviar comandos shell aos agentes; nao mandar prompts a terminais shell.
 - POST /servicos, PUT /servicos/{id} (proprietario):
   {nome,preco,duracaoMinutos,ativo,version?}. 201/200. Preco >=0 com ate 2 casas;
   duracao 1..720 min. Edicao exige version; arquivar com ativo=false, nao excluir.
-- GET /servicos/link (proprietario) -> {caminho:"/agendar.html?local=TOKEN"}.
-  Prefixar com location.origin no navegador. Link fixo, independente de renomear.
+- GET /servicos/link (proprietario) -> {caminho:"/agendar.html?local=TOKEN",
+  caminhoCurto:"/a/CODIGO"}. Prefixar caminhoCurto com location.origin para compartilhar.
+  Para o UUID atual, CODIGO tem 22 caracteres seguros para URL. O link permanece estavel
+  ao renomear o estabelecimento e resolve para a mesma agenda; links antigos continuam aceitos.
+- Ao criar ou reagendar uma reserva ativa com email, enfileirar CONFIRMACAO_AGENDAMENTO
+  imediatamente para o cliente. A mensagem informa procedimento, data, horario e fuso do
+  estabelecimento; cancelamento ou reagendamento invalida a confirmacao ainda pendente.
 - Expedientes/folgas existentes em /profissionais permanecem.
 
 ## Link publico — sem token, sem conta

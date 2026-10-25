@@ -48,7 +48,7 @@ public class ListaEsperaService {
         this.acesso=acesso;this.clock=clock;this.outbox=outbox;this.agendamentoEmail=agendamentoEmail;
     }
 
-    private Estudio porLink(String link){return estudios.findByLinkPublicoAndEncerradoEmIsNull(link).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
+    private Estudio porLink(String link){String id=PublicLinkCode.decode(link).orElse(link);return estudios.findByLinkPublicoAndEncerradoEmIsNull(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
     private ListaEspera entrada(long estudio,long id){return entradas.findByIdAndEstudioId(id,estudio).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Entrada da lista nao encontrada."));}
     private Servico servico(long estudio,long id){return servicos.findByIdAndEstudioId(id,estudio).filter(Servico::isAtivo).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Servico indisponivel."));}
 

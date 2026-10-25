@@ -2,7 +2,7 @@
 (() => {
   const $ = id => document.getElementById(id);
   const escapeText = value => String(value ?? '');
-  const publicLocal = new URLSearchParams(location.search).get('local') || '';
+  const publicLocal = new URLSearchParams(location.search).get('local') || location.pathname.match(/^\/a\/([A-Za-z0-9_-]+)\/?$/)?.[1] || '';
   const publicBase = publicLocal ? '/publico/' + encodeURIComponent(publicLocal) : '';
   const storageKey = 'marcae.lista.' + publicLocal;
   const form = $('waitlist-form');

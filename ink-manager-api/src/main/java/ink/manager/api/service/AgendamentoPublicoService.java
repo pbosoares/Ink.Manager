@@ -38,7 +38,7 @@ public class AgendamentoPublicoService {
     public AgendamentoPublicoService(EstudioRepository estudios,ServicoRepository servicos,ProfissionalRepository profissionais,ClienteRepository clientes,MarcacaoRepository marcacoes,DisponibilidadeService disponibilidade,AgendaGuard guard,AssinaturaService assinatura,Clock clock,AgendamentoEmailService agendamentoEmail){
         this.estudios=estudios;this.servicos=servicos;this.profissionais=profissionais;this.clientes=clientes;this.marcacoes=marcacoes;this.disponibilidade=disponibilidade;this.guard=guard;this.assinatura=assinatura;this.clock=clock;this.agendamentoEmail=agendamentoEmail;
     }
-    private Estudio local(String link){return estudios.findByLinkPublicoAndEncerradoEmIsNull(link).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
+    private Estudio local(String link){String id=PublicLinkCode.decode(link).orElse(link);return estudios.findByLinkPublicoAndEncerradoEmIsNull(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
     private Servico servico(Long estudio,Long id){return servicos.findByIdAndEstudioId(id,estudio).filter(Servico::isAtivo).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Servico indisponivel."));}
     public Catalogo catalogo(String link){
         var e=local(link);var zona=ZoneId.of(e.getFusoHorario());

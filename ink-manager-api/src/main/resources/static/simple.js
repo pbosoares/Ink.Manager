@@ -26,8 +26,8 @@
         services = catalog.value; catalogLoaded = true; serviceRows(); $('service-message').textContent = '';
       } else $('service-message').textContent = catalog.reason.message;
       if (link.status === 'fulfilled') {
-        const url = new URL(link.value.caminho, location.origin);
-        if (url.origin !== location.origin || url.pathname !== '/agendar.html') throw new Error('Link de agendamento inválido.');
+        const url = new URL(link.value.caminhoCurto || link.value.caminho, location.origin);
+        if (url.origin !== location.origin || !(url.pathname === '/agendar.html' || /^\/a\/[A-Za-z0-9_-]+$/.test(url.pathname))) throw new Error('Link de agendamento inválido.');
         $('public-link').value = url.href; $('open-public-link').href = url.href; $('open-public-link').hidden = false; $('copy-public-link').disabled = false;
       } else $('public-link-error').textContent = link.reason.message;
     } catch (error) { if (current(key)) $('service-message').textContent = error.message; }

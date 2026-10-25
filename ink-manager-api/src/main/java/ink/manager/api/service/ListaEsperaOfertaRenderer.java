@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
-import java.net.URLEncoder;
 import java.text.NumberFormat;
 import java.util.Locale;
 import javax.crypto.Mac;
@@ -54,8 +53,7 @@ public class ListaEsperaOfertaRenderer implements EmailOutboxRenderer {
         var oferta = lista.prepararEmailOferta(job.estudioId(), ofertaId, token, clock.instant()).orElse(null);
         if (oferta == null) return null;
 
-        String link = publicUrl + "/agendar.html?local="
-            + URLEncoder.encode(oferta.linkPublico(), StandardCharsets.UTF_8) + "#token=" + token;
+        String link = publicUrl + "/a/" + PublicLinkCode.encode(oferta.linkPublico()) + "#token=" + token;
         String prazo = oferta.expiraEm().atZone(java.time.ZoneId.of(oferta.fusoHorario()))
             .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'as' HH:mm"));
         String texto = "Uma vaga compativel com seu pedido esta disponivel.\n\n"

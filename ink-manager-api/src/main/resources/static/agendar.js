@@ -3,7 +3,7 @@
   const byId = id => document.getElementById(id);
   const form = byId('booking-form');
   const fields = form.elements;
-  const local = new URLSearchParams(location.search).get('local');
+  const local = new URLSearchParams(location.search).get('local') || location.pathname.match(/^\/a\/([A-Za-z0-9_-]+)\/?$/)?.[1];
   const base = local ? '/publico/' + encodeURIComponent(local) : '';
   const storageKey = 'marcae.reserva.' + (local || '');
   const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

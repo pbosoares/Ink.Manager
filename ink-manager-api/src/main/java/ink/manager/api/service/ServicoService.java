@@ -28,5 +28,7 @@ public class ServicoService {
         return ServicoResponse.from(servicos.saveAndFlush(s));
     }
     @Transactional(readOnly=true) @PreAuthorize("hasRole('PROPRIETARIO')")
-    public Map<String,String> link(){var e=estudios.findById(acesso.estudioId()).orElseThrow();return Map.of("caminho","/agendar.html?local="+e.getLinkPublico());}
+    public Map<String,String> link(){var e=estudios.findById(acesso.estudioId()).orElseThrow();return Map.of(
+        "caminho","/agendar.html?local="+e.getLinkPublico(),
+        "caminhoCurto","/a/"+PublicLinkCode.encode(e.getLinkPublico()));}
 }
