@@ -97,6 +97,11 @@ class StudioIntegrationTest {
             assertEquals(200,image.statusCode(),path);
             assertEquals("image/png",image.headers().firstValue("Content-Type").orElse(""),path);
         }
+        for(var path:List.of("/landing/ilustracao-rotina.svg","/landing/login-agenda.svg")){
+            var svg=request("GET",path,null,null);
+            assertEquals(200,svg.statusCode(),path);
+            assertEquals("image/svg+xml",svg.headers().firstValue("Content-Type").orElse(""),path);
+        }
         assertEquals(401,request("GET","/clientes",null,null).statusCode());
         var conta=conta("Meu Estudio");
         assertEquals("Meu Estudio",json(request("GET","/auth/me",null,conta.token())).get("estudio").get("nome").asText());
