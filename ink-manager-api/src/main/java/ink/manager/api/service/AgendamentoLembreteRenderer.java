@@ -67,7 +67,7 @@ public class AgendamentoLembreteRenderer implements EmailOutboxRenderer {
                 + "Confirmar agendamento:\n" + links.confirmar() + "\n\n"
                 + "Solicitar reagendamento:\n" + links.reagendar() + "\n\n"
                 + "Cancelar agendamento:\n" + links.cancelar();
-        return new EmailOutboxConteudo("Lembrete: seu agendamento", texto);
+        return new EmailOutboxConteudo("Lembrete do seu agendamento", texto);
     }
 
     private ink.manager.api.model.Marcacao marcacaoAtual(EmailOutboxJob job) {
