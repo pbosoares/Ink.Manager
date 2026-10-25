@@ -78,6 +78,7 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/index.html", "/app.js", "/team.js", "/billing.js", "/simple.js", "/analytics.js", "/agendar.html", "/agendar.js", "/waitlist.js", "/acao-email.html", "/acao-email.js", "/oferta.html", "/oferta.js", "/styles.css", "/favicon.svg").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/landing/*.png").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/a/*", "/publico/*", "/publico/*/horarios").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/publico/*/reservas", "/publico/*/lista-espera", "/publico/*/oferta/visualizar", "/publico/*/oferta/aceitar", "/publico/acoes/visualizar", "/publico/acoes").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/auth/login", "/auth/estudios", "/auth/recuperar-senha", "/auth/redefinir-senha").permitAll()
