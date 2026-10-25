@@ -55,15 +55,19 @@ public class AgendamentoLembreteRenderer implements EmailOutboxRenderer {
         String quando = LocalDateTime.of(marcacao.getData(), marcacao.getHorario())
                 .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm", Locale.forLanguageTag("pt-BR")));
         String servico = marcacao.getServicoNome() == null ? marcacao.getDescricao() : marcacao.getServicoNome();
-        String texto = "Lembrete do seu agendamento\n\n"
+        String texto = "Seu horário está chegando.\n\n"
+                + "DATA E HORA\n"
+                + "------------------------------\n"
+                + quando + " (" + marcacao.getEstudio().getFusoHorario() + ")\n\n"
+                + "DETALHES DO AGENDAMENTO\n"
                 + "Serviço: " + servico + "\n"
                 + "Profissional: " + marcacao.getProfissional().getNome() + "\n"
-                + "Data e horário: " + quando + " (" + marcacao.getEstudio().getFusoHorario() + ")\n"
                 + "Duração: " + marcacao.getDuracaoMinutos() + " minutos\n\n"
-                + "Confirmar: " + links.confirmar() + "\n"
-                + "Reagendar: " + links.reagendar() + "\n"
-                + "Cancelar: " + links.cancelar();
-        return new EmailOutboxConteudo("Lembrete do seu agendamento", texto);
+                + "AÇÕES DISPONÍVEIS\n\n"
+                + "Confirmar agendamento:\n" + links.confirmar() + "\n\n"
+                + "Solicitar reagendamento:\n" + links.reagendar() + "\n\n"
+                + "Cancelar agendamento:\n" + links.cancelar();
+        return new EmailOutboxConteudo("Lembrete: seu agendamento", texto);
     }
 
     private ink.manager.api.model.Marcacao marcacaoAtual(EmailOutboxJob job) {

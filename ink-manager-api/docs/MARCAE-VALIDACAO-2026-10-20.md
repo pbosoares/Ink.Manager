@@ -303,3 +303,7 @@ Diagnostico das duas recargas autenticadas: 390 px concluiu em 1011 ms; 1366 px 
 Lista/oferta: SMTP fake em memoria, limitado a `127.0.0.1:1025` e API Mailpit local `127.0.0.1:8025`; nenhum email saiu para fora. Banco separado `marcae_validation_lead085_waitlist_20261024_a` no cluster descartavel. Desktop 1366x900: exit 0, 1/1 passou em 37.7 s; log `target/validacao-lead085-waitlist-desktop.stdout.log`, stderr `.stderr.log`, artefatos `target/playwright-lead085-waitlist-desktop-20261024-a/`. Mobile 390x900: exit 0, 1/1 passou em 35.5 s; log `target/validacao-lead085-waitlist-mobile.stdout.log`, stderr `.stderr.log`, artefatos `target/playwright-lead085-waitlist-mobile-20261024-a/`.
 
 Encerramento: app, sink e cluster efemeros foram finalizados; portas 55446, 8087, 1025 e 8025 sem listener, processos desta matriz encerrados. Data dir, bancos e logs foram preservados; nenhum DROP ou limpeza foi executado. PostgreSQL 55439, VPS, Stripe live, cobrancas e envio de email real nao foram usados. Nao houve alteracao de codigo nem novo teste apos a fingerprint congelada.
+
+### Adendo LEAD-085 - whitespace posterior a matriz
+
+Apos a matriz LEAD-085, foi removida somente uma linha em branco no EOF da nova migration V16 `src/main/resources/db/migration/V16__stripe_billing_provider.sql`, para corrigir `git diff --cached --check`. A alteracao e exclusivamente whitespace; o SQL permanece semanticamente identico ao conteudo validado. Os resultados LEAD-085 continuam correspondendo a essa migration. Nenhum teste foi repetido nesta etapa.

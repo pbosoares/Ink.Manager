@@ -4,12 +4,36 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#F4F6FB">
-  <meta name="description" content="Agenda online para tatuagem, manicure, barbearia e sobrancelhas. Organize serviços e horários e compartilhe um link para receber reservas.">
+  <meta name="description" content="Agenda online para salões, barbearias, estética e profissionais com hora marcada. Compartilhe seu link de agendamento e organize serviços, clientes e horários com o Marcaê.">
   <link rel="canonical" href="https://usemarcae.com.br/">
-  <title>Marcaê | Agendamento online para seu negócio</title>
+  <title>Marcaê | Agenda e agendamento online para beleza e serviços</title>
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="Marcaê">
+  <meta property="og:title" content="Marcaê | Agenda e agendamento online para beleza e serviços">
+  <meta property="og:description" content="Compartilhe seu link de agendamento, organize serviços e acompanhe sua agenda em um só lugar.">
+  <meta property="og:url" content="https://usemarcae.com.br/">
+  <meta property="og:image" content="https://usemarcae.com.br/landing/visao-geral.png">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Inter+Tight:wght@600;700&amp;display=swap">
   <link rel="stylesheet" href="/styles.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Marcaê",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "Agenda online e agendamento para salões, barbearias, estética e profissionais com hora marcada.",
+    "offers": {
+      "@type": "Offer",
+      "price": "29.90",
+      "priceCurrency": "BRL"
+    }
+  }
+  </script>
   <script src="/app.js" defer></script>
   <script src="/team.js" defer></script>
   <script src="/billing.js" defer></script>
@@ -18,33 +42,91 @@
   <script src="/waitlist.js" defer></script>
 </head>
 <body>
-  <section id="auth" class="auth-layout">
-    <header class="landing-masthead">
-      <a class="landing-logo" href="/" aria-label="Marcaê, página inicial">Marcaê <span aria-hidden="true">✦</span></a>
-      <span class="landing-motto">MAIS TEMPO PARA ATENDER BEM.</span>
-      <a class="landing-access" href="#auth-form">ACESSO DA EQUIPE <span aria-hidden="true">↗</span></a>
+  <main id="public-landing">
+    <header class="marketing-header">
+      <a class="marketing-brand" href="/" aria-label="Marcaê, página inicial"><img src="/favicon.svg" alt="" width="34" height="34"> <span>Marcaê</span></a>
+      <nav class="marketing-nav" aria-label="Navegação da página">
+        <a href="#recursos">Funcionalidades</a>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#precos">Preços</a>
+      </nav>
+      <div class="marketing-actions"><a class="marketing-login" href="/#login">Entrar</a><a class="marketing-header-cta" href="/#login">Testar grátis</a></div>
     </header>
-    <div class="auth-art">
-      <div class="auth-message">
-        <span class="eyebrow">TATUAGEM · MANICURE · BARBEARIA · SOBRANCELHAS</span>
-        <h1>Seu link de reservas.<br>Sua agenda em<br>um s&#243; lugar.</h1>
-        <div class="landing-story">
-          <div><p>Um link fixo para clientes consultarem hor&#225;rios e reservarem com nome, telefone e e-mail, sem criar conta. Configure servi&#231;os, pre&#231;os e expediente.</p><span class="landing-signature">SEU NEGÓCIO. SUA AGENDA.</span></div>
-          <div class="landing-rose" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 260" fill="none"><g stroke="#201E19" stroke-width="5" stroke-linejoin="round"><path d="M119 155C111 191 126 218 104 250M116 203C76 171 48 185 41 172C37 213 70 229 112 217" fill="#46513A"/><path d="M117 223C153 176 177 205 201 175C206 211 171 244 111 238" fill="#46513A"/><path d="M120 169C82 183 61 158 61 139C23 136 24 101 45 88C26 59 52 39 78 44C81 12 117 13 130 31C153 5 187 26 182 53C220 49 231 85 207 103C229 130 205 159 178 154C165 182 138 184 120 169Z" fill="#A52C28"/><path d="M78 44C61 73 77 92 95 96M45 88C62 83 82 104 78 126C99 117 121 132 120 169M182 53C153 49 143 73 151 88C177 75 198 88 207 103M178 154C181 124 163 108 143 112C149 132 136 149 120 150"/><path d="M95 96C77 73 104 50 125 66C151 47 173 79 151 98C161 125 124 143 111 122C86 132 75 106 95 96Z" fill="#BE974F"/><path d="M109 91C111 76 138 78 138 93C138 112 109 113 109 91Z" fill="#A52C28"/><path d="M64 196L103 214M178 202L126 229" stroke-width="3"/></g><g fill="#201E19"><path d="M20 151L24 160L34 164L24 168L20 178L16 168L6 164L16 160Z"/><path d="M211 26L215 35L225 39L215 43L211 53L207 43L197 39L207 35Z"/></g></svg></div>
-        </div>
+
+    <section class="marketing-hero" aria-labelledby="landing-title">
+      <div class="marketing-hero-copy">
+        <span class="marketing-kicker">AGENDA ONLINE PARA QUEM ATENDE COM HORA MARCADA</span>
+        <h1 id="landing-title">Menos faltas. Mais agendamentos. Tudo organizado.</h1>
+        <p>Seus clientes agendam pelo seu link, recebem lembretes automáticos e você controla tudo em um só lugar.</p>
+        <a id="landing-trial" class="marketing-primary" href="#login">Começar teste grátis <span aria-hidden="true">→</span></a>
+        <div class="marketing-trial-note"><strong>Até 14 dias de teste grátis. Sem cartão para começar.</strong><span>O prazo pode ser menor se parte da avaliação já tiver sido usada. Depois: Pix mensal avulso ou cartão recorrente.</span></div>
       </div>
-    </div>
-    <div class="auth-content">
-      <div class="auth-form-wrap">
-        <span class="eyebrow accent">A CASA ESTÁ ABERTA</span>
-        <h2 id="auth-title">Bom te ver<br>por aqui.</h2>
-        <p id="auth-description" class="muted">Entre para cuidar da agenda e das histórias do seu negócio.</p>
-        <div id="landing-offer" class="trial-offer" hidden>
-          <span class="eyebrow accent">SEM CART&#195;O PARA COME&#199;AR</span>
-          <p class="trial-price"><strong>Teste gr&#225;tis por 14 dias.</strong><span>Depois, R$ 29,90 por m&#234;s.</span></p>
-          <button type="button" id="landing-trial" class="primary wide">Testar gr&#225;tis por 14 dias <span aria-hidden="true">&#8594;</span></button>
-          <small>Sem cart&#227;o para come&#231;ar.</small>
-        </div>
+      <figure class="marketing-hero-visual">
+        <figcaption><span>VISÃO GERAL DO NEGÓCIO</span><span class="product-live"><i aria-hidden="true"></i>Painel do Marcaê</span></figcaption>
+        <img src="/landing/visao-geral.png" alt="Captura real do painel do Marcaê; os dados pessoais estão ausentes e os contadores permanecem vazios.">
+      </figure>
+    </section>
+
+    <section id="recursos" class="marketing-section resources-section" aria-labelledby="resources-title">
+      <div class="marketing-section-heading"><span class="marketing-kicker">CONHEÇA O MARCAÊ</span><h2 id="resources-title">O essencial da sua rotina, em um só lugar.</h2><p>Uma forma mais simples de organizar quem atende e quem agenda.</p></div>
+      <div class="feature-grid">
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 10h16M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></svg></span><span class="feature-number">01</span><h3>Agenda online</h3><p>Organize atendimentos, profissionais e horários em uma agenda compartilhada.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 13.5 14 9.5m-6.5 7H6a4 4 0 0 1 0-8h4m4 0h4a4 4 0 0 1 0 8h-4"/></svg></span><span class="feature-number">02</span><h3>Link exclusivo de agendamento</h3><p>Seus clientes escolhem serviço e horário pelo link, sem criar uma conta.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span><span class="feature-number">03</span><h3>Lembretes por e-mail</h3><p>Lembretes previstos para 24 h e 2 h antes; o envio depende de o e-mail estar habilitado.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><span class="feature-number">04</span><h3>Lista de espera</h3><p>Ofertas de horários cancelados podem ser enviadas por e-mail, quando habilitadas.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 18.5V20m6-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7-6a4 4 0 0 1 0 7.8m1 3.2a4.5 4.5 0 0 1 2 3.5V20"/></svg></span><span class="feature-number">05</span><h3>Gestão de clientes</h3><p>Consulte os contatos e o histórico de atendimentos cadastrados no seu negócio.</p></article>
+        <article class="feature-card"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v13H4zM8 9h8M8 12h5M8 15h3"/></svg></span><span class="feature-number">06</span><h3>Serviços e horários</h3><p>Cadastre nome, preço e duração dos serviços e configure a disponibilidade da equipe.</p></article>
+      </div>
+    </section>
+
+    <section id="como-funciona" class="marketing-section steps-section" aria-labelledby="steps-title">
+      <div class="marketing-section-heading"><span class="marketing-kicker">COMO FUNCIONA</span><h2 id="steps-title">Comece com o que você já faz.</h2></div>
+      <ol class="steps-grid">
+        <li><span>01</span><h3>Configure seu negócio</h3><p>Cadastre serviços, preços e os horários da sua equipe.</p></li>
+        <li><span>02</span><h3>Compartilhe seu link</h3><p>Seus clientes consultam horários e reservam sem criar conta.</p></li>
+        <li><span>03</span><h3>Acompanhe a agenda</h3><p>Veja atendimentos, clientes e os lembretes da rotina em um só painel.</p></li>
+      </ol>
+    </section>
+
+    <section class="marketing-section demos-section" aria-labelledby="demos-title">
+      <div class="marketing-section-heading"><span class="marketing-kicker">UMA PRÉVIA DO PRODUTO</span><h2 id="demos-title">Veja a rotina por dentro.</h2><p>Capturas das telas atuais do Marcaê. Os dados pessoais estão ausentes e os contadores permanecem vazios.</p></div>
+      <div class="demo-grid">
+        <figure class="demo-card"><img src="/landing/agenda.png" alt="Captura real da agenda do Marcaê, sem dados pessoais e sem atendimentos de exemplo."><figcaption><strong>Agenda e horários</strong><span>Consulte disponibilidades e acompanhe marcações.</span></figcaption></figure>
+        <figure class="demo-card"><img src="/landing/reserva.png" alt="Captura real da página pública de reservas do Marcaê."><figcaption><strong>Reserva pública</strong><span>Clientes escolhem o serviço, profissional e horário.</span></figcaption></figure>
+        <article class="demo-card service-preview"><div class="service-preview-ui"><span class="preview-label">PRÉVIA ESQUEMÁTICA · FORMULÁRIO EXISTENTE</span><label>Nome do serviço<input aria-label="Exemplo visual de nome do serviço" disabled></label><div class="preview-form-row"><label>Preço (R$)<input aria-label="Exemplo visual de preço" disabled></label><label>Duração (minutos)<input aria-label="Exemplo visual de duração" disabled></label></div><span class="preview-caption">A equipe e os horários são configurados separadamente.</span></div><div class="demo-caption"><strong>Serviços e equipe</strong><span>Campos baseados no formulário existente; sem dados de exemplo.</span></div></article>
+      </div>
+    </section>
+
+    <section id="precos" class="marketing-section pricing-section" aria-labelledby="pricing-title">
+      <div class="pricing-copy"><span class="marketing-kicker">PREÇO SIMPLES</span><h2 id="pricing-title">Tudo que sua agenda precisa, sem complicação.</h2><p>Comece sem informar cartão. Ao final do teste grátis disponível, escolha Pix mensal avulso ou cartão em assinatura recorrente.</p></div>
+      <article class="pricing-card"><span class="pricing-brand">MARCAÊ</span><div class="pricing-amount"><strong>R$ 29,90</strong><span>/mês</span></div><p class="pricing-trial"><strong>Até 14 dias de teste grátis.</strong> O prazo disponível pode ser menor se a avaliação da conta já tiver começado.</p><ul><li>Agendamentos pelo link público</li><li>Agenda online para sua equipe</li><li>Lembretes por e-mail quando habilitados</li><li>Lista de espera e ofertas por e-mail quando habilitadas</li><li>Gestão de serviços e clientes</li></ul><a class="marketing-primary pricing-cta" href="/#login">Começar teste grátis</a><p class="pricing-payment">Depois do teste: Pix mensal avulso, pago a cada ciclo, ou cartão em assinatura mensal recorrente. O Pix não renova automaticamente.</p></article>
+    </section>
+
+    <section class="marketing-section faq-section" aria-labelledby="faq-title">
+      <div class="marketing-section-heading"><span class="marketing-kicker">DÚVIDAS FREQUENTES</span><h2 id="faq-title">Tudo claro antes de começar.</h2></div>
+      <div class="faq-list">
+        <details><summary>Preciso de cartão de crédito para testar?</summary><p>Não. Você pode começar o cadastro sem cartão. O teste grátis pode durar até 14 dias; o prazo depende da avaliação ainda disponível para a conta.</p></details>
+        <details><summary>Meus clientes precisam criar uma conta?</summary><p>Não. Eles usam seu link público e informam os dados solicitados no formulário de reserva.</p></details>
+        <details><summary>Como funcionam os lembretes automáticos?</summary><p>O sistema prevê lembretes por e-mail 24 horas e 2 horas antes do atendimento. O envio depende de o serviço de e-mail estar habilitado.</p></details>
+        <details><summary>Posso configurar meus serviços e horários?</summary><p>Sim. Cadastre o nome, o preço e a duração dos serviços. A disponibilidade da equipe é configurada em Equipe e horários.</p></details>
+        <details open><summary>O que acontece depois do teste grátis?</summary><p>Você escolhe Pix mensal avulso ou cartão em assinatura mensal recorrente. O Pix exige um novo pagamento a cada ciclo e não renova automaticamente. Sem pagamento, novas gravações ficam bloqueadas, mas os dados permanecem consultáveis.</p></details>
+        <details><summary>O Pix renova a assinatura automaticamente?</summary><p>Não. O checkout Pix cobre um pagamento mensal avulso; para continuar, é preciso pagar novamente a cada ciclo. No cartão, a cobrança é uma assinatura mensal recorrente.</p></details>
+        <details><summary>Como funciona a lista de espera?</summary><p>Quando surge um horário cancelado, o sistema pode oferecer a vaga a clientes compatíveis da lista por e-mail, se o envio estiver habilitado.</p></details>
+      </div>
+    </section>
+
+    <footer class="marketing-footer"><a class="marketing-brand" href="/" aria-label="Marcaê, início"><img src="/favicon.svg" alt="" width="30" height="30"><span>Marcaê</span></a><nav aria-label="Links do rodapé"><a href="#recursos">Funcionalidades</a><a href="#como-funciona">Como funciona</a><a href="#precos">Preços</a><a href="/#login">Acesso à conta</a></nav><span>© <span id="landing-year">2026</span> Marcaê</span></footer>
+  </main>
+
+  <div id="login" class="login-route">
+    <header class="login-header"><a class="marketing-brand" href="/" aria-label="Marcaê, página inicial"><img src="/favicon.svg" alt="" width="34" height="34"><span>Marcaê</span></a><a href="/" class="login-back">Voltar para o site</a></header>
+    <section id="auth" class="auth-layout" aria-labelledby="auth-title">
+      <div class="auth-art"><div class="auth-message"><span class="marketing-kicker">AGENDA ONLINE PARA QUEM ATENDE</span><h2>Seu trabalho merece uma rotina mais leve.</h2><p>Organize serviços, equipe e horários. Compartilhe seu link para seus clientes reservarem sem criar conta.</p><img src="/landing/agenda.png" alt="Prévia real da agenda do Marcaê" loading="lazy"></div></div>
+      <div class="auth-content"><div class="auth-form-wrap">
+        <span class="eyebrow accent">ACESSO À SUA CONTA</span>
+        <h2 id="auth-title">Bom te ver por aqui.</h2>
+        <p id="auth-description" class="muted">Entre para cuidar da agenda e dos clientes do seu negócio.</p>
+        <div id="landing-offer" class="trial-offer" hidden><span class="eyebrow accent">SEM CARTÃO PARA COMEÇAR</span><p class="trial-price"><strong>Até 14 dias de teste grátis.</strong><span>O prazo pode ser menor se parte da avaliação já tiver sido usada.</span></p><small>Depois: R$ 29,90/mês por Pix avulso ou cartão em assinatura recorrente.</small></div>
         <form id="auth-form">
           <label id="name-field" hidden>Seu nome<input name="nome" autocomplete="name" maxlength="100"></label>
           <label id="studio-name-field" hidden>Nome do seu negócio<input name="nomeEstudio" maxlength="100" autocomplete="organization"></label>
@@ -56,16 +138,10 @@
         <p id="auth-registration" class="auth-toggle" hidden><span id="auth-question">Primeira vez aqui?</span> <button id="toggle-auth" class="text-button">Crie sua conta</button></p>
         <p id="registration-notice" class="muted">Crie seu negócio e convide sua equipe.</p>
         <button type="button" id="forgot-password" class="text-button">Esqueci minha senha</button>
-        <div class="fine-print">Acesso reservado à equipe.<br>Seu negócio, em boas mãos.</div>
-      </div>
-    </div>
-    <div class="landing-principles" aria-label="O que você organiza com o Marcaê">
-      <span><b>01 /</b> CONFIGURE UMA VEZ</span>
-      <span><b>02 /</b> COMPARTILHE SEU LINK</span>
-      <span><b>03 /</b> ACOMPANHE OS RECEBIMENTOS</span>
-    </div>
-    <footer class="landing-footer"><span>MAIS TEMPO PARA ATENDER BEM.</span><span>Marcaê © 2026</span></footer>
-  </section>
+        <div class="fine-print">Acesso reservado à equipe do seu negócio.</div>
+      </div></div>
+    </section>
+  </div>
 
   <div id="workspace" class="workspace" hidden>
     <aside class="sidebar">
@@ -168,5 +244,6 @@
 </dialog>
 
   <div id="toast" class="toast" role="status" hidden></div>
+  <script>document.getElementById('landing-year').textContent = new Date().getFullYear();</script>
 </body>
 </html>
