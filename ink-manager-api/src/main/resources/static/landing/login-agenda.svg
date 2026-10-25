@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="970" height="504" viewBox="0 0 970 504" role="img" aria-labelledby="title desc">
+  <title id="title">Calendário Marcaê</title>
+  <desc id="desc">Composição vetorial com símbolo de calendário e formas abstratas em azul, sem representar uma tela do sistema.</desc>
+  <defs>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#17213b" flood-opacity=".12"/>
+    </filter>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3164e8"/>
+      <stop offset="1" stop-color="#2456d8"/>
+    </linearGradient>
+    <style>
+      @keyframes arrive { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+      .arrive { transform-box: fill-box; transform-origin: center; animation: arrive 700ms cubic-bezier(.2,.75,.25,1) both; }
+      .float { transform-box: fill-box; transform-origin: center; animation: float 7s 650ms ease-in-out infinite; }
+      @media (prefers-reduced-motion: reduce) { .arrive, .float { animation: none; opacity: 1; transform: none; } }
+    </style>
+  </defs>
+  <rect width="970" height="504" rx="18" fill="#f4f6fb"/>
+  <circle cx="768" cy="127" r="102" fill="#e7edff"/>
+  <circle cx="206" cy="405" r="86" fill="#eaf0ff"/>
+  <path d="M179 152c69-70 157-92 264-71M561 420c97 38 184 28 257-31" fill="none" stroke="#d5e0f8" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 14"/>
+  <ellipse cx="485" cy="426" rx="194" ry="21" fill="#dce4f2" opacity=".66"/>
+
+  <g class="arrive" filter="url(#shadow)">
+    <rect x="350" y="91" width="270" height="270" rx="58" fill="url(#tile)"/>
+    <rect x="413" y="157" width="144" height="140" rx="25" fill="#fff"/>
+    <path d="M413 193h144" stroke="#2456d8" stroke-width="10"/>
+    <path d="M448 145v29M522 145v29" stroke="#fff" stroke-width="12" stroke-linecap="round"/>
+    <path d="M448 146v28M522 146v28" stroke="#bdceff" stroke-width="4" stroke-linecap="round"/>
+    <g fill="#aec2f5">
+      <rect x="431" y="212" width="19" height="18" rx="6"/>
+      <rect x="466" y="212" width="19" height="18" rx="6"/>
+      <rect x="501" y="212" width="19" height="18" rx="6"/>
+      <rect x="431" y="246" width="19" height="18" rx="6"/>
+      <rect x="466" y="246" width="19" height="18" rx="6"/>
+    </g>
+    <rect x="501" y="244" width="23" height="22" rx="8" fill="#2456d8"/>
+  </g>
+
+  <g class="float" filter="url(#shadow)">
+    <circle cx="655" cy="321" r="49" fill="#fff" stroke="#e0e7f4" stroke-width="2"/>
+    <circle cx="655" cy="321" r="34" fill="#eaf0ff"/>
+    <path d="m640 321 10 10 20-22" fill="none" stroke="#2456d8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g class="float">
+    <path d="m285 157 8 18 18 8-18 8-8 18-8-18-18-8 18-8 8-18Z" fill="#2456d8"/>
+    <circle cx="729" cy="207" r="9" fill="#a9bef1"/>
+    <circle cx="263" cy="321" r="7" fill="#9bcdbd"/>
+  </g>
+</svg>

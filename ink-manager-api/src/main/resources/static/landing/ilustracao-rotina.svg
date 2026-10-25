@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="948" height="694" viewBox="0 0 948 694" role="img" aria-labelledby="title desc">
+  <title id="title">Agenda em foco</title>
+  <desc id="desc">Ilustração vetorial de um calendário abstrato e um relógio, sem representar uma tela ou dados reais.</desc>
+  <defs>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="165%">
+      <feDropShadow dx="0" dy="20" stdDeviation="23" flood-color="#17213b" flood-opacity=".13"/>
+    </filter>
+    <pattern id="calendar-cells" width="72" height="66" patternUnits="userSpaceOnUse">
+      <rect x="8" y="8" width="48" height="42" rx="13" fill="#eaf0ff"/>
+      <circle cx="32" cy="29" r="3.5" fill="#b4c6f6"/>
+    </pattern>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3265ed"/>
+      <stop offset="1" stop-color="#2456d8"/>
+    </linearGradient>
+    <style>
+      @keyframes rise-in { from { opacity: 0; transform: translateY(16px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      @keyframes gentle-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+      .rise-in { transform-box: fill-box; transform-origin: center; animation: rise-in 700ms cubic-bezier(.2,.75,.25,1) both; }
+      .clock-arrive { transform-box: fill-box; transform-origin: center; animation: rise-in 650ms 180ms cubic-bezier(.2,.75,.25,1) both; }
+      .gentle-drift { transform-box: fill-box; transform-origin: center; animation: gentle-drift 7s 850ms ease-in-out infinite; }
+      .sparkle-in { transform-box: fill-box; transform-origin: center; animation: rise-in 550ms 320ms cubic-bezier(.2,.75,.25,1) both; }
+      @media (prefers-reduced-motion: reduce) {
+        .rise-in, .clock-arrive, .gentle-drift, .sparkle-in { animation: none; opacity: 1; transform: none; }
+      }
+    </style>
+  </defs>
+
+  <rect width="948" height="694" fill="#f4f6fb"/>
+  <circle cx="777" cy="145" r="120" fill="#eaf0ff"/>
+  <circle cx="155" cy="553" r="118" fill="#e9eef9"/>
+  <path d="M94 196c46-47 98-64 153-52M699 573c56 24 111 18 157-20" fill="none" stroke="#d8e2f7" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 13"/>
+  <ellipse cx="453" cy="590" rx="258" ry="26" fill="#dce4f2" opacity=".7"/>
+
+  <g transform="rotate(-4 450 342)" filter="url(#shadow)">
+    <g class="rise-in">
+      <rect x="205" y="119" width="478" height="451" rx="39" fill="#fff" stroke="#dfe6f3" stroke-width="2"/>
+      <path d="M244 119h400a39 39 0 0 1 39 39v101H205V158a39 39 0 0 1 39-39Z" fill="url(#blue)"/>
+      <path d="M205 259h478" stroke="#e2e8f2" stroke-width="2"/>
+      <path d="M314 100v50M574 100v50" stroke="#fff" stroke-width="15" stroke-linecap="round"/>
+      <path d="M314 101v48M574 101v48" stroke="#c8d6ff" stroke-width="4" stroke-linecap="round"/>
+      <rect x="249" y="287" width="390" height="216" fill="url(#calendar-cells)"/>
+      <rect x="472" y="361" width="48" height="42" rx="13" fill="#2456d8"/>
+      <circle cx="496" cy="382" r="4" fill="#fff" opacity=".9"/>
+      <path d="M259 531h226" stroke="#eaf0ff" stroke-width="10" stroke-linecap="round"/>
+      <path d="M505 531h69" stroke="#dce5f8" stroke-width="10" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <g class="clock-arrive" filter="url(#shadow)">
+    <g class="gentle-drift">
+      <circle cx="721" cy="495" r="91" fill="#fff" stroke="#dfe6f3" stroke-width="2"/>
+      <circle cx="721" cy="495" r="68" fill="#eaf0ff"/>
+      <circle cx="721" cy="495" r="47" fill="none" stroke="#d1ddf8" stroke-width="2" stroke-dasharray="2 12" stroke-linecap="round"/>
+      <path d="M721 457v40l29 19" fill="none" stroke="#2456d8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="721" cy="495" r="6" fill="#171b2a"/>
+    </g>
+  </g>
+
+  <g class="sparkle-in">
+    <path d="m779 242 11 24 24 11-24 11-11 24-11-24-24-11 24-11 11-24Z" fill="#2456d8"/>
+    <circle cx="160" cy="210" r="10" fill="#a9bef1"/>
+    <circle cx="793" cy="373" r="7" fill="#9bcdbd"/>
+    <circle cx="190" cy="422" r="5" fill="#c7d5f3"/>
+  </g>
+</svg>

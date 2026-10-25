@@ -1,9 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="1" y="1" width="62" height="62" rx="17" fill="#2456D8"/>
-  <rect x="13" y="15" width="38" height="36" rx="8" fill="#fff"/>
-  <path d="M14 27h36" fill="none" stroke="#2456D8" stroke-width="3.5" stroke-linecap="round"/>
-  <path d="M23 12v8M41 12v8" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
-  <path d="M21 34h2m7 0h2M21 42h2m7 0h2" fill="none" stroke="#2456D8" stroke-width="3" stroke-linecap="round"/>
-  <rect x="39" y="31" width="8" height="8" rx="2.5" fill="#2456D8"/>
-  <path d="m40.7 35 1.4 1.4 2.6-2.8" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Marcaê</title>
+  <rect width="64" height="64" rx="18" fill="#2456D8"/>
+  <path d="M14 46V18h7l11 14 11-14h7v28h-8V31L32 43 22 31v15z" fill="#FFFFFF"/>
 </svg>
