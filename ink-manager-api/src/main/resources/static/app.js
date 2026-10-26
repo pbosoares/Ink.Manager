@@ -234,7 +234,25 @@ function renderAgenda() {
 function renderClients() {
   if (!state.loaded) return;
   const query = $('client-search').value.toLocaleLowerCase('pt-BR');
-  const items = [...state.clients].filter((item) => `${item.nome} ${item.telefone} ${item.instagram || ''}`.toLocaleLowerCase('pt-BR').includes(query)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  const nextAppointmentByClient = new Map();
+  const today = localDate();
+  for (const appointment of sortedAppointments()) {
+    if (!['AGENDADA', 'CONFIRMADA'].includes(appointment.status) || appointment.presenca === 'FALTOU' || appointment.recebimentoConfirmado || !appointment.data || appointment.data < today) continue;
+    const clientId = appointment.cliente?.id;
+    if (clientId != null && !nextAppointmentByClient.has(String(clientId))) {
+      nextAppointmentByClient.set(String(clientId), `${appointment.data}T${appointment.horario?.slice(0, 5) || '00:00'}`);
+    }
+  }
+  const items = [...state.clients]
+    .filter((item) => `${item.nome} ${item.telefone} ${item.instagram || ''}`.toLocaleLowerCase('pt-BR').includes(query))
+    .sort((a, b) => {
+      const aNext = nextAppointmentByClient.get(String(a.id));
+      const bNext = nextAppointmentByClient.get(String(b.id));
+      if (aNext && bNext && aNext !== bNext) return aNext < bNext ? -1 : 1;
+      if (aNext && !bNext) return -1;
+      if (!aNext && bNext) return 1;
+      return Number(a.id) - Number(b.id);
+    });
   $('client-count').textContent = `${items.length} cliente(s)`;
   $('client-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>NOME</th><th>CONTATO</th><th>IDADE</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(item.nome)}<small>CLIENTE #${item.id}</small></td><td>${escapeHtml(item.telefone)}<small>${escapeHtml(item.instagram || 'Sem Instagram')}</small></td><td>${item.idade == null ? '—' : escapeHtml(item.idade)}</td><td><div class="row-actions"><button class="text-button" data-edit-client="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} data-delete-client="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Toda história começa com alguém.', query ? 'Nenhum cliente encontrado nessa busca.' : 'Cadastre seu primeiro cliente para começar.', query ? '' : 'client');
 }
