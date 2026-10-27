@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="571" height="346" viewBox="0 0 571 346" style="width: 100%; height: 346px">
+  <rect width="571" height="346" rx="10" fill="#F4F6FB" />
+  <rect x=".5" y=".5" width="570" height="345" rx="9.5" fill="none" stroke="#DCE4F1" />
+  <rect x="0" y="0" width="571" height="33" fill="#FFFFFF" />
+  <line x1="20" y1="33" x2="551" y2="33" stroke="#E3E9F2" />
+  <rect x="21" y="8" width="18" height="18" rx="6" fill="#EAF0FF" />
+  <path d="M26 17l4-4 4 4M27.5 16.5v4h5v-4" fill="none" stroke="#2456D8" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="45" y="16" font-family="Inter,Arial,sans-serif" font-size="8.5" font-weight="700" fill="#171B2A">
+    Nome do estabelecimento
+  </text>
+  <text x="45" y="25" font-family="Inter,Arial,sans-serif" font-size="6.2" fill="#77839A">
+    Agendamento online
+  </text>
+  <text x="501" y="19" font-family="Inter,Arial,sans-serif" font-size="6.5" font-weight="500" fill="#34425A">
+    Voltar ao início
+  </text>
+  <text x="20" y="50" font-family="Inter,Arial,sans-serif" font-size="5.8" font-weight="700" letter-spacing=".7" fill="#2456D8">
+    RESERVA ONLINE
+  </text>
+  <text x="20" y="71" font-family="Inter,Arial,sans-serif" font-size="15.5" font-weight="750" letter-spacing="-.42" fill="#171B2A">
+    Reserve seu horário com tranquilidade.
+  </text>
+  <text x="20" y="84" font-family="Inter,Arial,sans-serif" font-size="7.6" fill="#69768B">
+    Escolha o serviço, o profissional e um horário disponível.
+  </text>
+  <rect x="20" y="101" width="386" height="234" rx="11" fill="#FFFFFF" stroke="#E3E8F1" />
+  <text x="30" y="116" font-family="Inter,Arial,sans-serif" font-size="5.6" font-weight="700" letter-spacing=".55" fill="#2456D8">
+    DETALHES DO ATENDIMENTO
+  </text>
+  <text x="30" y="131" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="700" fill="#171B2A">
+    Escolha o que funciona para você
+  </text>
+  <g font-family="Inter,Arial,sans-serif">
+    <text x="30" y="146" font-size="6.2" font-weight="650" fill="#34425A">
+      Serviço
+    </text>
+    <rect x="30" y="150" width="366" height="20" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
+    <text x="39" y="163" font-size="6.5" fill="#77839A">
+      Selecione um serviço cadastrado
+    </text>
+    <path d="M387 158l3 3 3-3" fill="none" stroke="#77839A" stroke-width="0.8" />
+    <text x="30" y="181" font-size="6.2" font-weight="650" fill="#34425A">
+      Profissional
+    </text>
+    <text x="219" y="181" font-size="6.2" font-weight="650" fill="#34425A">
+      Data
+    </text>
+    <rect x="30" y="185" width="179" height="20" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="219" y="185" width="177" height="20" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
+    <text x="39" y="198" font-size="6.5" fill="#77839A">
+      Selecione um profissional
+    </text>
+    <path d="M200 193l3 3 3-3" fill="none" stroke="#77839A" stroke-width="0.8" />
+    <text x="228" y="198" font-size="6.5" fill="#77839A">
+      Escolha uma data
+    </text>
+    <rect x="386" y="192" width="5" height="5" rx="1" fill="none" stroke="#2456D8" stroke-width="0.8" />
+    <text x="30" y="217" font-size="6.2" font-weight="650" fill="#34425A">
+      Horários disponíveis
+    </text>
+    <rect x="30" y="221" width="366" height="20" rx="5" fill="#FFFFFF" stroke="#DCE4F1" stroke-dasharray="2 2" />
+    <text x="39" y="234" font-size="6.1" fill="#9AA3B1">
+      Escolha serviço, profissional e data para ver os horários.
+    </text>
+    <text x="30" y="254" font-size="5.6" font-weight="700" letter-spacing=".55" fill="#2456D8">
+      SEUS DADOS
+    </text>
+    <rect x="30" y="259" width="137" height="19" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="174" y="259" width="137" height="19" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="318" y="259" width="78" height="19" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
+    <text x="39" y="271.5" font-size="6" fill="#8A94A5">
+      Seu nome
+    </text>
+    <text x="183" y="271.5" font-size="6" fill="#8A94A5">
+      E-mail
+    </text>
+    <text x="327" y="271.5" font-size="6" fill="#8A94A5">
+      Telefone
+    </text>
+    <rect x="30" y="285" width="366" height="17" rx="5" fill="#F4F6FB" />
+    <path d="M39 291l2.5 2.5-2.5 2.5" fill="none" stroke="#2456D8" stroke-width="0.9" />
+    <text x="47" y="296" font-size="6.1" font-weight="600" fill="#34425A">
+      Aviso de privacidade
+    </text>
+    <rect x="31" y="312" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#B8C3D6" stroke-width="0.8" />
+    <text x="44" y="319" font-size="5.9" fill="#69768B">
+      Li o aviso de privacidade
+    </text>
+  </g>
+  <rect x="414" y="101" width="137" height="203" rx="11" fill="#FFFFFF" stroke="#E3E8F1" />
+  <text x="424" y="116" font-family="Inter,Arial,sans-serif" font-size="5.7" font-weight="700" letter-spacing=".6" fill="#2456D8">
+    RESUMO
+  </text>
+  <text x="424" y="131" font-family="Inter,Arial,sans-serif" font-size="9.6" font-weight="700" fill="#171B2A">
+    Seu agendamento
+  </text>
+  <line x1="424" y1="139" x2="541" y2="139" stroke="#EDF0F6" />
+  <g font-family="Inter,Arial,sans-serif" font-size="6.1">
+    <text x="424" y="156" fill="#77839A">
+      Serviço
+    </text>
+    <text x="493" y="156" font-weight="600" fill="#34425A">
+      A selecionar
+    </text>
+    <line x1="424" y1="163" x2="541" y2="163" stroke="#EDF0F6" />
+    <text x="424" y="179" fill="#77839A">
+      Profissional
+    </text>
+    <text x="493" y="179" font-weight="600" fill="#34425A">
+      A selecionar
+    </text>
+    <line x1="424" y1="186" x2="541" y2="186" stroke="#EDF0F6" />
+    <text x="424" y="202" fill="#77839A">
+      Data e horário
+    </text>
+    <text x="493" y="202" font-weight="600" fill="#34425A">
+      A selecionar
+    </text>
+  </g>
+  <rect x="424" y="211" width="117" height="37" rx="6" fill="#F4F6FB" />
+  <text x="431" y="226" font-family="Inter,Arial,sans-serif" font-size="5.7" fill="#69768B">
+    Preço e duração seguem o
+  </text>
+  <text x="431" y="235" font-family="Inter,Arial,sans-serif" font-size="5.7" fill="#69768B">
+    serviço cadastrado.
+  </text>
+  <rect x="424" y="255" width="117" height="22" rx="6" fill="#2456D8" />
+  <text x="439" y="269.5" font-family="Inter,Arial,sans-serif" font-size="6.2" font-weight="700" fill="#FFFFFF">
+    Reservar horário →
+  </text>
+  <text x="431" y="289" font-family="Inter,Arial,sans-serif" font-size="5.2" fill="#69768B">
+    Você não precisa de conta.
+  </text>
+  <text x="431" y="297" font-family="Inter,Arial,sans-serif" font-size="5.2" fill="#69768B">
+    Nenhum pagamento nesta página.
+  </text>
+</svg>

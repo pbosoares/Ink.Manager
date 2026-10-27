@@ -4,7 +4,7 @@
 const brandFonts = document.createElement('link');
 brandFonts.rel = 'preload';
 brandFonts.as = 'style';
-brandFonts.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Caslon+Display&family=Rye&display=swap';
+brandFonts.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&family=Libre+Caslon+Display&family=Rye&display=swap';
 brandFonts.onload = () => { brandFonts.rel = 'stylesheet'; };
 document.head.append(brandFonts);
 
@@ -387,11 +387,13 @@ async function loadAuthConfig() {
     $('toggle-auth').disabled = false;
   }
 }
-$('landing-trial').addEventListener('click', () => {
+const startLandingTrial = () => {
   if (!state.registrationEnabled || state.register) return;
   $('toggle-auth').click();
   $('auth-form').elements.nomeEstudio.focus();
-});
+};
+$('landing-trial').addEventListener('click', startLandingTrial);
+document.querySelectorAll('[data-start-trial]').forEach(link => link.addEventListener('click', startLandingTrial));
 window.inkApp = { api, user: () => state.user, appointments: () => state.appointments, view: () => state.view, reload: loadData, render, notify };
 loadAuthConfig();
 if (state.token) openWorkspace();

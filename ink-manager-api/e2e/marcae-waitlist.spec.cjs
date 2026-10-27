@@ -2,10 +2,9 @@ const { test, expect } = require('@playwright/test');
 const { randomUUID } = require('node:crypto');
 
 // Run with a local fake SMTP sink (for example, Mailpit) already listening.
-// Set MAIL_ENABLED=true only in the ephemeral Playwright app process, with
-// MAIL_HOST=127.0.0.1, fake MAIL_* credentials and SMTP auth/STARTTLS disabled.
-// The runner and application inherit these environment values; no external host
-// is accepted. The real renderer creates the link consumed by this browser flow.
+// The Playwright config preflights both loopback endpoints and injects all
+// MAIL_* settings only into the ephemeral app process. The runner stays mail-off.
+// The real renderer creates the link consumed by this browser flow.
 test.use({ trace: 'off' }); // Offer links contain a bearer token in the fragment.
 
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
@@ -29,24 +28,211 @@ function requireIsolatedDatabase() {
 }
 
 function requireLocalMailFixture(baseURL) {
-  const smtpHost = String(process.env.MAIL_HOST || '').toLowerCase();
   const publicUrl = process.env.PUBLIC_URL;
   const mailboxUrl = MAILBOX_API ? new URL(MAILBOX_API) : null;
-  expect(String(process.env.MAIL_ENABLED).toLowerCase(), 'Enable outbox only for the local fake SMTP sink').toBe('true');
-  expect(LOCAL_HOSTS.has(smtpHost), 'MAIL_HOST must be loopback; this E2E refuses external SMTP').toBe(true);
-  expect(process.env.MAIL_PORT, 'MAIL_PORT must point at the local fake SMTP sink').toBeTruthy();
-  expect(process.env.MAIL_USERNAME && process.env.MAIL_PASSWORD && process.env.MAIL_FROM,
-    'The local sender requires non-empty fake credentials and sender address').toBeTruthy();
-  expect(String(process.env.SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH).toLowerCase(),
-    'Disable SMTP authentication for the unauthenticated local fake sink').toBe('false');
-  expect(String(process.env.SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE).toLowerCase(),
-    'Disable STARTTLS for the local fake sink').toBe('false');
-  expect(String(process.env.SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED).toLowerCase(),
-    'Do not require STARTTLS for the local fake sink').toBe('false');
+  const runnerMailVariables = Object.keys(process.env).filter(key => /^(MAIL_|SMTP_|SPRING_MAIL_)/i.test(key));
+  expect(runnerMailVariables, 'SMTP settings must stay out of the Playwright runner').toEqual([]);
+  expect(process.env.E2E_LOCAL_MAIL_FIXTURE,
+    'The config must complete the loopback SMTP and mailbox preflight').toBe('loopback-smtp-api-preflight-passed');
   expect(publicUrl, 'PUBLIC_URL must be the ephemeral Playwright app URL').toBe(baseURL);
-  expect(mailboxUrl && ['http:', 'https:'].includes(mailboxUrl.protocol)).toBe(true);
+  expect(mailboxUrl && mailboxUrl.href, 'E2E_MAILBOX_API must be configured').toBe('http://127.0.0.1:8025/api/v1/');
   expect(mailboxUrl && LOCAL_HOSTS.has(mailboxUrl.hostname.toLowerCase()), 'E2E_MAILBOX_API must be loopback').toBe(true);
   return mailboxUrl;
+}
+
+function sanitizeDiagnosticText(value) {
+  return String(value || '')
+    .replace(/https?:\/\/[^\s"'<>]+/gi, value => {
+      try {
+        const url = new URL(value);
+        return `${url.origin}${url.pathname}`;
+      } catch { return '<url>'; }
+    })
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '<email>')
+    .replace(/\b[a-f0-9]{64}\b/gi, '<token>')
+    .replace(/\b(Bearer\s+)\S+/gi, '$1<redacted>');
+}
+
+function isAuthConfigRequest(request, expectedOrigin) {
+  try {
+    const url = new URL(request.url());
+    return request.method() === 'GET' && url.pathname === '/auth/config' &&
+      (!expectedOrigin || url.origin === expectedOrigin);
+  } catch { return false; }
+}
+
+function isRelevantAuthDiagnostic(text) {
+  return /auth\/config|fonts\.googleapis\.com|app\.js|failed to load|network|fetch/i.test(text);
+}
+
+function browserAuthConfigDiagnostics(page, baseURL) {
+  const appOrigin = new URL(baseURL).origin;
+  const startedAt = new WeakMap();
+  const events = [];
+  const consoleErrors = [];
+  const pageErrors = [];
+  const relevantPageErrors = [];
+
+  page.on('request', request => {
+    if (isAuthConfigRequest(request, appOrigin)) {
+      startedAt.set(request, Date.now());
+      return;
+    }
+    let url;
+    try { url = new URL(request.url()); } catch { return; }
+    if (url.hostname === 'fonts.googleapis.com') {
+      startedAt.set(request, Date.now());
+      events.push({ event: 'requested', host: 'fonts.googleapis.com', resourceType: request.resourceType() });
+    } else if (url.origin === appOrigin && url.pathname === '/app.js') {
+      startedAt.set(request, Date.now());
+      events.push({ event: 'requested', method: request.method(), path: '/app.js' });
+    }
+  });
+
+  page.on('response', response => {
+    const request = response.request();
+    const durationMs = startedAt.has(request) ? Date.now() - startedAt.get(request) : null;
+    if (isAuthConfigRequest(request, appOrigin)) {
+      events.push({ event: 'response', method: 'GET', path: '/auth/config', status: response.status(), durationMs });
+      return;
+    }
+    let url;
+    try { url = new URL(request.url()); } catch { return; }
+    if (url.hostname === 'fonts.googleapis.com') {
+      events.push({ event: 'response', host: 'fonts.googleapis.com', resourceType: request.resourceType(), status: response.status(), durationMs });
+    } else if (url.origin === appOrigin && url.pathname === '/app.js') {
+      events.push({ event: response.ok() ? 'loaded' : 'response', path: '/app.js', status: response.status(), durationMs });
+    }
+  });
+
+  page.on('requestfailed', request => {
+    const durationMs = startedAt.has(request) ? Date.now() - startedAt.get(request) : null;
+    const failure = sanitizeDiagnosticText(request.failure()?.errorText || 'request failed');
+    if (isAuthConfigRequest(request, appOrigin)) {
+      events.push({ event: 'requestfailed', method: 'GET', path: '/auth/config', durationMs, failure });
+      return;
+    }
+    let url;
+    try { url = new URL(request.url()); } catch { return; }
+    if (url.hostname === 'fonts.googleapis.com') {
+      events.push({ event: 'requestfailed', host: 'fonts.googleapis.com', resourceType: request.resourceType(), durationMs, failure });
+    } else if (url.origin === appOrigin && url.pathname === '/app.js') {
+      events.push({ event: 'requestfailed', path: '/app.js', durationMs, failure });
+    }
+  });
+
+  page.on('console', message => {
+    if (message.type() !== 'error') return;
+    const text = sanitizeDiagnosticText(message.text());
+    if (isRelevantAuthDiagnostic(text)) consoleErrors.push(text);
+  });
+  page.on('pageerror', error => {
+    const text = sanitizeDiagnosticText(error.message);
+    pageErrors.push(text);
+    if (isRelevantAuthDiagnostic(text)) relevantPageErrors.push(text);
+  });
+
+  return { events, consoleErrors, pageErrors, relevantPageErrors };
+}
+
+function waitForBrowserAuthConfigOutcome(page, appOrigin, diagnostics) {
+  return new Promise(resolve => {
+    let settled = false;
+    const cleanup = () => {
+      page.off('response', onResponse);
+      page.off('requestfailed', onRequestFailed);
+    };
+    const latestAuthEvent = () => {
+      for (let index = diagnostics.events.length - 1; index >= 0; index--) {
+        const event = diagnostics.events[index];
+        if (event.path === '/auth/config' &&
+            (event.event === 'response' || event.event === 'requestfailed')) return event;
+      }
+      return null;
+    };
+    const finish = result => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    };
+    const onResponse = response => {
+      const request = response.request();
+      if (!isAuthConfigRequest(request, appOrigin)) return;
+      const status = response.status();
+      void (async () => {
+        let registrationEnabled = null;
+        if (status === 200) {
+          try {
+            const config = await response.json();
+            registrationEnabled = typeof config.registrationEnabled === 'boolean'
+              ? config.registrationEnabled
+              : null;
+          } catch { registrationEnabled = null; }
+        }
+        const timing = latestAuthEvent();
+        finish({
+          method: 'GET', path: '/auth/config', status, registrationEnabled,
+          durationMs: timing?.durationMs ?? null
+        });
+      })();
+    };
+    const onRequestFailed = request => {
+      if (!isAuthConfigRequest(request, appOrigin)) return;
+      const timing = latestAuthEvent();
+      finish({
+        method: 'GET', path: '/auth/config', status: null, registrationEnabled: null,
+        durationMs: timing?.durationMs ?? null,
+        failure: sanitizeDiagnosticText(request.failure()?.errorText || 'request failed')
+      });
+    };
+    page.on('response', onResponse);
+    page.on('requestfailed', onRequestFailed);
+  });
+}
+
+async function assertApiRegistrationEnabled(request, testInfo) {
+  const startedAt = Date.now();
+  let status = null;
+  let registrationEnabled = null;
+  let failure = null;
+  try {
+    const response = await request.get('/auth/config');
+    status = response.status();
+    if (status === 200) {
+      const config = await response.json();
+      registrationEnabled = typeof config.registrationEnabled === 'boolean'
+        ? config.registrationEnabled
+        : null;
+    }
+  } catch (error) {
+    failure = sanitizeDiagnosticText(error.message || String(error));
+  }
+  const result = {
+    method: 'GET', path: '/auth/config', status,
+    durationMs: Date.now() - startedAt, registrationEnabled, failure
+  };
+  if (status !== 200 || registrationEnabled !== true) {
+    await testInfo.attach('auth-config-api-preflight.json', {
+      body: Buffer.from(JSON.stringify(result, null, 2)), contentType: 'application/json'
+    });
+    throw new Error(`Pre-UI GET /auth/config failed: status=${status ?? 'unavailable'}, durationMs=${result.durationMs}, registrationEnabled=${registrationEnabled ?? 'unavailable'}, error=${failure ?? 'none'}`);
+  }
+  return result;
+}
+
+async function attachBrowserAuthConfigDiagnostics(testInfo, apiPreflight, browserPreflight, diagnostics, error) {
+  const data = {
+    apiPreflight,
+    browserPreflight,
+    browserEvents: diagnostics.events,
+    consoleErrors: diagnostics.consoleErrors,
+    pageErrors: diagnostics.relevantPageErrors,
+    failure: sanitizeDiagnosticText(error?.message || String(error))
+  };
+  await testInfo.attach('auth-config-browser-diagnostics.json', {
+    body: Buffer.from(JSON.stringify(data, null, 2)), contentType: 'application/json'
+  });
 }
 
 function addMinutes(date, time, amount) {
@@ -90,7 +276,7 @@ function decodeQuotedPrintableBody(rawMessage) {
     .replace(/=([a-f0-9]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
 }
 
-async function waitForOfferLink(request, api, recipient, appOrigin) {
+async function waitForOfferLink(request, api, recipient, appOrigin, expectedShortPath) {
   let rawMessage = null;
   let messageBody = '';
   await expect.poll(async () => {
@@ -100,41 +286,73 @@ async function waitForOfferLink(request, api, recipient, appOrigin) {
     return subject.includes('Surgiu uma vaga para voce') || messageBody.includes('Surgiu uma vaga para voce');
   }, { timeout: 60000, intervals: [500, 1000, 2000] }).toBe(true);
 
-  const candidates = messageBody.match(/https?:\/\/[^\s<>"']+\/agendar\.html\?local=[^\s<>"']+#token=[a-f0-9]{64}/gi) || [];
+  const candidates = messageBody.match(/https?:\/\/[^\s<>"']+/gi) || [];
   const link = candidates.map(value => value.replace(/[),.;]+$/, '')).find(value => {
-    try { return new URL(value).origin === appOrigin; } catch { return false; }
+    try {
+      const url = new URL(value);
+      return url.origin === appOrigin &&
+        url.pathname === expectedShortPath && /^\/a\/[^/]+$/.test(url.pathname) &&
+        url.search === '' && /^#token=[a-f0-9]{64}$/i.test(url.hash);
+    } catch { return false; }
   });
   expect(Boolean(link), 'The real renderer email must contain a same-origin offer link').toBe(true);
   return link;
 }
 
-async function exerciseAuthenticationUi(page, baseURL) {
-  const pageErrors = [];
-  page.on('pageerror', error => pageErrors.push(error.message));
-  await page.goto(`${baseURL}/`);
-  await expect(page.locator('#auth')).toBeVisible();
-  await expect(page.locator('#auth-form')).toBeVisible();
-  await expect(page.locator('#auth-form [name=email]')).toBeVisible();
-  await expect(page.locator('#auth-form [name=senha]')).toBeVisible();
-  await expect(page.locator('#toggle-auth')).toBeVisible();
-  await page.locator('#toggle-auth').click();
-  await expect(page.locator('#auth-form [name=nome]')).toBeVisible();
-  await expect(page.locator('#auth-form [name=nomeEstudio]')).toBeVisible();
-  await page.locator('#toggle-auth').click();
-  await page.locator('#forgot-password').click();
-  await expect(page.locator('#password-dialog')).toBeVisible();
-  await expect(page.locator('#recovery-email')).toBeVisible();
-  await expect(page.locator('#password-form [name=email]')).toBeVisible();
-  await expect(page.locator('#reset-fields')).toBeHidden();
-  await page.locator('#close-password').click();
-  // Change the query too so the fake reset token is read by a fresh document load.
-  await page.goto(`${baseURL}/?e2e-reset-smoke=1#redefinir=${'a'.repeat(64)}`);
-  await expect(page.locator('#password-dialog')).toBeVisible();
-  await expect(page.locator('#reset-fields')).toBeVisible();
-  await expect(page.locator('#recovery-email')).toBeHidden();
-  await expect(page.locator('#reset-fields [name=senha]')).toBeVisible();
-  await expect(page.locator('#reset-fields [name=confirmacao]')).toBeVisible();
-  expect(pageErrors, 'Root must not throw JS errors while rendering login, signup, recovery, or reset').toEqual([]);
+async function exerciseAuthenticationUi(page, baseURL, testInfo, apiPreflight) {
+  const diagnostics = browserAuthConfigDiagnostics(page, baseURL);
+  let browserPreflight = null;
+  try {
+    const appOrigin = new URL(baseURL).origin;
+    const browserConfigPromise = waitForBrowserAuthConfigOutcome(page, appOrigin, diagnostics);
+    const navigationPromise = page.goto(`${baseURL}/#login`).then(() => ({ ok: true }), error => ({
+      ok: false, failure: sanitizeDiagnosticText(error.message || String(error))
+    }));
+    const navigationFailurePromise = navigationPromise.then(navigation =>
+      navigation.ok ? new Promise(() => {}) : { navigation }
+    );
+    const outcome = await Promise.race([
+      browserConfigPromise.then(browserConfig => ({ browserConfig })),
+      navigationFailurePromise
+    ]);
+    if (outcome.navigation) throw new Error(`Browser navigation failed: ${outcome.navigation.failure}`);
+    const browserConfig = outcome.browserConfig;
+    browserPreflight = browserConfig;
+    if (browserConfig.failure) throw new Error(`Browser GET /auth/config failed: ${browserConfig.failure}`);
+    expect(browserConfig.status, 'Browser GET /auth/config must return HTTP 200').toBe(200);
+    expect(browserConfig.registrationEnabled,
+      'Browser GET /auth/config must enable registration').toBe(true);
+    const navigation = await navigationPromise;
+    if (!navigation.ok) throw new Error(`Browser navigation failed: ${navigation.failure}`);
+
+    await expect(page.locator('#auth')).toBeVisible();
+    await expect(page.locator('#auth-form')).toBeVisible();
+    await expect(page.locator('#auth-form [name=email]')).toBeVisible();
+    await expect(page.locator('#auth-form [name=senha]')).toBeVisible();
+    await expect(page.locator('#toggle-auth')).toBeVisible();
+    await page.locator('#toggle-auth').click();
+    await expect(page.locator('#auth-form [name=nome]')).toBeVisible();
+    await expect(page.locator('#auth-form [name=nomeEstudio]')).toBeVisible();
+    await page.locator('#toggle-auth').click();
+    await page.locator('#forgot-password').click();
+    await expect(page.locator('#password-dialog')).toBeVisible();
+    await expect(page.locator('#recovery-email')).toBeVisible();
+    await expect(page.locator('#password-form [name=email]')).toBeVisible();
+    await expect(page.locator('#reset-fields')).toBeHidden();
+    await page.locator('#close-password').click();
+    // Change the query too so the fake reset token is read by a fresh document load.
+    await page.goto(`${baseURL}/?e2e-reset-smoke=1#redefinir=${'a'.repeat(64)}`);
+    await expect(page.locator('#password-dialog')).toBeVisible();
+    await expect(page.locator('#reset-fields')).toBeVisible();
+    await expect(page.locator('#recovery-email')).toBeHidden();
+    await expect(page.locator('#reset-fields [name=senha]')).toBeVisible();
+    await expect(page.locator('#reset-fields [name=confirmacao]')).toBeVisible();
+    expect(diagnostics.pageErrors,
+      'Root must not throw JS errors while rendering login, signup, recovery, or reset').toEqual([]);
+  } catch (error) {
+    await attachBrowserAuthConfigDiagnostics(testInfo, apiPreflight, browserPreflight, diagnostics, error);
+    throw error;
+  }
 }
 
 async function prepareStudio(request, width) {
@@ -156,8 +374,15 @@ async function prepareStudio(request, width) {
   const service = await serviceResponse.json();
   const linkResponse = await request.get('/servicos/link', { headers });
   expect(linkResponse.ok()).toBe(true);
-  const publicLink = new URL((await linkResponse.json()).caminho, 'http://127.0.0.1').searchParams.get('local');
+  const serviceLink = await linkResponse.json();
+  const publicLink = new URL(serviceLink.caminho, 'http://127.0.0.1').searchParams.get('local');
   expect(Boolean(publicLink)).toBe(true);
+  const caminhoCurto = serviceLink.caminhoCurto;
+  const shortUrl = new URL(caminhoCurto, 'http://127.0.0.1:8087');
+  expect(shortUrl.origin).toBe('http://127.0.0.1:8087');
+  expect(shortUrl.search).toBe('');
+  expect(shortUrl.hash).toBe('');
+  expect(shortUrl.pathname).toMatch(/^\/a\/[^/]+$/);
   const publicPath = `/publico/${encodeURIComponent(publicLink)}`;
   const catalogResponse = await request.get(publicPath);
   expect(catalogResponse.ok()).toBe(true);
@@ -185,19 +410,23 @@ async function prepareStudio(request, width) {
     telefone: '11988887777', email: `waitlist-seed-${suffix}@example.test`, avisoPrivacidadeLido: true
   }});
   expect(booking.status()).toBe(201);
-  return { headers, service, professional, publicLink, publicPath, catalog, slot, suffix };
+  return {
+    headers, service, professional, publicLink, caminhoCurto, caminhoCurtoPath: shortUrl.pathname,
+    publicPath, catalog, slot, suffix
+  };
 }
 
 for (const width of [1366, 390]) {
-  test(`lista de espera e oferta real sem duplicidade (${width}px)`, async ({ page, request, baseURL }) => {
+  test(`lista de espera e oferta real sem duplicidade (${width}px)`, async ({ page, request, baseURL }, testInfo) => {
     test.setTimeout(150000);
     requireIsolatedDatabase();
+    const apiPreflight = await assertApiRegistrationEnabled(request, testInfo);
     const mailboxApi = requireLocalMailFixture(baseURL);
     const appOrigin = new URL(baseURL).origin;
     const mailboxProbe = await request.get(new URL('messages?start=0&limit=1',
       new URL(mailboxApi.href.endsWith('/') ? mailboxApi.href : `${mailboxApi.href}/`)).toString());
     expect(mailboxProbe.ok(), 'Start the local fake SMTP mailbox before the Playwright app').toBe(true);
-    await exerciseAuthenticationUi(page, baseURL);
+    await exerciseAuthenticationUi(page, baseURL, testInfo, apiPreflight);
     const fixture = await prepareStudio(request, width);
     const waitEmail = `waitlist-customer-${fixture.suffix}@example.test`;
     const publicUrl = `${baseURL}/agendar.html?local=${encodeURIComponent(fixture.publicLink)}`;
@@ -242,15 +471,18 @@ for (const width of [1366, 390]) {
     }});
     expect(cancel.status()).toBe(200);
 
-    const offerLink = await waitForOfferLink(request, mailboxApi, waitEmail, appOrigin);
+    const offerLink = await waitForOfferLink(request, mailboxApi, waitEmail, appOrigin, fixture.caminhoCurtoPath);
     const parsedLink = new URL(offerLink);
-    expect(parsedLink.pathname).toBe('/agendar.html');
-    expect(parsedLink.searchParams.get('local')).toBe(fixture.publicLink);
+    expect(parsedLink.pathname).toBe(fixture.caminhoCurtoPath);
+    expect(parsedLink.pathname).toMatch(/^\/a\/[^/]+$/);
+    expect(parsedLink.search).toBe('');
     expect(/^#token=[a-f0-9]{64}$/i.test(parsedLink.hash)).toBe(true);
     await page.goto('about:blank');
     await page.goto(offerLink).catch(() => { throw new Error('The renderer-generated offer page could not be opened'); });
     await expect(page.locator('#offer-panel')).toBeVisible();
     await expect(page.locator('#offer-details')).toBeVisible();
+    await expect(page.locator('#offer-deadline')).toBeVisible();
+    await expect(page.locator('#offer-deadline')).toContainText('Oferta válida até');
     await expect(page.locator('#offer-details')).toContainText(fixture.service.nome);
     await expect(page.locator('#offer-details')).toContainText(fixture.professional.nome);
     await expect(page.locator('#offer-details')).toContainText(fixture.slot.date.split('-').reverse().join('/'));

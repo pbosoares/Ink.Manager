@@ -2037,3 +2037,201 @@ body:has(#workspace:not([hidden])) #login { display:none; }
   .whatsapp-contact { transition:none; }
   .whatsapp-contact:hover { transform:none; }
 }
+
+/* Landing CRO aprovada no Paper (25/10): azul cobalto, superfícies claras e foco no produto. */
+#public-landing { --cro-blue:#2456D8; --cro-ink:#171B2A; --cro-muted:#626977; --cro-tint:#F4F6FB; --cro-line:#E1E6EF; }
+#public-landing .marketing-header { min-height:78px; padding-inline:max(24px,calc((100vw - 1232px)/2)); border-bottom:0; }
+#public-landing .marketing-brand { font-family:'Inter Tight','Inter',system-ui,sans-serif; font-size:21px; letter-spacing:-.04em; }
+#public-landing .marketing-nav a,#public-landing .marketing-login { color:#3F4756; font-size:13px; }
+#public-landing .marketing-nav a:hover,#public-landing .marketing-login:hover,#public-landing .marketing-footer a:hover { color:var(--cro-blue); }
+#public-landing .marketing-header-cta { min-height:44px; border-radius:10px; background:var(--cro-blue); box-shadow:none; }
+#public-landing .marketing-header-cta:hover { background:#1D46B4; }
+.cro-container { width:min(1232px,calc(100% - 48px)); margin:0 auto; }
+.cro-kicker { display:block; color:var(--cro-blue); font-size:11px; font-weight:750; letter-spacing:.1em; line-height:1.5; }
+.cro-hero { width:100%; background:var(--cro-tint); }
+.cro-hero-grid { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); align-items:center; gap:64px; min-height:687px; padding-top:68px; padding-bottom:72px; }
+.cro-hero-copy { min-width:0; }
+.cro-hero-copy h1 { max-width:540px; margin:17px 0 18px; color:var(--cro-ink); font:750 clamp(42px,4.5vw,60px)/1.04 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.055em; }
+.cro-hero-copy>p:not(.cro-trial-copy):not(.cro-price-note) { max-width:500px; margin:0 0 24px; color:#626977; font-size:16px; line-height:1.65; }
+.cro-button { display:inline-flex; min-height:48px; align-items:center; justify-content:center; gap:12px; padding:0 20px; border:0; border-radius:10px; background:var(--cro-blue); color:#fff; font-size:14px; font-weight:700; transition:background .16s ease,transform .16s ease; }
+.cro-button:hover { transform:translateY(-1px); background:#1D46B4; color:#fff; }
+.cro-button:focus-visible { outline:3px solid #182E78; outline-offset:3px; }
+.cro-trial-copy { max-width:470px; margin:12px 0 4px; color:#343B4B; font-size:13px; font-weight:650; line-height:1.55; }
+.cro-price-note { margin:0; color:#727B8B; font-size:11px; line-height:1.5; }
+.cro-hero-preview { min-width:0; margin:0; padding:13px; overflow:hidden; border:1px solid #E1E6EF; border-radius:20px; background:#fff; box-shadow:0 18px 44px #171B2A0D; }
+.cro-hero-preview figcaption { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:2px 3px 12px; color:#475266; font-size:10px; font-weight:700; letter-spacing:.07em; }
+.cro-hero-preview figcaption span:last-child { display:inline-flex; align-items:center; gap:6px; color:#5C6575; font-size:10px; font-weight:500; letter-spacing:0; }
+.cro-hero-preview figcaption i { width:7px; height:7px; border-radius:50%; background:#36A77A; }
+.cro-hero-preview img { display:block; width:100%; height:auto; border-radius:12px; }
+.cro-section { padding:78px 0 82px; background:#fff; }
+.cro-section-heading { max-width:720px; margin:0 0 28px; }
+.cro-section-heading h2 { margin:9px 0 10px; color:var(--cro-ink); font:750 clamp(30px,3.3vw,40px)/1.12 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.045em; }
+.cro-section-heading p { margin:0; color:var(--cro-muted); font-size:15px; line-height:1.6; }
+.cro-preview-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.cro-preview-card { min-width:0; margin:0; overflow:hidden; border:1px solid #E2E7F0; border-radius:16px; background:#fff; }
+.cro-preview-card img { display:block; width:100%; height:auto; aspect-ratio:571 / 346; object-fit:cover; background:#F4F6FB; }
+.cro-preview-card figcaption { display:grid; gap:5px; padding:14px 18px 17px; }
+.cro-preview-card figcaption strong { color:var(--cro-ink); font-size:14px; }
+.cro-preview-card figcaption span { color:#687285; font-size:12px; line-height:1.5; }
+.cro-features-section,.cro-steps-section,.cro-faq-section { background:var(--cro-tint); }
+.cro-feature-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.cro-feature { min-width:0; min-height:168px; padding:18px; border:1px solid #E8ECF3; border-radius:14px; background:#fff; }
+.cro-feature>span { display:grid; width:29px; height:29px; place-items:center; margin-bottom:13px; border-radius:8px; background:#EAF0FF; color:var(--cro-blue); font-size:10px; font-weight:750; }
+.cro-feature h3 { margin:0 0 7px; color:var(--cro-ink); font:700 15px/1.3 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.015em; }
+.cro-feature p { margin:0; color:#687285; font-size:11px; line-height:1.55; }
+.cro-receipts-section { background:#fff; }
+.cro-business-preview { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; align-items:stretch; }
+.cro-preview-panel { min-width:0; padding:24px; border:1px solid var(--cro-line); border-radius:20px; background:#F8FAFD; }
+.cro-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.cro-panel-heading h3 { margin:0; color:#475266; font-size:11px; font-weight:750; letter-spacing:.08em; }
+.cro-panel-heading>span { flex:0 0 auto; padding:7px 10px; border-radius:8px; background:#EAF0FF; color:var(--cro-blue); font-size:10px; font-weight:750; }
+.cro-period-totals { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+.cro-period-totals>div { display:grid; align-content:start; gap:10px; min-width:0; min-height:102px; padding:16px; border:1px solid #E4E9F2; border-radius:14px; background:#fff; }
+.cro-period-totals span { color:#70798B; font-size:10px; font-weight:750; letter-spacing:.05em; }
+.cro-period-totals strong { color:var(--cro-ink); font:750 clamp(21px,2.2vw,29px)/1.1 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.035em; white-space:nowrap; }
+.cro-transactions { padding:14px; border:1px solid #E4E9F2; border-radius:13px; background:#fff; }
+.cro-transactions h4 { margin:0 0 8px; color:var(--cro-ink); font:700 14px/1.3 'Inter Tight','Inter',system-ui,sans-serif; }
+.cro-transaction { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #EDF0F5; }
+.cro-transaction:last-child { border-bottom:0; }
+.cro-transaction>span { display:grid; gap:3px; min-width:0; }
+.cro-transaction strong,.cro-transaction b { color:#262D3A; font-size:12px; }
+.cro-transaction small { color:#737D8F; font-size:11px; }
+.cro-transaction b { flex:0 0 auto; }
+.cro-panel-note { margin:12px 0 0; color:#8892A2; font-size:11px; line-height:1.5; }
+.cro-client-table { overflow:hidden; border:1px solid #E4E9F2; border-radius:14px; background:#fff; }
+.cro-client-row { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,.9fr) minmax(40px,.35fr) minmax(34px,.3fr); align-items:center; gap:8px; min-height:49px; margin:0 14px; border-bottom:1px solid #EDF0F5; color:#6D7789; font-size:11px; }
+.cro-client-row:last-child { border-bottom:0; }
+.cro-client-row strong { overflow:hidden; color:#262D3A; font-size:12px; font-weight:650; text-overflow:ellipsis; white-space:nowrap; }
+.cro-client-head { min-height:43px; margin:0; padding:0 14px; border:0; color:#798396; font-size:9px; font-weight:750; letter-spacing:.05em; }
+.cro-client-head span { white-space:nowrap; }
+.cro-more { color:var(--cro-blue); font-size:15px; font-weight:800; letter-spacing:1px; text-align:center; }
+.cro-centered-heading { margin-inline:auto; text-align:center; }
+.cro-centered-heading .cro-kicker { text-align:center; }
+.cro-steps-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:0; padding:0; list-style:none; }
+.cro-steps-grid li { display:flex; gap:14px; min-width:0; padding:18px; border:1px solid #E8ECF3; border-radius:14px; background:#fff; }
+.cro-steps-grid li>span { display:grid; width:34px; height:34px; flex:0 0 34px; place-items:center; border-radius:10px; background:var(--cro-blue); color:#fff; font-size:13px; font-weight:750; }
+.cro-steps-grid li>div { min-width:0; }
+.cro-steps-grid li strong { color:var(--cro-blue); font-size:9px; letter-spacing:.08em; }
+.cro-steps-grid h3 { margin:6px 0 5px; color:var(--cro-ink); font:700 15px/1.3 'Inter Tight','Inter',system-ui,sans-serif; }
+.cro-steps-grid p { margin:0; color:#687285; font-size:11px; line-height:1.5; }
+.cro-pricing-section { padding-top:82px; padding-bottom:86px; }
+.cro-pricing-card { display:grid; grid-template-columns:minmax(0,1.2fr) 1px minmax(0,.92fr); gap:26px; width:min(1040px,100%); margin:0 auto; padding:32px; border:1px solid #E1E6EF; border-radius:20px; background:#F8FAFD; }
+.cro-plan-main { min-width:0; }
+.cro-plan-label { color:var(--cro-blue); font-size:10px; font-weight:750; letter-spacing:.08em; }
+.cro-plan-price { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; margin:7px 0 12px; }
+.cro-plan-price strong { color:var(--cro-ink); font:750 40px/1 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.04em; }
+.cro-plan-price span { color:#697386; font-size:12px; }
+.cro-plan-main>p { margin:0 0 16px; color:#566176; font-size:12px; line-height:1.6; }
+.cro-plan-main ul { display:grid; gap:9px; margin:0; padding:0; list-style:none; }
+.cro-plan-main li { position:relative; padding-left:21px; color:#485368; font-size:11px; line-height:1.5; }
+.cro-plan-main li::before { position:absolute; left:0; color:#279B73; content:'✓'; font-weight:800; }
+.cro-pricing-card::before { grid-column:2; grid-row:1; width:1px; background:#E1E6EF; content:''; }
+.cro-payment-options { display:grid; align-content:start; gap:10px; grid-column:3; }
+.cro-payment-options article { display:grid; gap:4px; padding:12px 13px; border:1px solid #E4E9F2; border-radius:11px; background:#fff; }
+.cro-payment-options article strong { color:#283143; font-size:12px; }
+.cro-payment-options article span { color:#687285; font-size:10px; line-height:1.5; }
+.cro-payment-options .cro-button { width:100%; margin-top:2px; }
+.cro-faq-section { padding-top:78px; padding-bottom:82px; }
+.cro-faq-list { width:min(860px,100%); margin:0 auto; overflow:hidden; border:1px solid #E8ECF3; border-radius:15px; background:#fff; }
+.cro-faq-list details { padding:0 18px; border-bottom:1px solid #EDF0F5; }
+.cro-faq-list details:last-child { border-bottom:0; }
+.cro-faq-list summary { position:relative; padding:17px 32px 17px 0; color:#283143; font-size:13px; font-weight:650; line-height:1.45; cursor:pointer; list-style:none; }
+.cro-faq-list summary::-webkit-details-marker { display:none; }
+.cro-faq-list summary::after { position:absolute; top:15px; right:2px; color:var(--cro-blue); content:'+'; font-size:18px; font-weight:500; }
+.cro-faq-list details[open] summary::after { content:'−'; }
+.cro-faq-list details p { max-width:760px; margin:0; padding:0 28px 16px 0; color:#687285; font-size:12px; line-height:1.6; }
+.cro-final-cta { padding:0 0 54px; background:var(--cro-tint); }
+.cro-final-cta-inner { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 30px; border-radius:16px; background:var(--cro-blue); color:#fff; }
+.cro-final-cta h2 { margin:0 0 5px; color:#fff; font:700 22px/1.2 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.025em; }
+.cro-final-cta p { margin:0; color:#E8EEFF; font-size:12px; }
+.cro-button-light { flex:0 0 auto; background:#fff; color:var(--cro-blue); }
+.cro-button-light:hover { background:#EEF2FF; color:#1D46B4; }
+
+@media(max-width:1050px) {
+  .cro-hero-grid { gap:36px; min-height:610px; }
+  .cro-feature-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .cro-preview-panel { padding:18px; }
+}
+@media(max-width:800px) {
+  #public-landing .marketing-header { flex-wrap:wrap; gap:12px 18px; padding:14px 22px; }
+  #public-landing .marketing-header>.marketing-brand { margin-right:auto; }
+  #public-landing .marketing-nav { order:3; flex:1 0 100%; justify-content:center; gap:clamp(12px,4vw,28px); padding-top:11px; border-top:1px solid #EEF0F4; }
+  #public-landing .marketing-actions { gap:14px; }
+  .cro-container { width:min(700px,calc(100% - 40px)); }
+  .cro-hero-grid { grid-template-columns:minmax(0,1fr); gap:28px; min-height:0; padding-top:52px; padding-bottom:58px; }
+  .cro-hero-copy h1 { max-width:650px; font-size:clamp(40px,8vw,58px); }
+  .cro-hero-preview { max-width:680px; }
+  .cro-section { padding:62px 0; }
+  .cro-business-preview { gap:16px; }
+  .cro-period-totals { grid-template-columns:minmax(0,1fr); }
+  .cro-period-totals>div { min-height:0; }
+  .cro-steps-grid { grid-template-columns:minmax(0,1fr); }
+  .cro-pricing-card { grid-template-columns:minmax(0,1fr); gap:18px; padding:24px; }
+  .cro-pricing-card::before { display:none; }
+  .cro-payment-options { grid-column:auto; }
+}
+@media(max-width:600px) {
+  #public-landing .marketing-header { padding:13px 16px; }
+  #public-landing .marketing-header-cta { min-height:40px; padding:0 13px; font-size:12px; }
+  #public-landing .marketing-actions { gap:12px; }
+  #public-landing .marketing-login { font-size:12px; }
+  #public-landing .marketing-nav { justify-content:space-between; gap:8px; }
+  #public-landing .marketing-nav a { font-size:11px; white-space:nowrap; }
+  .cro-container { width:calc(100% - 36px); }
+  .cro-hero-grid { gap:23px; padding-top:37px; padding-bottom:44px; }
+  .cro-kicker { font-size:9px; letter-spacing:.09em; }
+  .cro-hero-copy h1 { margin:12px 0; font-size:clamp(36px,9.5vw,46px); }
+  .cro-hero-copy>p:not(.cro-trial-copy):not(.cro-price-note) { margin-bottom:18px; font-size:14px; }
+  .cro-button { min-height:47px; padding-inline:17px; font-size:13px; }
+  .cro-trial-copy { font-size:12px; }
+  .cro-price-note { font-size:10px; }
+  .cro-hero-preview { padding:9px; border-radius:15px; }
+  .cro-hero-preview figcaption { padding-bottom:9px; font-size:8px; }
+  .cro-hero-preview figcaption span:last-child { font-size:9px; }
+  .cro-section { padding:52px 0; }
+  .cro-section-heading { margin-bottom:22px; }
+  .cro-section-heading h2 { font-size:30px; }
+  .cro-section-heading p { font-size:13px; }
+  .cro-preview-grid { grid-template-columns:minmax(0,1fr); gap:14px; }
+  .cro-preview-card figcaption { padding:12px 14px 15px; }
+  .cro-preview-card figcaption span { font-size:11px; }
+  .cro-feature-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+  .cro-feature { min-height:154px; padding:13px; border-radius:12px; }
+  .cro-feature>span { width:26px; height:26px; margin-bottom:10px; font-size:9px; }
+  .cro-feature h3 { font-size:13px; }
+  .cro-feature p { font-size:10px; }
+  .cro-business-preview { grid-template-columns:minmax(0,1fr); gap:12px; }
+  .cro-preview-panel { padding:14px; border-radius:15px; }
+  .cro-period-totals { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .cro-period-totals>div { min-height:87px; padding:12px 10px; gap:8px; }
+  .cro-period-totals span { font-size:8px; }
+  .cro-period-totals strong { font-size:clamp(18px,5.4vw,24px); }
+  .cro-transactions { padding:11px; }
+  .cro-transaction { gap:8px; }
+  .cro-transaction strong,.cro-transaction b { font-size:11px; }
+  .cro-transaction small { font-size:10px; }
+  .cro-client-row { grid-template-columns:minmax(0,1.1fr) minmax(0,.85fr) 34px 28px; gap:5px; min-height:43px; margin-inline:9px; font-size:9px; }
+  .cro-client-row strong { font-size:10px; }
+  .cro-client-head { min-height:37px; margin:0; padding-inline:9px; font-size:8px; }
+  .cro-panel-note { font-size:10px; }
+  .cro-steps-grid { gap:9px; }
+  .cro-steps-grid li { gap:11px; padding:14px; }
+  .cro-steps-grid li>span { width:30px; height:30px; flex-basis:30px; }
+  .cro-steps-grid li strong { font-size:8px; }
+  .cro-steps-grid h3 { font-size:14px; }
+  .cro-steps-grid p { font-size:10px; }
+  .cro-pricing-card { padding:18px; border-radius:16px; }
+  .cro-plan-price strong { font-size:36px; }
+  .cro-faq-list details { padding-inline:13px; }
+  .cro-faq-list summary { padding:15px 28px 15px 0; font-size:12px; }
+  .cro-faq-list details p { padding-right:14px; font-size:11px; }
+  .cro-final-cta { padding-bottom:38px; }
+  .cro-final-cta-inner { align-items:flex-start; flex-direction:column; gap:16px; padding:20px; }
+  .cro-final-cta h2 { font-size:20px; }
+  .cro-final-cta p { font-size:11px; }
+  .cro-button-light { width:100%; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .cro-button { transition:none; }
+  .cro-button:hover { transform:none; }
+}

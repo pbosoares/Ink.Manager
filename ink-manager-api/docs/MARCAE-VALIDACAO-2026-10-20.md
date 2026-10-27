@@ -307,3 +307,19 @@ Encerramento: app, sink e cluster efemeros foram finalizados; portas 55446, 8087
 ### Adendo LEAD-085 - whitespace posterior a matriz
 
 Apos a matriz LEAD-085, foi removida somente uma linha em branco no EOF da nova migration V16 `src/main/resources/db/migration/V16__stripe_billing_provider.sql`, para corrigir `git diff --cached --check`. A alteracao e exclusivamente whitespace; o SQL permanece semanticamente identico ao conteudo validado. Os resultados LEAD-085 continuam correspondendo a essa migration. Nenhum teste foi repetido nesta etapa.
+
+### Adendo - validacao H2 do commit ba30cec (25/10/2026)
+
+Fingerprint LEAD-047 recalculado duas vezes antes da execucao: 195 arquivos, SHA-256 `be66ff355e90b6b4b037ed96b7b68b28e2b1dffdc74b09944e2f7b9657968051`, identico nas duas leituras. Preflight encontrou zero JVM/Maven do Ink Manager e zero Playwright; o listener 8080 pertence ao container independente `brasildecide2026-backend-1`, e as classes de integracao do Ink Manager usam porta aleatoria. Nenhum servidor do projeto estava ouvindo em 8087.
+
+Comando: `.\mvnw.cmd test`, Temurin JDK 25.0.3, H2 em memoria (`INK_TEST_DB_DRIVER=org.h2.Driver`), `MAIL_ENABLED=false`, sem PostgreSQL. Resultado Maven: exit 1 / BUILD FAILURE; 94 testes, 1 falha, 0 erros, 1 skip (MigrationUpgradeTest condicional para PostgreSQL). Log: `target/validacao-ba30cec-h2.log`.
+
+A classe `StudioIntegrationTest` passou 57/57, incluindo GET anonimo dos tres PNGs com HTTP 200 e `Content-Type: image/png`. A falha foi `AgendamentoLembreteRendererTest.renderizaLembreteComDadosAtuaisELinksDeAcao`: esperava o assunto `Lembrete do seu agendamento`, mas recebeu `Lembrete: seu agendamento`. Nenhuma outra fase da matriz foi executada; nao houve rerun.
+
+### LEAD-087 - revalidacao do checkout atual (26/10/2026)
+
+Depois do resultado historico acima, a expectativa do teste do lembrete foi alinhada ao assunto curto aprovado. Na revisao atual, H2 terminou com 94 testes, 0 falhas, 0 erros e 1 skip condicional para PostgreSQL (`target/validation-fontfix-h2.log`); PostgreSQL terminou com 94 testes, 0 falhas, 0 erros e 0 skips (`target/validation-fontfix-postgresql.log`). O JAR foi reconstruido em `target/validation-fontfix-package.log`. A matriz waitlist/oferta passou 1/1 em desktop 1366 px e 1/1 em mobile 390 px, usando SMTP sink local, sem envio externo (`target/validation-fontfix-waitlist-desktop-20261026.log` e `target/validation-fontfix-waitlist-mobile-20261026.log`).
+
+O primeiro Playwright regular desta rodada teve 3/4: o teste mobile verificou a secao de relatorio antes de ela estar visivel (`target/validation-fontfix-regular-20261026-22dddb18.log`). A sincronizacao do helper foi corrigida sem aumentar timeout nem enfraquecer as verificacoes. A execucao completa seguinte passou 4/4, 0 falhas, skips ou casos flaky, cobrindo desktop/mobile, contrato e studio. Relatorio JSON: `target/validation-regular-current-readiness-20261026.json`. O bootstrap autenticado e o reload completaram nesta execucao; os GETs ficaram abaixo do timeout existente. A demora isolada anterior nao se reproduziu, mas sua causa historica segue sem determinacao conclusiva.
+
+As validacoes usaram somente banco PostgreSQL dedicado local; mensagens de teste ficaram no sink local. Nenhum dado de producao, email externo, pagamento live ou VPS foi usado. O pacote selecionado inclui as mudancas de aplicacao e os SVGs da landing efetivamente referenciados (`landing/marcae-painel-preview.svg`, `landing/agenda-preview.svg`, `landing/reserva-preview.svg`). Artes conceituais sem referencia, perfis de navegador, logs, bancos, artefatos de teste e documentos de coordenacao ficaram fora do pacote.

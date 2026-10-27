@@ -7,32 +7,138 @@ const { runAuthenticatedReloadDiagnostics } = require('./diagnostics.cjs');
 // Keep multi-context headless pages scheduled while the other role is active.
 test.use({ launchOptions: { args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] } });
 
-async function waitForWorkspace(page) {
-  await page.waitForFunction(() => {
-    const action = document.querySelector('#main-action');
-    const retry = document.querySelector('#page-error button');
-    return Boolean(action && !action.disabled) || Boolean(retry && !retry.hidden);
-  }, null, { timeout: 30000 });
-  if (await page.locator('#main-action').isDisabled()) {
-    const failure = await page.locator('#page-error').innerText();
-    const requests = page.__inkFailedRequests || [];
-    const responses = page.__inkHttpFailures || [];
-    test.info().annotations.push({ type: 'workspace-fetch-failure', description: JSON.stringify({ failure, requests, responses }) });
-    const retry = page.locator('#page-error button');
-    if (await retry.isVisible().catch(() => false)) await retry.click();
+const workspaceBootstrapPaths = new Set(['/clientes', '/marcacoes', '/profissionais', '/auth/me']);
+
+function workspaceBootstrapSummary(page) {
+  return (page.__inkWorkspaceBootstrapAttempts || []).map(({ method, path, status, responseElapsedMs, elapsedMs, failure, finished }) => ({
+    method, path, status, responseElapsedMs, elapsedMs, failure, pending: !finished
+  }));
+}
+
+function assertFirstBootstrapRequest(attempts, method, path) {
+  const attempt = attempts.find(candidate => candidate.method === method && candidate.path === path);
+  expect(attempt, `first bootstrap request ${method} ${path} must be captured`).toBeTruthy();
+  expect(attempt.failure, `first bootstrap request ${method} ${path} must not fail`).toBeNull();
+  expect(attempt.status, `first bootstrap request ${method} ${path} must return HTTP 200`).toBe(200);
+  expect(attempt.finished, `first bootstrap request ${method} ${path} must finish reading its response`).toBe(true);
+  expect(attempt.elapsedMs, `first bootstrap request ${method} ${path} must finish before the 20s client abort`).toBeLessThan(20000);
+}
+
+async function waitForWorkspace(page, { captureBootstrap = false } = {}) {
+  const waitForState = async (allowRetry) => {
+    const result = await page.waitForFunction((retryAllowed) => {
+      const workspace = document.querySelector('#workspace');
+      const action = document.querySelector('#main-action');
+      const style = workspace ? getComputedStyle(workspace) : null;
+      const workspaceVisible = Boolean(workspace && !workspace.hidden && workspace.getClientRects().length > 0 &&
+        style.display !== 'none' && style.visibility !== 'hidden');
+      const authenticated = Boolean(sessionStorage.getItem('ink.token')?.trim());
+      const ariaBusy = workspace?.getAttribute('aria-busy') ?? null;
+      const actionEnabled = Boolean(action && !action.hidden && !action.disabled);
+      const ready = workspaceVisible && ariaBusy === 'false' && actionEnabled && authenticated;
+      const retry = workspaceVisible ? workspace.querySelector('#page-error button') : null;
+      const retryVisible = Boolean(retry && !retry.hidden && retry.getClientRects().length > 0);
+      return ready || (retryAllowed && retryVisible)
+        ? { ready, workspaceVisible, ariaBusy, actionEnabled, authenticated, retryVisible }
+        : false;
+    }, allowRetry, { timeout: 30000 });
+    return result.jsonValue();
+  };
+
+  let state;
+  try {
+    state = await waitForState(true);
+    if (!state.ready) {
+      const failure = await page.locator('#workspace #page-error').innerText();
+      const requests = page.__inkFailedRequests || [];
+      const responses = page.__inkHttpFailures || [];
+      test.info().annotations.push({
+        type: 'workspace-fetch-failure',
+        description: JSON.stringify({ failure, requests, responses, bootstrap: workspaceBootstrapSummary(page), state })
+      });
+      const retry = page.locator('#workspace #page-error button');
+      if (state.workspaceVisible && state.retryVisible && await retry.isVisible().catch(() => false)) {
+        await retry.click();
+        state = await waitForState(false);
+      }
+    }
+
+    expect(state.workspaceVisible, 'workspace must be visible after authentication').toBe(true);
+    expect(state.ariaBusy, 'workspace data loading must be finished').toBe('false');
+    expect(state.actionEnabled, 'main action must be enabled after workspace load').toBe(true);
+    expect(state.authenticated, 'browser session must contain the authenticated token').toBe(true);
+    await expect(page.locator('#main-action')).toBeEnabled({ timeout: 30000 });
+  } catch (error) {
+    if (captureBootstrap) {
+      page.__inkWorkspaceBootstrapCapture = false;
+      test.info().annotations.push({
+        type: 'authenticated-workspace-bootstrap',
+        description: JSON.stringify({ viewportWidth: page.viewportSize()?.width ?? null, outcome: 'not-ready', requests: workspaceBootstrapSummary(page) })
+      });
+    }
+    throw error;
   }
-  await expect(page.locator('#main-action')).toBeEnabled({ timeout: 30000 });
+
+  if (captureBootstrap) {
+    page.__inkWorkspaceBootstrapCapture = false;
+    const attempts = page.__inkWorkspaceBootstrapAttempts || [];
+    test.info().annotations.push({
+      type: 'authenticated-workspace-bootstrap',
+      description: JSON.stringify({ viewportWidth: page.viewportSize()?.width ?? null, outcome: 'ready', requests: workspaceBootstrapSummary(page) })
+    });
+    assertFirstBootstrapRequest(attempts, 'POST', '/auth/login');
+    for (const path of workspaceBootstrapPaths) assertFirstBootstrapRequest(attempts, 'GET', path);
+  }
 }
 function recordWorkspaceFailures(page) {
   page.__inkFailedRequests = [];
   page.__inkHttpFailures = [];
+  page.__inkWorkspaceBootstrapCapture = true;
+  page.__inkWorkspaceBootstrapAttempts = [];
+  page.__inkWorkspaceBootstrapByRequest = new WeakMap();
+  page.on('request', request => {
+    if (!page.__inkWorkspaceBootstrapCapture) return;
+    let url;
+    try { url = new URL(request.url()); } catch { return; }
+    if (url.origin !== 'http://127.0.0.1:8087') return;
+    const method = request.method();
+    const isLogin = method === 'POST' && url.pathname === '/auth/login';
+    const isWorkspaceGet = method === 'GET' && workspaceBootstrapPaths.has(url.pathname);
+    if (!isLogin && !isWorkspaceGet) return;
+    const attempt = { method, path: url.pathname, status: null, responseElapsedMs: null, elapsedMs: null, failure: null, finished: false, startedAt: Date.now() };
+    page.__inkWorkspaceBootstrapByRequest.set(request, attempt);
+    page.__inkWorkspaceBootstrapAttempts.push(attempt);
+  });
+  page.on('requestfinished', request => {
+    const attempt = page.__inkWorkspaceBootstrapByRequest.get(request);
+    if (!attempt) return;
+    attempt.elapsedMs = Date.now() - attempt.startedAt;
+    attempt.finished = true;
+  });
   page.on('requestfailed', request => {
-    if (new URL(request.url()).origin !== 'http://127.0.0.1:8087') return;
-    page.__inkFailedRequests.push({ path: new URL(request.url()).pathname, failure: request.failure()?.errorText });
+    let url;
+    try { url = new URL(request.url()); } catch { return; }
+    if (url.origin !== 'http://127.0.0.1:8087') return;
+    const attempt = page.__inkWorkspaceBootstrapByRequest.get(request);
+    const failureText = request.failure()?.errorText || '';
+    const errorCode = failureText.match(/(?:net::)?ERR_[A-Z0-9_]+/i)?.[0] || 'request failed';
+    if (attempt) {
+      attempt.failure = errorCode;
+      attempt.elapsedMs = Date.now() - attempt.startedAt;
+      attempt.finished = true;
+    }
+    page.__inkFailedRequests.push({ path: url.pathname, failure: errorCode });
   });
   page.on('response', response => {
-    if (new URL(response.url()).origin !== 'http://127.0.0.1:8087' || response.status() < 400) return;
-    page.__inkHttpFailures.push({ path: new URL(response.url()).pathname, status: response.status() });
+    let url;
+    try { url = new URL(response.url()); } catch { return; }
+    if (url.origin !== 'http://127.0.0.1:8087') return;
+    const attempt = page.__inkWorkspaceBootstrapByRequest.get(response.request());
+    if (attempt) {
+      attempt.status = response.status();
+      attempt.responseElapsedMs = Date.now() - attempt.startedAt;
+    }
+    if (response.status() >= 400) page.__inkHttpFailures.push({ path: url.pathname, status: response.status() });
   });
 }
 
@@ -157,11 +263,11 @@ for (const width of [1366, 390]) {
     expect(login.ok()).toBeTruthy();
     const { token } = await login.json();
     const headers = { Authorization: `Bearer ${token}` };
-    await page.goto('/');
+    await page.goto('/#login');
     await page.locator('#auth-form [name=email]').fill(email);
     await page.locator('#auth-form [name=senha]').fill('SenhaTeste123');
     await page.locator('#auth-submit').click();
-    await waitForWorkspace(page);
+    await waitForWorkspace(page, { captureBootstrap: true });
     await expect(page.locator('#monthly-report')).toBeVisible();
     await expect(page.locator('#report-data')).toBeVisible();
     await page.locator('#report-range').selectOption('week');
@@ -180,10 +286,16 @@ for (const width of [1366, 390]) {
     await page.locator('#service-form [name=ativo]').check();
     await page.locator('#service-save').click();
     await expect(page.locator('#service-list')).toContainText('Servico UI');
-    await expect(page.locator('#public-link')).toHaveValue(/agendar.html\?local=/);
+    const linksResponse = await request.get('/servicos/link', { headers });
+    expect(linksResponse.ok()).toBeTruthy();
+    const link = await linksResponse.json();
     const publicUrl = await page.locator('#public-link').inputValue();
-    const link = new URL(publicUrl).searchParams.get('local');
-    const catalogResponse = await request.get(`/publico/${encodeURIComponent(link)}`);
+    const shortUrl = new URL(link.caminhoCurto, page.url());
+    expect(new URL(publicUrl).href).toBe(shortUrl.href);
+    expect(shortUrl.pathname).toMatch(/^\/a\/[A-Za-z0-9_-]+$/);
+    const linkPublico = new URL(link.caminho, page.url()).searchParams.get('local');
+    expect(linkPublico).toBeTruthy();
+    const catalogResponse = await request.get(`/publico/${encodeURIComponent(linkPublico)}`);
     expect(catalogResponse.ok()).toBeTruthy();
     const catalog = await catalogResponse.json();
     const service = catalog.servicos.find(s => s.nome === 'Servico UI');
@@ -193,7 +305,7 @@ for (const width of [1366, 390]) {
       const date = new Date(`${catalog.hoje}T12:00:00Z`);
       date.setUTCDate(date.getUTCDate() + offset);
       const data = date.toISOString().slice(0, 10);
-      const response = await request.get(`/publico/${encodeURIComponent(link)}/horarios`, { params: {
+      const response = await request.get(`/publico/${encodeURIComponent(linkPublico)}/horarios`, { params: {
         servicoId: service.id, profissionalId: professional.id, data
       }});
       expect(response.ok()).toBeTruthy();
@@ -212,6 +324,7 @@ for (const width of [1366, 390]) {
         if (req.method() === 'POST' && new URL(req.url()).pathname.endsWith('/reservas')) reservationPayloads.push(req.postDataJSON());
       });
       await guest.goto(publicUrl);
+      expect(new URL(guest.url()).pathname).toBe(shortUrl.pathname);
       await expect(guest.locator('#booking-form')).toBeVisible();
       await guest.locator('#public-service').selectOption(String(service.id));
       await guest.locator('#public-professional').selectOption(String(professional.id));
@@ -298,8 +411,7 @@ for (const width of [1366, 390]) {
     await expect(page.locator('#receipt-dialog')).not.toBeVisible();
     await page.locator('[data-view=receipts]').click();
     await expect(page.locator('#receipts-week')).toContainText('80,25');
-    await expect(page.locator('#receipts-month')).toContainText('80,25');
-    await expect(page.locator('#receipts-list')).toContainText(`Cliente UI ${width}`);
+    await expect(page.locator('#receipts-month')).toContainText('80,25');    await expect(page.locator('#receipts-list')).toContainText(`Cliente UI ${width}`);
     await page.screenshot({ path: `target/marcae-dashboard-${width}.png`, fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(errors).toEqual([]);

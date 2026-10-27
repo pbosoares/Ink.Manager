@@ -41,7 +41,7 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   recordWorkspaceFailures(page);
   page.on('pageerror', (error) => errors.push(error.message));
   await page.bringToFront();
-  await page.goto('/');
+  await page.goto('/#login');
   await page.screenshot({ path: 'target/validation-login.png', fullPage: true });
   await page.locator('#toggle-auth').click();
   await page.locator('#auth-form [name=nome]').fill('Equipe E2E');
@@ -117,7 +117,7 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   try {
     const staffPage = await staffContext.newPage();
     await staffPage.bringToFront();
-    await staffPage.goto('/');
+    await staffPage.goto('/#login');
     await staffPage.locator('#auth-form [name=email]').fill(staffEmail);
     await staffPage.locator('#auth-form [name=senha]').fill('SenhaTeste123');
     await staffPage.locator('#auth-submit').click();

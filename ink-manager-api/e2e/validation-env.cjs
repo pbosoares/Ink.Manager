@@ -3,6 +3,9 @@
 const { spawnSync } = require('node:child_process');
 
 const LOOPBACK_HOST = '127.0.0.1';
+const LOOPBACK_MAIL_FIXTURE_MARKER = 'loopback-smtp-api-preflight-passed';
+const WAITLIST_DB_ROLE = 'ink_validation';
+const WAITLIST_DB_PASSWORD_SENTINEL = 'e2e-loopback-trust-sentinel';
 const SMTP_SENTINELS = Object.freeze({
   MAIL_ENABLED: 'true',
   MAIL_HOST: LOOPBACK_HOST,
@@ -82,7 +85,7 @@ Promise.all([probeMailbox(), probeSmtp()]).then(
 );
 `;
 
-function database(value = process.env.DB_URL) {
+function isolatedDatabase(value = process.env.DB_URL) {
   const match = String(value || '').match(/^jdbc:(postgresql):\/\/(.*)$/i);
   if (!match) throw new Error('DB_URL must be a PostgreSQL JDBC URL for an isolated local validation database');
   let parsed;
@@ -99,10 +102,15 @@ function database(value = process.env.DB_URL) {
   if (!/^marcae_validation_[a-z0-9_]+$/i.test(name)) {
     throw new Error('DB_URL database name must use the marcae_validation_ prefix');
   }
+  return { url: value, name };
+}
+
+function database(value = process.env.DB_URL) {
+  const isolated = isolatedDatabase(value);
   if (!process.env.DB_USERNAME || !process.env.DB_PASSWORD) {
     throw new Error('DB_USERNAME and DB_PASSWORD must be set for the isolated validation database');
   }
-  return { url: value, username: process.env.DB_USERNAME, password: process.env.DB_PASSWORD };
+  return { ...isolated, username: process.env.DB_USERNAME, password: process.env.DB_PASSWORD };
 }
 
 const REGULAR_BLOCKED_PREFIX = /^(SPRING_|MAIL_|SMTP_|RESEND_|STRIPE_|MP_|MERCADOPAGO_|BILLING_|PAYMENT_)/i;
@@ -229,9 +237,7 @@ function ephemeralEnvironment(db, mailbox, baseURL) {
   return env;
 }
 
-function requireLoopbackMail(baseURL) {
-  validateInheritedMailEnvironment(baseURL);
-  const db = database();
+function mailboxEndpoint() {
   const mailboxValue = process.env.E2E_MAILBOX_API || '';
   let mailbox;
   try { mailbox = new URL(mailboxValue); }
@@ -240,7 +246,10 @@ function requireLoopbackMail(baseURL) {
       mailbox.username || mailbox.password || mailbox.search || mailbox.hash || mailbox.pathname !== '/api/v1/') {
     throw new Error('E2E_MAILBOX_API must be http://127.0.0.1:8025/api/v1/ with no credentials or extra URL data');
   }
-  const smtp = { host: LOOPBACK_HOST, port: 1025 };
+  return mailbox;
+}
+
+function preflightLoopbackMail(mailbox, smtp) {
   const probe = spawnSync(process.execPath, ['-e', MAILPIT_PREFLIGHT, JSON.stringify({
     mailboxApi: mailbox.href, smtpHost: smtp.host, smtpPort: smtp.port
   })], {
@@ -251,19 +260,52 @@ function requireLoopbackMail(baseURL) {
   if (probe.error || probe.status !== 0) {
     throw new Error('Local Mailpit SMTP/API preflight failed; no application server was started');
   }
-
-  const testEnv = {
-    ...SMTP_SENTINELS,
-    STRIPE_SECRET_KEY: '',
-    STRIPE_WEBHOOK_SECRET: '',
-    MP_ACCESS_TOKEN: '',
-    MP_WEBHOOK_SECRET: '',
-    BILLING_PROVIDER: 'stripe',
-    MAIL_HEALTH_ENABLED: 'false',
-    PUBLIC_URL: baseURL,
-    E2E_MAILBOX_API: mailbox.href
-  };
-  return { db, mailbox, smtp, testEnv, serverEnv: ephemeralEnvironment(db, mailbox, baseURL) };
 }
 
-module.exports = { database, regularWebServerEnvironment, requireLoopbackMail };
+function requireLoopbackMail(baseURL) {
+  const smtp = { host: LOOPBACK_HOST, port: 1025 };
+  const validatedMarker = process.env.E2E_LOCAL_MAIL_FIXTURE === LOOPBACK_MAIL_FIXTURE_MARKER;
+
+  if (validatedMarker) {
+    const runnerMailVariables = Object.keys(process.env).filter(name => /^(MAIL_|SMTP_|SPRING_MAIL_)/i.test(name));
+    if (runnerMailVariables.length) throw new Error('Validated waitlist runner must not contain MAIL/SMTP variables');
+    if (process.env.DB_USERNAME || process.env.DB_PASSWORD) {
+      throw new Error('Validated waitlist runner must not retain database credentials');
+    }
+    if (process.env.PUBLIC_URL && process.env.PUBLIC_URL !== baseURL) {
+      throw new Error('PUBLIC_URL must be unset or match the ephemeral loopback app URL');
+    }
+
+    // Worker config reload: repeat only non-secret guards. The app environment
+    // was built by the initial config load and is not reconstructed here.
+    const db = isolatedDatabase();
+    const mailbox = mailboxEndpoint();
+    preflightLoopbackMail(mailbox, smtp);
+    return { db, mailbox, smtp, fixtureValidated: true, serverEnv: undefined };
+  }
+
+  validateInheritedMailEnvironment(baseURL);
+  const db = database();
+  if (db.username !== WAITLIST_DB_ROLE) {
+    throw new Error('DB_USERNAME must be the restricted local validation role');
+  }
+  if (db.password !== WAITLIST_DB_PASSWORD_SENTINEL) {
+    throw new Error('DB_PASSWORD must be the fixed local validation sentinel');
+  }
+  const mailbox = mailboxEndpoint();
+  preflightLoopbackMail(mailbox, smtp);
+  return {
+    db,
+    mailbox,
+    smtp,
+    fixtureValidated: false,
+    serverEnv: ephemeralEnvironment(db, mailbox, baseURL)
+  };
+}
+
+module.exports = {
+  database,
+  regularWebServerEnvironment,
+  requireLoopbackMail,
+  LOOPBACK_MAIL_FIXTURE_MARKER
+};

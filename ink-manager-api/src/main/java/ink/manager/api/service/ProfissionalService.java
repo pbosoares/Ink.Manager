@@ -27,7 +27,17 @@ public class ProfissionalService {
         this.profissionais=profissionais;this.horarios=horarios;this.bloqueios=bloqueios;this.marcacoes=marcacoes;
         this.estudios=estudios;this.guard=guard;this.disponibilidade=disponibilidade;this.acesso=acesso;this.clock=clock;
     }
-    @Transactional(readOnly=true) public List<ProfissionalResponse> listar(){return profissionais.findByEstudioId(acesso.estudioId()).stream().map(this::resposta).toList();}
+    @Transactional(readOnly=true) public List<ProfissionalResponse> listar(){
+        var lista=profissionais.findByEstudioId(acesso.estudioId());
+        if(lista.isEmpty())return List.of();
+        var ids=lista.stream().map(Profissional::getId).toList();
+        var porProfissional=new HashMap<Long,List<ProfissionalRequest.Turno>>();
+        for(var horario:horarios.listarPorEstudioEProfissionaisOrdenado(acesso.estudioId(),ids))
+            porProfissional.computeIfAbsent(horario.getProfissionalId(),ignored->new ArrayList<>())
+                    .add(new ProfissionalRequest.Turno(horario.getDiaSemana(),horario.getInicio(),horario.getFim()));
+        return lista.stream().map(p->new ProfissionalResponse(p.getId(),p.getNome(),p.isAtivo(),p.getVersion(),
+                porProfissional.getOrDefault(p.getId(),List.of()))).toList();
+    }
     private ProfissionalResponse resposta(Profissional p){return ProfissionalResponse.from(p,horarios.findByProfissionalIdOrderByDiaSemanaAscInicioAsc(p.getId()));}
     public ProfissionalResponse salvar(Long id,ProfissionalRequest request){
         guard.bloquear();var turnos=new ArrayList<>(request.horarios());

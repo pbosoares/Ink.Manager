@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="571" height="346" viewBox="0 0 571 346" style="width: 100%; height: 346px">
+  <rect width="571" height="346" rx="10" fill="#F4F6FB" />
+  <rect x=".5" y=".5" width="570" height="345" rx="9.5" fill="none" stroke="#DCE4F1" />
+  <rect width="97" height="346" rx="10" fill="#171B2A" />
+  <rect x="87" width="10" height="346" fill="#171B2A" />
+  <rect x="10" y="12" width="22" height="22" rx="6" fill="#2456D8" />
+  <rect x="16" y="18" width="10" height="10" rx="2" fill="none" stroke="#FFFFFF" />
+  <line x1="16" y1="21.5" x2="26" y2="21.5" stroke="#FFFFFF" stroke-width="0.8" />
+  <line x1="18.5" y1="16.5" x2="18.5" y2="19.5" stroke="#FFFFFF" stroke-linecap="round" />
+  <line x1="23.5" y1="16.5" x2="23.5" y2="19.5" stroke="#FFFFFF" stroke-linecap="round" />
+  <text x="37" y="25" font-family="Inter,Arial,sans-serif" font-size="8.3" font-weight="700" fill="#FFFFFF">
+    Marcaê
+  </text>
+  <text x="37" y="32" font-family="Inter,Arial,sans-serif" font-size="4.2" font-weight="600" letter-spacing=".35" fill="#AEB8CE">
+    AGENDA DO NEGÓCIO
+  </text>
+  <text x="10" y="52" font-family="Inter,Arial,sans-serif" font-size="5.8" font-weight="700" letter-spacing=".65" fill="#98A4BD">
+    O NEGÓCIO
+  </text>
+  <g font-family="Inter,Arial,sans-serif" font-size="6.6">
+    <path d="M14 65l3-3 3 3-3 3z" fill="none" stroke="#AEB8CE" stroke-width="0.8" />
+    <text x="27" y="67.5" fill="#D2D9E8">
+      Visão geral
+    </text>
+    <rect x="7" y="77" width="81" height="21" rx="6" fill="#2A3550" />
+    <rect x="13" y="83" width="7" height="8" rx="1.5" fill="#2456D8" />
+    <text x="27" y="91" fill="#D2D9E8">
+      Agenda
+    </text>
+    <circle cx="17" cy="111" r="3" fill="none" stroke="#AEB8CE" stroke-width="0.8" />
+    <path d="M12 120c0-2.5 2-4 5-4s5 1.5 5 4" fill="none" stroke="#AEB8CE" stroke-width="0.8" />
+    <text x="27" y="114" fill="#D2D9E8">
+      Clientes
+    </text>
+    <circle cx="17" cy="137" r="3" fill="none" stroke="#AEB8CE" stroke-width="0.8" />
+    <path d="M17 135v2l1.5 1" fill="none" stroke="#AEB8CE" stroke-width="0.8" />
+    <text x="27" y="140" fill="#D2D9E8">
+      Equipe e horários
+    </text>
+    <text x="11" y="166" font-size="6.3" font-weight="700" fill="#AEB8CE">
+      R$
+    </text>
+    <text x="27" y="166" fill="#D2D9E8">
+      Recebimentos
+    </text>
+    <path d="M17 180l3 3-3 3-3-3z" fill="none" stroke="#AEB8CE" stroke-width="0.8" />
+    <text x="27" y="186" fill="#D2D9E8">
+      Meu negócio
+    </text>
+  </g>
+  <line x1="9" y1="205" x2="88" y2="205" stroke="#30394E" />
+  <rect x="111" y="0" width="460" height="22" fill="#FFFFFF" />
+  <line x1="97" y1="22.5" x2="571" y2="22.5" stroke="#E3E9F2" />
+  <text x="111" y="14" font-family="Inter,Arial,sans-serif" font-size="6.4" font-weight="700" letter-spacing=".65" fill="#52617A">
+    PAINEL DO NEGÓCIO
+  </text>
+  <circle cx="545" cy="11" r="2.5" fill="#31A875" />
+  <text x="553" y="13.5" font-family="Inter,Arial,sans-serif" font-size="6.3" fill="#34425A">
+    Hoje
+  </text>
+  <text x="111" y="39" font-family="Inter,Arial,sans-serif" font-size="5.8" font-weight="700" letter-spacing=".7" fill="#2456D8">
+    ROTINA DO NEGÓCIO
+  </text>
+  <text x="111" y="56" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="750" letter-spacing="-.35" fill="#171B2A">
+    Agenda e horários.
+  </text>
+  <text x="111" y="67" font-family="Inter,Arial,sans-serif" font-size="6.8" fill="#69768B">
+    Consulte disponibilidades e acompanhe suas marcações.
+  </text>
+  <rect x="475" y="39" width="83" height="21" rx="6" fill="#2456D8" />
+  <text x="484" y="52.5" font-family="Inter,Arial,sans-serif" font-size="6.7" font-weight="650" fill="#FFFFFF">
+    ＋ Nova marcação
+  </text>
+  <rect x="111" y="75" width="447" height="90" rx="9" fill="#FFFFFF" stroke="#E3E8F1" />
+  <text x="120" y="90" font-family="Inter,Arial,sans-serif" font-size="9.1" font-weight="700" fill="#171B2A">
+    Dias e horários livres
+  </text>
+  <text x="120" y="100" font-family="Inter,Arial,sans-serif" font-size="6.1" fill="#77839A">
+    Consulte a disponibilidade da equipe por período e duração.
+  </text>
+  <g font-family="Inter,Arial,sans-serif">
+    <text x="120" y="110" font-size="5.6" font-weight="600" fill="#52617A">
+      Profissional
+    </text>
+    <text x="274" y="110" font-size="5.6" font-weight="600" fill="#52617A">
+      Mês
+    </text>
+    <text x="394" y="110" font-size="5.6" font-weight="600" fill="#52617A">
+      Duração (min)
+    </text>
+    <rect x="120" y="113" width="148" height="18" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="274" y="113" width="114" height="18" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="394" y="113" width="74" height="18" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="475" y="113" width="72" height="18" rx="5" fill="#2456D8" />
+    <text x="127" y="125" font-size="6" fill="#718097">
+      Todos os profissionais
+    </text>
+    <text x="281" y="125" font-size="6" fill="#718097">
+      Selecione um mês
+    </text>
+    <text x="401" y="125" font-size="6" fill="#34425A">
+      60
+    </text>
+    <text x="487" y="125" font-size="6" font-weight="650" fill="#FFFFFF">
+      Consultar
+    </text>
+    <rect x="120" y="137" width="428" height="19" rx="5" fill="#F4F6FB" />
+    <rect x="127" y="142" width="10" height="10" rx="3" fill="#EAF0FF" />
+    <circle cx="132" cy="147" r="2.3" fill="none" stroke="#2456D8" stroke-width="0.8" />
+    <text x="142" y="149.5" font-size="5.8" fill="#69768B">
+      Consulte os filtros para ver os dias e horários disponíveis.
+    </text>
+    <text x="488" y="149.5" font-size="4.7" fill="#8A94A5">
+      Atualiza a cada 30 segundos
+    </text>
+  </g>
+  <rect x="111" y="173" width="447" height="40" rx="8" fill="#FFFFFF" stroke="#E3E8F1" />
+  <g font-family="Inter,Arial,sans-serif">
+    <text x="120" y="184" font-size="5.1" font-weight="700" fill="#52617A">
+      BUSCAR MARCAÇÃO
+    </text>
+    <text x="285" y="184" font-size="5.1" font-weight="700" fill="#52617A">
+      DATA
+    </text>
+    <text x="353" y="184" font-size="5.1" font-weight="700" fill="#52617A">
+      PROFISSIONAL
+    </text>
+    <text x="428" y="184" font-size="5.1" font-weight="700" fill="#52617A">
+      STATUS
+    </text>
+    <rect x="120" y="187" width="158" height="18" rx="4" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="285" y="187" width="63" height="18" rx="4" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="353" y="187" width="70" height="18" rx="4" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="428" y="187" width="73" height="18" rx="4" fill="#FFFFFF" stroke="#DCE4F1" />
+    <rect x="506" y="187" width="37" height="18" rx="4" fill="#F8FAFD" stroke="#DCE4F1" />
+    <text x="127" y="199" font-size="5.8" fill="#8A94A5">
+      Nome do cliente ou descrição
+    </text>
+    <text x="291" y="199" font-size="5.8" fill="#8A94A5">
+      Selecionar data
+    </text>
+    <text x="359" y="199" font-size="5.8" fill="#8A94A5">
+      Todos
+    </text>
+    <text x="434" y="199" font-size="5.8" fill="#8A94A5">
+      Todos os status
+    </text>
+    <text x="513" y="199" font-size="5.6" font-weight="600" fill="#52617A">
+      Limpar
+    </text>
+  </g>
+  <rect x="111" y="221" width="447" height="114" rx="9" fill="#FFFFFF" stroke="#E3E8F1" />
+  <text x="121" y="238" font-family="Inter,Arial,sans-serif" font-size="9" font-weight="700" fill="#171B2A">
+    Livro de marcações
+  </text>
+  <text x="518" y="237" font-family="Inter,Arial,sans-serif" font-size="5.6" fill="#8A94A5">
+    — marcações
+  </text>
+  <line x1="121" y1="245" x2="548" y2="245" stroke="#EDF0F6" />
+  <rect x="121" y="251" width="427" height="73" rx="7" fill="#F8FAFD" />
+  <rect x="271" y="256" width="22" height="22" rx="7" fill="#EAF0FF" />
+  <rect x="277" y="262" width="10" height="10" rx="1.5" fill="none" stroke="#2456D8" stroke-width="0.8" />
+  <line x1="277" y1="265.5" x2="287" y2="265.5" stroke="#2456D8" stroke-width="0.8" />
+  <text x="282" y="288" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="8" font-weight="650" fill="#171B2A">
+    Nenhuma marcação para estes filtros.
+  </text>
+  <text x="282" y="299" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="5.8" fill="#718097">
+    Ajuste a busca ou consulte outra data para ver os atendimentos.
+  </text>
+</svg>
