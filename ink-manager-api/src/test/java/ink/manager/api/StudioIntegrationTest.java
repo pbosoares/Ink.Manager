@@ -827,6 +827,16 @@ class StudioIntegrationTest {
         assertEquals(409,request("DELETE","/marcacoes/"+id,null,owner.token()).statusCode());
         var sum=resumo(owner,null);assertEquals(1,sum.get("recebimentos").size());dinheiro("19.90",sum.get("totalMes"));dinheiro("19.90",sum.get("totalSemana"));
     }
+    @Test void atendimentoConcluidoDeDiaAnteriorPodeSerMarcadoComoRecebidoSemDuplicarFaturamento() throws Exception {
+        var owner=conta("Recebimento pendente antigo");long id=marcacaoParaReceber(owner,"10:00","CONCLUIDA").get("id").asLong();
+        var pending=json(request("GET","/marcacoes/"+id,null,owner.token()));
+        assertEquals("CONCLUIDA",pending.get("status").asText());assertFalse(pending.get("recebimentoConfirmado").asBoolean());assertTrue(pending.get("podeConfirmarRecebimento").asBoolean());
+        var agenda=json(request("GET","/marcacoes",null,owner.token()));boolean actionAvailable=false;for(var item:agenda)if(item.get("id").asLong()==id&&item.get("podeConfirmarRecebimento").asBoolean())actionAvailable=true;assertTrue(actionAvailable);
+        var paid=receber(owner,id,"35.50");assertEquals(200,paid.statusCode(),paid.body());dinheiro("35.50",json(paid).get("valor"));
+        var retry=receber(owner,id,"35.50");assertEquals(200,retry.statusCode(),retry.body());assertEquals(json(paid),json(retry));
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM recebimentos WHERE marcacao_id=?",Integer.class,id));
+        var summary=resumo(owner,null);assertEquals(1,summary.get("recebimentos").size());dinheiro("35.50",summary.get("totalMes"));dinheiro("35.50",summary.get("totalSemana"));
+    }
     @Test void futurasCanceladasESemRecebimentoNaoContam() throws Exception {
         var owner=conta("Somente confirmados");
         var future=request("POST","/marcacoes",stringify(reserva(cliente(owner),owner.profissional(),"10:00")),owner.token());assertEquals(201,future.statusCode(),future.body());

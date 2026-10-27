@@ -92,7 +92,8 @@ public class MarcacaoService {
         var zona=java.time.ZoneId.of(m.getEstudio().getFusoHorario());
         var fim=m.getData().atTime(m.getHorario()).plusMinutes(m.getDuracaoMinutos()==null?60:m.getDuracaoMinutos());
         var terminou=!fim.isAfter(LocalDateTime.now(clock.withZone(zona)));
-        var permitido=!confirmado&&m.getStatus()!=StatusMarcacao.CANCELADA&&!"FALTOU".equals(m.getPresenca())&&terminou;
+        var permitido=!confirmado&&m.getStatus()!=StatusMarcacao.CANCELADA&&!"FALTOU".equals(m.getPresenca())
+            &&(m.getStatus()==StatusMarcacao.CONCLUIDA||terminou);
         m.informarRecebimento(confirmado,permitido);
     }
     public Marcacao aplicarAcaoEmail(long estudioId,long id,String acao,LocalDate data,LocalTime horario){

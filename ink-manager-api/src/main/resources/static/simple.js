@@ -73,13 +73,20 @@
   }
   function receiptAction(item) {
     if (item.recebimentoConfirmado || knownReceipts.has(item.id)) return '<small class="receipt-recorded">Recebimento confirmado</small>';
+    const completed = item.status === 'CONCLUIDA';
     if (!owner() || !item.podeConfirmarRecebimento) return '';
-    return `<button type="button" class="text-button" data-confirm-receipt="${item.id}">Concluir atendimento e informar valor</button>`;
+    return `<button type="button" class="text-button" data-confirm-receipt="${item.id}">${completed ? 'Marcar como recebido' : 'Concluir atendimento e informar valor'}</button>`;
   }
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-confirm-receipt]'); if (!button || !owner() || !state.loaded) return;
     receiptEdit = state.appointments.find(item => String(item.id) === button.dataset.confirmReceipt);
+    const completed = receiptEdit?.status === 'CONCLUIDA';
     if (!receiptEdit || receiptEdit.recebimentoConfirmado || !receiptEdit.podeConfirmarRecebimento) return;
+    $('receipt-title').textContent = completed ? 'Marcar como recebido' : 'Confirmar atendimento e recebimento';
+    $('receipt-save').textContent = completed ? 'Marcar como recebido' : 'Confirmar atendimento e recebimento';
+    $('receipt-completion-note').textContent = completed
+      ? 'Ao confirmar, o valor será incluído no faturamento pela data desta confirmação. Depois, este registro não poderá ser alterado ou excluído.'
+      : 'Ao confirmar, o atendimento será concluído e o valor entrará nos totais pela data desta confirmação. Depois, este registro não poderá ser alterado ou excluído.';
     $('receipt-description').textContent = receiptEdit.cliente.nome + ' · ' + (receiptEdit.servicoNome || receiptEdit.descricao || 'Atendimento') + ' · ' + receiptEdit.data.split('-').reverse().join('/') + ' às ' + receiptEdit.horario.slice(0, 5);
     $('receipt-form').reset(); $('receipt-form').elements.valor.value = receiptEdit.precoPrevisto == null ? '' : Number(receiptEdit.precoPrevisto).toFixed(2);
     $('receipt-error').textContent = ''; $('receipt-dialog').showModal();

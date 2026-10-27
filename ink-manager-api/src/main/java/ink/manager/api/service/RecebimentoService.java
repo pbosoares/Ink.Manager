@@ -40,7 +40,7 @@ public class RecebimentoService {
         if(m.getStatus()==StatusMarcacao.CANCELADA)throw new ApiException(HttpStatus.CONFLICT,"Agendamento cancelado nao pode ter recebimento.");
         if("FALTOU".equals(m.getPresenca()))throw new ApiException(HttpStatus.CONFLICT,"Agendamento marcado como falta nao pode receber confirmacao de valor.");
         var fim=m.getData().atTime(m.getHorario()).plusMinutes(m.getDuracaoMinutos()==null?60:m.getDuracaoMinutos());
-        if(fim.isAfter(LocalDateTime.now(clock.withZone(ZoneId.of(m.getEstudio().getFusoHorario())))))throw new ApiException(HttpStatus.CONFLICT,"Conclua o atendimento e confirme o recebimento somente depois do horario previsto para o termino.");
+        if(m.getStatus()!=StatusMarcacao.CONCLUIDA&&fim.isAfter(LocalDateTime.now(clock.withZone(ZoneId.of(m.getEstudio().getFusoHorario())))))throw new ApiException(HttpStatus.CONFLICT,"Conclua o atendimento e confirme o recebimento somente depois do horario previsto para o termino.");
         m.setStatus(StatusMarcacao.CONCLUIDA);m.setPresenca("COMPARECEU");marcacoes.saveAndFlush(m);
         // Match TIMESTAMP(6) before responding, so a retry returns the exact same instant.
         var instante=clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
