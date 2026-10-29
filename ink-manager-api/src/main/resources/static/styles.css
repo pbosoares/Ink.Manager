@@ -735,6 +735,36 @@ td small {
   color:var(--muted);
 }
 
+.whatsapp-icon-button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 44px;
+  width:44px;
+  height:44px;
+  border:1px solid #d6eadb;
+  border-radius:50%;
+  background:#f2faf4;
+  color:#16813d;
+  text-decoration:none;
+}
+
+.whatsapp-icon-button:hover {
+  background:#e5f5e9;
+  color:#0d6b32;
+}
+
+.whatsapp-icon-button:focus-visible {
+  outline:3px solid var(--red);
+  outline-offset:2px;
+}
+
+.whatsapp-icon-button svg {
+  display:block;
+  width:22px;
+  height:22px;
+}
+
 .page-footer {
   border-top:1px solid var(--line);
   margin-top:45px;
