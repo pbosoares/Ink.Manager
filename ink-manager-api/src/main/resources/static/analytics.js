@@ -94,8 +94,8 @@
   function attendanceAction(item){
     if(!owner()||!state.configLoaded)return '';
     if(item.presenca)return `<small class="attendance-recorded">${item.presenca==='COMPARECEU'?'Compareceu':'Faltou'}</small>`;
-    if(item.status==='CONCLUIDA')return '<small class="attendance-recorded">Compareceu</small>';
     if(item.status==='CANCELADA'||item.recebimentoConfirmado||!appointmentEnded(item))return '';
+    if(item.status==='CONCLUIDA')return `<span class="attendance-actions"><button type="button" class="text-button" data-presence="FALTOU" data-appointment-id="${Number(item.id)}">Marcar como faltou</button></span>`;
     return `<span class="attendance-actions"><button type="button" class="text-button" data-presence="COMPARECEU" data-appointment-id="${Number(item.id)}">Compareceu</button><button type="button" class="text-button" data-presence="FALTOU" data-appointment-id="${Number(item.id)}">Faltou</button></span>`;
   }
   async function setPresence(button){

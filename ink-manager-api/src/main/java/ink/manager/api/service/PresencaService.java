@@ -27,7 +27,6 @@ public class PresencaService {
         guard.bloquear();
         Marcacao m=marcacoes.findByIdAndEstudioId(id,acesso.estudioId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Agendamento nao encontrado."));
         if(m.getStatus()==StatusMarcacao.CANCELADA)throw new ApiException(HttpStatus.CONFLICT,"Agendamento cancelado nao tem presenca.");
-        if(m.getStatus()==StatusMarcacao.CONCLUIDA&&"FALTOU".equals(pedido.presenca()))throw new ApiException(HttpStatus.CONFLICT,"Atendimento concluido nao pode ser marcado como falta.");
         if("FALTOU".equals(pedido.presenca())&&recebimentos.existsByMarcacaoIdAndEstudioId(id,acesso.estudioId()))throw new ApiException(HttpStatus.CONFLICT,"Atendimento com recebimento confirmado nao pode virar falta.");
         var zona=ZoneId.of(m.getEstudio().getFusoHorario());
         LocalDateTime fim=m.getData().atTime(m.getHorario()).plusMinutes(m.getDuracaoMinutos());

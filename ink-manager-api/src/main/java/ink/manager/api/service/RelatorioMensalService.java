@@ -63,8 +63,8 @@ public class RelatorioMensalService {
         Map<LocalDate,long[]> dias=new HashMap<>();Map<String,long[]> servicos=new HashMap<>();
         for(var l:linhas){long[] d=dias.computeIfAbsent(l.data(),k->new long[4]);boolean cancelado=l.status()==StatusMarcacao.CANCELADA;
             if(cancelado){cancelamentos++;d[3]++;continue;}agendamentos++;d[0]++;
-            boolean veio="COMPARECEU".equals(l.presenca())||l.status()==StatusMarcacao.CONCLUIDA;
             boolean faltou="FALTOU".equals(l.presenca());
+            boolean veio=!faltou&&("COMPARECEU".equals(l.presenca())||l.status()==StatusMarcacao.CONCLUIDA);
             if(veio){comparecimentos++;d[1]++;}if(faltou){faltas++;d[2]++;if(l.precoPrevisto()!=null)potencial=potencial.add(l.precoPrevisto());}
             if(l.servicoNome()!=null&&!l.servicoNome().isBlank()){long[] s=servicos.computeIfAbsent(l.servicoNome(),k->new long[3]);s[0]++;if(veio)s[1]++;if(faltou)s[2]++;}
         }
