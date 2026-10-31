@@ -278,7 +278,7 @@ function openEditor(type, id = null) {
   state.edit = { type, id, clientId: item.cliente?.id, version: item.version, original: item };
   $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcacao'}`;
   $('editor-error').textContent = '';
-  const customerFields = `<label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><div class="form-row"><label>Telefone<input name="telefone" type="tel" required maxlength="30" autocomplete="tel"></label><label>Idade<input name="idade" type="number" min="0" max="150" step="1"></label></div><label>Instagram (opcional)<input name="instagram" maxlength="100" placeholder="@cliente"></label>`;
+  const customerFields = `<label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><div class="form-row"><label>Celular com DDD<input name="telefone" type="tel" required maxlength="30" autocomplete="tel" placeholder="(11) 99999-9999"></label><label>Idade<input name="idade" type="number" min="0" max="150" step="1"></label></div><label>Instagram (opcional)<input name="instagram" maxlength="100" placeholder="@cliente"></label>`;
   if (type === 'client') {
     $('editor-fields').innerHTML = customerFields;
   } else {
