@@ -273,7 +273,32 @@
             </div>
           </section>
           <section class="panel onboarding-card"><span class="eyebrow">PRIMEIROS PASSOS</span><h2>Organize a casa</h2><p>Cadastre os serviços e seus preços, ajuste os horários da equipe e compartilhe o link fixo de reservas.</p><button class="text-button" data-view="studio">Configurar serviços e link →</button></section>        </section>
-        <section id="agenda-view" hidden><section class="panel availability-panel"><h2>Dias e horários livres</h2><div class="toolbar"><label>Profissional<select id="availability-professional"></select></label><label>Mês<input id="availability-month" type="month"></label><label>Duração (min)<input id="availability-duration" type="number" min="1" max="720" value="60"></label><button id="availability-load" class="secondary">Consultar</button></div><p id="availability-error" role="alert"></p><div id="availability-days" class="availability-days"></div><div id="availability-slots" class="availability-slots" aria-live="polite"></div><small>Atualiza a cada 20 segundos. A reserva é confirmada ao salvar.</small></section><div class="toolbar"><label class="search">Buscar marcação<input id="agenda-search" type="search" placeholder="Nome do cliente ou descrição"></label><label>Data<input id="agenda-date" type="date"></label><label>Profissional<select id="agenda-professional"><option value="">Todos</option></select></label><label>Status / recebimento<select id="agenda-status"><option value="">Todos</option><option value="AGENDADA">Agendada</option><option value="CONFIRMADA">Confirmada</option><option value="CONCLUIDA">Concluída</option><option value="CANCELADA">Cancelada</option><option value="PENDENTE_RECEBIMENTO">Pendente de recebimento</option></select></label><button id="clear-filters" class="secondary">Limpar</button></div><section class="panel"><div class="section-title"><h2>Livro de marcações</h2><span id="agenda-count" class="muted"></span></div><div id="agenda-list"></div></section></section>
+        <section id="agenda-view" hidden>
+          <section class="panel availability-panel" aria-label="Disponibilidade da equipe">
+            <h2>Dias e horários livres</h2>
+            <div class="toolbar availability-controls">
+              <label>Profissional<select id="availability-professional"></select></label>
+              <label>Mês<input id="availability-month" type="month"></label>
+              <label>Duração (min)<input id="availability-duration" type="number" min="1" max="720" value="60"></label>
+              <button id="availability-load" class="secondary">Consultar</button>
+            </div>
+            <p id="availability-error" role="alert"></p>
+            <div id="availability-days" class="availability-days"></div>
+            <div id="availability-slots" class="availability-slots" aria-live="polite"></div>
+            <small>Atualiza a cada 20 segundos. A reserva é confirmada ao salvar.</small>
+          </section>
+          <div class="toolbar agenda-filters" role="group" aria-label="Filtros da agenda">
+            <label class="search">Buscar marcação<input id="agenda-search" type="search" placeholder="Nome do cliente ou descrição"></label>
+            <label>Data<input id="agenda-date" type="date"></label>
+            <label>Profissional<select id="agenda-professional"><option value="">Todos</option></select></label>
+            <label>Status / recebimento<select id="agenda-status"><option value="">Todos</option><option value="AGENDADA">Agendada</option><option value="CONFIRMADA">Confirmada</option><option value="CONCLUIDA">Concluída</option><option value="CANCELADA">Cancelada</option><option value="PENDENTE_RECEBIMENTO">Pendente de recebimento</option></select></label>
+            <button id="clear-filters" class="secondary">Limpar</button>
+          </div>
+          <section class="panel agenda-list-panel">
+            <div class="section-title"><h2>Livro de marcações</h2><span id="agenda-count" class="muted"></span></div>
+            <div id="agenda-list"></div>
+          </section>
+        </section>
         <section id="clients-view" hidden><div class="toolbar"><label class="search">Buscar cliente<input id="client-search" type="search" placeholder="Nome, telefone ou Instagram"></label></div><section class="panel"><div class="section-title"><h2>Quem faz parte da casa</h2><span id="client-count" class="muted"></span></div><div id="client-list"></div></section></section>
 <section id="team-view" hidden><div class="section-title"><h2>Profissionais</h2><button id="new-professional" class="primary owner-only">+ Novo profissional</button></div><p>Configure os expedientes e bloqueie folgas sem perder o histórico.</p><div id="professional-list"></div></section>
 <section id="studio-view" hidden>
@@ -292,13 +317,22 @@
       </fieldset>
       <p id="service-message" class="form-error" role="status"></p>
     </form>
-    <div><h3>Seu catálogo</h3><div id="service-list"></div><button id="reload-services" type="button" class="text-button">Recarregar serviços</button></div>
+    <section class="service-catalog" aria-label="Seu catálogo">
+      <div class="service-catalog-head">
+        <div><h3>Seu catálogo</h3><p>Serviços cadastrados para o seu negócio.</p></div>
+        <button id="reload-services" type="button" class="text-button">Recarregar serviços</button>
+      </div>
+      <div id="service-list"></div>
+    </section>
   </div>
-  <h3>Seu link de reservas</h3>
-  <p>Compartilhe com seus clientes. Ele continua o mesmo se você mudar o nome do negócio.</p>
-  <label>Link fixo<input id="public-link" type="url" readonly></label>
-  <div class="link-controls"><button id="copy-public-link" type="button" class="secondary" disabled>Copiar link</button><a id="open-public-link" class="text-button" target="_blank" rel="noopener noreferrer" hidden>Abrir página de reservas</a></div>
-  <p id="public-link-error" role="status"></p>
+  <section class="service-link-panel" aria-label="Link de reservas">
+    <div class="service-link-copy"><span class="eyebrow accent">LINK DE RESERVAS</span><h3>Seu link fixo</h3><p>Compartilhe com seus clientes. Ele continua o mesmo se você mudar o nome do negócio.</p></div>
+    <div class="service-link-controls">
+      <label>Link fixo<input id="public-link" type="url" readonly></label>
+      <div class="link-controls"><button id="copy-public-link" type="button" class="secondary" disabled>Copiar link</button><a id="open-public-link" class="text-button" target="_blank" rel="noopener noreferrer" hidden>Abrir página de reservas</a></div>
+      <p id="public-link-error" role="status"></p>
+    </div>
+  </section>
 </section>
 <section id="schedule-config" class="settings-section owner-only" aria-labelledby="schedule-config-title"><h2 id="schedule-config-title">Regras de agendamento</h2><p>Defina a antecedência mínima e o limite de reservas abertas por email.</p><form id="schedule-config-form"><div class="form-row"><label>Antecedência mínima (minutos)<input name="antecedenciaMinimaMinutos" type="number" min="0" max="43200" step="1" required></label><label>Reservas abertas por email<input name="limiteAgendamentosPorEmail" type="number" min="1" max="50" step="1" required></label></div><p>Fuso horário do estabelecimento: <strong id="schedule-timezone">Consultando…</strong></p><button type="submit" class="primary">Salvar regras</button><p id="schedule-config-message" role="status"></p></form></section><section id="waitlist-management" class="settings-section owner-only" hidden aria-labelledby="waitlist-management-title">
   <div class="section-title"><div><h2 id="waitlist-management-title">Lista de espera</h2><p class="muted">Entradas do seu estabelecimento e estado atual.</p></div><button id="waitlist-reload" type="button" class="secondary">Atualizar lista</button></div>
