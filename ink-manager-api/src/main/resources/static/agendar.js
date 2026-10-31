@@ -9,6 +9,43 @@
   const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const dateLabel = value => new Date(value + 'T12:00:00').toLocaleDateString('pt-BR');
   let catalog, slotsReady = false, requestNumber = 0, busy = false, finished = false, pending = null;
+
+  function formatBrazilianPhone(value) {
+    const raw = String(value ?? '');
+    if (/^\s*\+(?!55)/.test(raw)) return raw;
+    let digits = raw.replace(/\D/g, '');
+    const international = /^\s*\+55/.test(raw) || (digits.startsWith('55') && digits.length > 11);
+    if (!international && digits.startsWith('0') && [11, 12].includes(digits.length)) digits = digits.slice(1);
+    const local = (international ? digits.slice(2) : digits).slice(0, 11);
+    const country = international ? '+55 ' : '';
+    if (!local) return international ? country : '';
+    if (local.length < 2) return `${country}(${local}`;
+    const ddd = local.slice(0, 2);
+    if (local.length === 2) return `${country}(${ddd})`;
+    const subscriber = local.slice(2);
+    const group = subscriber.startsWith('9') ? 5 : 4;
+    const formatted = subscriber.length > group ? `${subscriber.slice(0, group)}-${subscriber.slice(group)}` : subscriber;
+    return `${country}(${ddd}) ${formatted}`;
+  }
+
+  document.addEventListener('input', event => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== 'tel' || input.name !== 'telefone') return;
+    const original = input.value;
+    const caret = input.selectionStart ?? original.length;
+    const digitsBeforeCaret = original.slice(0, caret).replace(/\D/g, '').length;
+    const formatted = formatBrazilianPhone(original);
+    if (formatted === original) return;
+    input.value = formatted;
+    let nextCaret = 0, digitsSeen = 0;
+    while (nextCaret < formatted.length && digitsSeen < digitsBeforeCaret) {
+      if (/\d/.test(formatted[nextCaret])) digitsSeen++;
+      nextCaret++;
+    }
+    while (nextCaret < formatted.length && !/\d/.test(formatted[nextCaret])) nextCaret++;
+    input.setSelectionRange(nextCaret, nextCaret);
+  });
+
   try {
     const saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
     if (saved?.chave && saved?.servicoId && saved?.profissionalId && saved?.data && saved?.horario && saved?.nome && saved?.telefone) pending = saved;

@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { randomUUID } = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { runAuthenticatedReloadDiagnostics } = require('./diagnostics.cjs');
+const { runAuthenticatedBootstrapDiagnostics, runAuthenticatedReloadDiagnostics } = require('./diagnostics.cjs');
 
 // Keep multi-context headless pages scheduled while the other role is active.
 test.use({ launchOptions: { args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] } });
@@ -266,8 +266,20 @@ for (const width of [1366, 390]) {
     await page.goto('/#login');
     await page.locator('#auth-form [name=email]').fill(email);
     await page.locator('#auth-form [name=senha]').fill('SenhaTeste123');
-    await page.locator('#auth-submit').click();
-    await waitForWorkspace(page, { captureBootstrap: true });
+    const bootstrapDiagnostics = effectiveDiagnosticsMetadata(test.info());
+    await runAuthenticatedBootstrapDiagnostics({
+      page,
+      request,
+      headers,
+      testInfo: test.info(),
+      pidFile: bootstrapDiagnostics.diagnosticsPidFile,
+      runId: bootstrapDiagnostics.diagnosticsRunId,
+      accessLogPath: bootstrapDiagnostics.diagnosticsAccessLog,
+      viewportWidth: width,
+      browserRequests: () => workspaceBootstrapSummary(page),
+      performLogin: () => page.locator('#auth-submit').click(),
+      waitForReady: () => waitForWorkspace(page, { captureBootstrap: true })
+    });
     await expect(page.locator('#monthly-report')).toBeVisible();
     await expect(page.locator('#report-data')).toBeVisible();
     await page.locator('#report-range').selectOption('week');
@@ -339,6 +351,7 @@ for (const width of [1366, 390]) {
       await guest.locator('#booking-form [name=nome]').fill(`Cliente UI ${width}`);
       await guest.locator('#booking-form [name=email]').fill(`cliente-ui-${width}@example.com`);
       await guest.locator('#booking-form [name=telefone]').fill('21988887777');
+      await expect(guest.locator('#booking-form [name=telefone]')).toHaveValue('(21) 98888-7777');
       await guest.locator('#booking-form [name=avisoPrivacidadeLido]').check();
       await expect(guest.locator('#privacy-version')).not.toBeEmpty();
       await expect(guest.locator('#reserve-button')).toBeEnabled();
@@ -404,7 +417,7 @@ for (const width of [1366, 390]) {
     await reloadWorkspaceWithoutSlowFetches(page, request, headers, width);
     await page.locator('[data-view=agenda]').click();
     await expect(page.locator('#agenda-list')).toContainText(`Presenca sintetica E2E ${width}`);
-    await expect(page.locator('#agenda-list')).toContainText('Compareceu');
+    await expect(page.locator('#agenda-list')).toContainText('Concluída');
     await page.locator(`[data-confirm-receipt="${past.id}"]`).click();
     await page.locator('#receipt-form [name=valor]').fill('80.25');
     await page.locator('#receipt-save').click();

@@ -6,6 +6,7 @@ const LOOPBACK_HOST = '127.0.0.1';
 const LOOPBACK_MAIL_FIXTURE_MARKER = 'loopback-smtp-api-preflight-passed';
 const WAITLIST_DB_ROLE = 'ink_validation';
 const WAITLIST_DB_PASSWORD_SENTINEL = 'e2e-loopback-trust-sentinel';
+const VALIDATION_PG_PORTS = new Set(['55446', '55448']);
 const SMTP_SENTINELS = Object.freeze({
   MAIL_ENABLED: 'true',
   MAIL_HOST: LOOPBACK_HOST,
@@ -91,11 +92,15 @@ function isolatedDatabase(value = process.env.DB_URL) {
   let parsed;
   try { parsed = new URL(`${match[1]}://${match[2]}`); }
   catch { throw new Error('DB_URL must be a valid local PostgreSQL JDBC URL'); }
+  const expectedPort = process.env.E2E_VALIDATION_PG_PORT || '55446';
+  if (!VALIDATION_PG_PORTS.has(expectedPort)) {
+    throw new Error('E2E_VALIDATION_PG_PORT must select a reserved isolated validation port');
+  }
   if (parsed.hostname.toLowerCase() !== LOOPBACK_HOST) {
     throw new Error('DB_URL host must be exactly 127.0.0.1 for isolated validation');
   }
-  if (parsed.port !== '55446') {
-    throw new Error('DB_URL port must be 55446; the existing validation cluster on 55439 is reserved');
+  if (parsed.port !== expectedPort) {
+    throw new Error('DB_URL port must match E2E_VALIDATION_PG_PORT; the existing cluster on 55439 is reserved');
   }
   if (parsed.username || parsed.password) throw new Error('DB_URL must not embed credentials');
   const name = decodeURIComponent(parsed.pathname.replace(/^\//, ''));

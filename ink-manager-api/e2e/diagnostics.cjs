@@ -6,6 +6,7 @@ const { execFile } = require('node:child_process');
 
 const APP_URL = 'http://127.0.0.1:8087';
 const SAMPLE_INTERVAL_MS = 1000;
+const VALIDATION_PG_PORTS = new Set(['55446', '55448']);
 const METRICS = Object.freeze({
   hikariActive: 'hikaricp.connections.active',
   hikariIdle: 'hikaricp.connections.idle',
@@ -57,7 +58,8 @@ function pgTargetFromEnvironment() {
   catch { return { ok: false, state: 'jdbc_url_invalid' }; }
 
   const database = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''));
-  if (parsed.hostname.toLowerCase() !== '127.0.0.1' || parsed.port !== '55446' ||
+  const expectedPort = process.env.E2E_VALIDATION_PG_PORT || '55446';
+  if (!VALIDATION_PG_PORTS.has(expectedPort) || parsed.hostname.toLowerCase() !== '127.0.0.1' || parsed.port !== expectedPort ||
       parsed.username || parsed.password || parsed.searchParams.has('user') ||
       parsed.searchParams.has('password') || !/^marcae_validation_[a-z0-9_]+$/i.test(database)) {
     return { ok: false, state: 'target_rejected' };
@@ -69,7 +71,7 @@ function pgTargetFromEnvironment() {
   return {
     ok: true,
     host: '127.0.0.1',
-    port: '55446',
+    port: expectedPort,
     database,
     username: process.env.DB_USERNAME,
     password: String(process.env.DB_PASSWORD || '')
@@ -268,6 +270,60 @@ async function appendJsonLine(filePath, record) {
   }
 }
 
+const ACCESS_LOG_PATHS = new Set([
+  '/auth/login', '/clientes', '/marcacoes', '/profissionais', '/auth/me'
+]);
+
+function sanitizedAccessLogPath(pathValue) {
+  if (ACCESS_LOG_PATHS.has(pathValue)) return pathValue;
+  if (/^\/profissionais\/\d+\/dias-disponiveis$/.test(pathValue)) {
+    return '/profissionais/{id}/dias-disponiveis';
+  }
+  return null;
+}
+
+async function accessLogPosition(filePath) {
+  if (!filePath) return { state: 'path_missing', size: 0 };
+  const root = path.resolve(process.cwd(), 'target', 'diagnostics', 'access') + path.sep;
+  const resolved = path.resolve(process.cwd(), filePath);
+  if (!resolved.toLowerCase().startsWith(root.toLowerCase())) {
+    return { state: 'path_rejected', size: 0 };
+  }
+  try {
+    const stat = await fs.promises.stat(resolved);
+    if (!stat.isFile()) return { state: 'not_a_file', size: 0 };
+    return { state: 'ready', size: stat.size, resolved };
+  } catch (error) {
+    return { state: error?.code === 'ENOENT' ? 'not_created' : 'unavailable', size: 0, resolved };
+  }
+}
+
+async function readSanitizedAccessLogDelta(snapshot) {
+  if (snapshot.state !== 'ready') return { state: snapshot.state, entries: [] };
+  try {
+    const contents = await fs.promises.readFile(snapshot.resolved);
+    if (contents.length < snapshot.size) return { state: 'truncated', entries: [] };
+    const text = contents.subarray(snapshot.size).toString('utf8');
+    const entries = [];
+    for (const line of text.split(/\r?\n/)) {
+      const match = line.match(/^\[([^\]]+)\]\s+(GET|POST)\s+(\/[A-Za-z0-9/_-]*)\s+(\d{3})\s+(\d+)$/);
+      if (!match) continue;
+      const safePath = sanitizedAccessLogPath(match[3]);
+      if (!safePath) continue;
+      entries.push({
+        timestamp: match[1],
+        method: match[2],
+        path: safePath,
+        status: Number(match[4]),
+        durationMs: Number((Number(match[5]) / 1000).toFixed(3))
+      });
+    }
+    return { state: 'sampled', entries };
+  } catch (error) {
+    return { state: error?.code === 'ENOENT' ? 'unavailable' : 'read_failed', entries: [] };
+  }
+}
+
 async function findApplicationPid(pidFile, runId) {
   if (!pidFile || !path.isAbsolute(pidFile)) return { state: 'pidfile_unavailable' };
   if (!/^[A-Za-z0-9_-]+$/.test(runId || '')) return { state: 'run_identity_unavailable' };
@@ -303,8 +359,8 @@ async function findApplicationPid(pidFile, runId) {
   return { state: 'found', pid };
 }
 
-async function captureThreadDump(testInfo, offsetMs, pidFile, runId) {
-  const filePath = testInfo.outputPath('authenticated-reload-thread-' + offsetMs + 'ms.txt');
+async function captureThreadDump(testInfo, offsetMs, pidFile, runId, operation = 'reload') {
+  const filePath = testInfo.outputPath('authenticated-' + operation + '-thread-' + offsetMs + 'ms.txt');
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true }).catch(() => {});
   const app = await findApplicationPid(pidFile, runId);
   if (app.state !== 'found') {
@@ -347,17 +403,19 @@ function sanitizeThreadDump(raw) {
   return safeLines.join('\n') + '\n';
 }
 
-async function runAuthenticatedReloadDiagnostics({
-  page, request, headers, testInfo, pidFile, runId, accessLogPath, viewportWidth, waitForReady
+async function runAuthenticatedOperationDiagnostics({
+  operation, action, browserRequests, page, request, headers, testInfo,
+  pidFile, runId, accessLogPath, viewportWidth
 }) {
   const pgTarget = pgTargetFromEnvironment();
   if (!pgTarget.ok) {
-    throw new Error('Reload diagnostics require only the dedicated PostgreSQL target at 127.0.0.1:55446');
+    throw new Error('Authenticated diagnostics require only an isolated PostgreSQL target on a reserved loopback validation port');
   }
 
-  const outputPath = testInfo.outputPath('authenticated-reload-diagnostics.jsonl');
+  const outputPath = testInfo.outputPath('authenticated-' + operation + '-diagnostics.jsonl');
   await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
   const pgStatsBefore = await samplePgStatements(pgTarget);
+  const accessLogStart = await accessLogPosition(accessLogPath);
   const startedAt = Date.now();
   let finished = false;
   let sampleCount = 0;
@@ -365,9 +423,9 @@ async function runAuthenticatedReloadDiagnostics({
   let samplingErrorCode = null;
 
   const threadTasks = [
-    captureThreadDump(testInfo, 0, pidFile, runId),
-    delay(5000).then(() => captureThreadDump(testInfo, 5000, pidFile, runId)),
-    delay(15000).then(() => captureThreadDump(testInfo, 15000, pidFile, runId))
+    captureThreadDump(testInfo, 0, pidFile, runId, operation),
+    delay(5000).then(() => captureThreadDump(testInfo, 5000, pidFile, runId, operation)),
+    delay(15000).then(() => captureThreadDump(testInfo, 15000, pidFile, runId, operation))
   ];
 
   const samplingTask = (async () => {
@@ -397,23 +455,25 @@ async function runAuthenticatedReloadDiagnostics({
     samplingErrorCode = 'sampling_failed';
   });
 
-  let reloadOutcome = 'completed';
-  let reloadError;
+  let outcome = 'completed';
+  let operationError;
   try {
-    await page.reload();
-    await waitForReady();
+    await action();
   } catch (error) {
-    reloadOutcome = 'failed';
-    reloadError = error;
+    outcome = 'failed';
+    operationError = error;
   } finally {
     finished = true;
     await samplingTask;
     const finishedAt = Date.now();
     const pgStatsAfter = await samplePgStatements(pgTarget);
+    const accessLog = await readSanitizedAccessLogDelta(accessLogStart);
     const threadDumps = await Promise.all(threadTasks);
     const summary = {
       type: 'summary',
-      reloadOutcome,
+      operation,
+      outcome,
+      ...(operation === 'reload' ? { reloadOutcome: outcome } : {}),
       durationMs: finishedAt - startedAt,
       viewportWidth,
       sampleCount,
@@ -421,17 +481,56 @@ async function runAuthenticatedReloadDiagnostics({
       samplingErrorCode,
       pgStatementsDelta: pgStatementsDelta(pgStatsBefore, pgStatsAfter),
       threadDumps,
-      accessLog: accessLogPath || null,
+      accessLog: accessLogPath ? path.basename(path.resolve(process.cwd(), accessLogPath)) : null,
+      accessLogState: accessLog.state,
+      accessLogEntries: accessLog.entries,
+      ...(typeof browserRequests === 'function' ? { browserRequests: browserRequests() } : {}),
       outputWritable
     };
     await appendJsonLine(outputPath, summary);
     testInfo.annotations.push({
-      type: 'authenticated-reload-diagnostics',
+      type: 'authenticated-' + operation + '-diagnostics',
       description: JSON.stringify({ ...summary, outputFile: path.basename(outputPath) })
     });
   }
 
-  if (reloadError) throw reloadError;
+  if (operationError) throw operationError;
 }
 
-module.exports = { runAuthenticatedReloadDiagnostics };
+async function runAuthenticatedReloadDiagnostics(options) {
+  const { page, waitForReady } = options;
+  return runAuthenticatedOperationDiagnostics({
+    ...options,
+    operation: 'reload',
+    action: async () => {
+      await page.reload();
+      await waitForReady();
+    }
+  });
+}
+
+async function runAuthenticatedBootstrapDiagnostics(options) {
+  const { performLogin, waitForReady } = options;
+  return runAuthenticatedOperationDiagnostics({
+    ...options,
+    operation: 'bootstrap',
+    action: async () => {
+      await performLogin();
+      await waitForReady();
+    }
+  });
+}
+
+async function runAvailabilityRequestDiagnostics(options) {
+  const allowedOperations = new Set(['availability-first', 'availability-repeat']);
+  if (!options || !allowedOperations.has(options.operation)) {
+    throw new Error('Availability diagnostics operation is not allowed');
+  }
+  return runAuthenticatedOperationDiagnostics(options);
+}
+
+module.exports = {
+  runAuthenticatedBootstrapDiagnostics,
+  runAuthenticatedReloadDiagnostics,
+  runAvailabilityRequestDiagnostics
+};
