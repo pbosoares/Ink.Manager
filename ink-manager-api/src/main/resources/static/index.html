@@ -17,7 +17,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Inter+Tight:wght@600;700&amp;display=swap"></noscript>
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&amp;family=Inter+Tight:wght@600..800&amp;display=swap"></noscript>
   <link rel="stylesheet" href="/styles.css">
   <script type="application/ld+json">
   {
@@ -50,22 +50,25 @@
         <a href="#como-funciona">Como funciona</a>
         <a href="#precos">Preços</a>
       </nav>
-      <div class="marketing-actions"><a class="marketing-login" href="/#login">Entrar</a><a class="marketing-header-cta" href="/#login">Testar grátis</a></div>
+      <div class="marketing-actions"><a class="marketing-login" href="/#login">Entrar</a><a class="marketing-header-cta" href="/#login" data-start-trial>Começar grátis</a></div>
     </header>
 
     <section class="cro-hero" aria-labelledby="landing-title">
       <div class="cro-container cro-hero-grid">
         <div class="cro-hero-copy">
-          <span class="cro-kicker">AGENDA ONLINE PARA QUEM ATENDE COM HORA MARCADA</span>
+          <span class="cro-kicker">Agenda online para o seu negócio</span>
           <h1 id="landing-title">Sua agenda organizada. Mais tempo para seus clientes.</h1>
-          <p>Receba agendamentos pelo seu link, organize os atendimentos e acompanhe os recebimentos em um só lugar.</p>
+          <p>Receba agendamentos online, envie lembretes automáticos, preencha horários vagos e acompanhe seu faturamento. Tudo em um só lugar.</p>
           <a id="landing-trial" class="cro-button" href="/#login">Começar 14 dias grátis <span aria-hidden="true">→</span></a>
-          <p class="cro-trial-copy">Crie sua conta e teste o Marcaê por 14 dias grátis, sem precisar cadastrar cartão.</p>
-          <p class="cro-price-note">Depois, R$ 29,90 por mês. Você escolhe Pix mensal ou cartão recorrente.</p>
+          <p class="cro-trial-copy">Sem cartão de crédito para começar • R$ 29,90/mês após o teste</p>
+          <p class="cro-price-note">Crie sua conta e teste o Marcaê por 14 dias grátis, sem precisar cadastrar cartão.</p>
         </div>
         <figure class="cro-hero-preview">
-          <figcaption><span>AGENDA EM FOCO</span><span><i aria-hidden="true"></i> Rotina organizada</span></figcaption>
-          <img src="/landing/marcae-painel-preview.svg" alt="Prévia ilustrativa do painel Marcaê com agenda e informações da rotina de atendimento." width="629" height="430" fetchpriority="high">
+          <figcaption><span>AGENDA EM FOCO</span><span class="cro-caption-desktop"><i aria-hidden="true"></i> Agenda do Marcaê</span><span class="cro-caption-mobile">Vetor fiel</span></figcaption>
+          <picture>
+            <source media="(max-width: 600px)" srcset="/landing/marcae-painel-preview-mobile.svg">
+            <img src="/landing/marcae-painel-preview.svg" alt="Ilustração vetorial da tela Agenda do Marcaê, com disponibilidade, filtros e livro de marcações." width="629" height="430" fetchpriority="high">
+          </picture>
         </figure>
       </div>
     </section>
@@ -73,18 +76,22 @@
     <section class="cro-section cro-product-section" aria-labelledby="product-preview-title">
       <div class="cro-container">
         <div class="cro-section-heading">
-          <span class="cro-kicker">SIMPLES DE USAR, DE PONTA A PONTA</span>
-          <h2 id="product-preview-title">Uma rotina mais leve, do agendamento ao atendimento.</h2>
-          <p>Conheça a agenda da equipe e a página pública de reserva.</p>
+          <span class="cro-kicker"><span class="cro-copy-desktop">SIMPLES DE USAR, DE PONTA A PONTA</span><span class="cro-copy-mobile">CONHEÇA O PRODUTO</span></span>
+          <h2 id="product-preview-title"><span class="cro-copy-desktop">Uma rotina mais leve, do agendamento ao atendimento.</span><span class="cro-copy-mobile">Do primeiro horário à reserva.</span></h2>
+          <p><span class="cro-copy-desktop">Prévias vetoriais fiéis das interfaces atuais, sem dados pessoais.</span><span class="cro-copy-mobile">Prévias vetoriais fiéis às telas atuais, sem dados pessoais.</span></p>
         </div>
         <div class="cro-preview-grid">
           <figure class="cro-preview-card">
-            <img src="/landing/agenda-preview.svg" alt="Prévia ilustrativa da agenda e dos atendimentos." width="571" height="346" loading="lazy">
-            <figcaption><strong>Agenda e atendimentos</strong><span>Consulte os horários e acompanhe os atendimentos do dia.</span></figcaption>
+            <div class="cro-preview-media">
+              <picture><source media="(max-width: 600px)" srcset="/landing/agenda-preview-mobile.svg"><img src="/landing/agenda-preview.svg" alt="Prévia vetorial da tela Agenda e atendimentos, em estado vazio." width="571" height="346" loading="lazy" decoding="async"></picture>
+            </div>
+            <figcaption><strong>Agenda e atendimentos</strong><span>Consulte horários disponíveis e acompanhe as marcações.</span></figcaption>
           </figure>
           <figure class="cro-preview-card">
-            <img src="/landing/reserva-preview.svg" alt="Prévia ilustrativa da página pública de reserva." width="571" height="346" loading="lazy">
-            <figcaption><strong>Reserva pública</strong><span>Seus clientes escolhem um horário disponível pelo seu link.</span></figcaption>
+            <div class="cro-preview-media">
+              <picture><source media="(max-width: 600px)" srcset="/landing/reserva-preview-mobile.svg"><img src="/landing/reserva-preview.svg" alt="Prévia vetorial da tela pública de reserva, sem dados pessoais." width="571" height="346" loading="lazy" decoding="async"></picture>
+            </div>
+            <figcaption><strong>Reserva pública</strong><span>O cliente escolhe serviço e horário sem criar uma conta.</span></figcaption>
           </figure>
         </div>
       </div>
@@ -94,18 +101,18 @@
       <div class="cro-container">
         <div class="cro-section-heading">
           <span class="cro-kicker">O ESSENCIAL, BEM ORGANIZADO</span>
-          <h2 id="resources-title">Mais clareza para cuidar da sua rotina.</h2>
-          <p>Ferramentas para receber reservas, acompanhar os atendimentos e manter as informações do negócio organizadas.</p>
+          <h2 id="resources-title"><span class="cro-copy-desktop">Mais clareza para cuidar da sua rotina.</span><span class="cro-copy-mobile">Mais clareza para cuidar da rotina.</span></h2>
+          <p><span class="cro-copy-desktop">Ferramentas para receber reservas, acompanhar os atendimentos e manter as informações do negócio em ordem.</span><span class="cro-copy-mobile">Ferramentas para receber reservas e manter as informações do negócio em ordem.</span></p>
         </div>
         <div class="cro-feature-grid">
-          <article class="cro-feature"><span>01</span><h3>Agenda online</h3><p>Organize horários, profissionais e atendimentos em uma agenda compartilhada.</p></article>
-          <article class="cro-feature"><span>02</span><h3>Link exclusivo</h3><p>Seus clientes consultam horários e reservam sem criar uma conta.</p></article>
-          <article class="cro-feature"><span>03</span><h3>Lembretes por e-mail</h3><p>Avisos previstos para 24 h e 2 h antes, quando o envio estiver habilitado.</p></article>
-          <article class="cro-feature"><span>04</span><h3>Lista de espera</h3><p>Uma vaga cancelada pode ser oferecida por e-mail a clientes compatíveis, quando habilitada.</p></article>
-          <article class="cro-feature"><span>05</span><h3>Gestão de clientes</h3><p>Mantenha contatos e histórico de atendimentos organizados.</p></article>
-          <article class="cro-feature"><span>06</span><h3>Acompanhamento de faturamento</h3><p>Consulte os valores dos atendimentos concluídos e confirmados.</p></article>
+          <article class="cro-feature"><span>01</span><h3>Agenda online</h3><p><span class="cro-copy-desktop">Organize horários, profissionais e atendimentos em um só lugar.</span><span class="cro-copy-mobile">Organize horários, profissionais e atendimentos.</span></p></article>
+          <article class="cro-feature"><span>02</span><h3>Link exclusivo</h3><p><span class="cro-copy-desktop">Seus clientes escolhem serviço e horário sem criar uma conta.</span><span class="cro-copy-mobile">Seus clientes escolhem serviço e horário sem conta.</span></p></article>
+          <article class="cro-feature"><span>03</span><h3>Lembretes por e-mail</h3><p><span class="cro-copy-desktop">Envios 24h e 2h antes, quando o recurso estiver habilitado.</span><span class="cro-copy-mobile">Envios 24h e 2h antes, quando habilitados.</span></p></article>
+          <article class="cro-feature"><span>04</span><h3>Lista de espera</h3><p><span class="cro-copy-desktop">Uma vaga cancelada pode ser oferecida por e-mail a quem aguarda.</span><span class="cro-copy-mobile">Uma vaga cancelada pode ser oferecida por e-mail.</span></p></article>
+          <article class="cro-feature"><span>05</span><h3>Gestão de clientes</h3><p><span class="cro-copy-desktop">Mantenha contatos e histórico de atendimentos organizados.</span><span class="cro-copy-mobile">Mantenha contatos e histórico organizados.</span></p></article>
+          <article class="cro-feature"><span>06</span><h3><span class="cro-copy-desktop">Acompanhamento de faturamento</span><span class="cro-copy-mobile">Faturamento</span></h3><p><span class="cro-copy-desktop">Consulte os recebimentos confirmados por semana e por mês.</span><span class="cro-copy-mobile">Consulte recebimentos confirmados por semana e mês.</span></p></article>
           <article class="cro-feature"><span>07</span><h3>Serviços e horários</h3><p>Configure preços, duração e disponibilidade da equipe.</p></article>
-          <article class="cro-feature"><span>08</span><h3>WhatsApp direto da agenda</h3><p>Na Agenda, toque no ícone para abrir o WhatsApp com uma mensagem já preenchida com serviço, dia e horário. É necessário ter telefone válido com DDD. O responsável confere e envia a mensagem sem precisar digitar.</p></article>
+          <article class="cro-feature"><span>08</span><h3>WhatsApp direto da Agenda</h3><p>Na Agenda, toque no ícone para abrir uma conversa no WhatsApp já preenchida com nome, procedimento, dia e horário. Exige telefone válido com DDD. O responsável confere e envia a mensagem sem precisar digitar.</p></article>
         </div>
       </div>
     </section>
@@ -113,9 +120,9 @@
     <section class="cro-section cro-receipts-section" aria-labelledby="receipts-preview-title">
       <div class="cro-container">
         <div class="cro-section-heading">
-          <span class="cro-kicker">VISÃO CLARA DA OPERAÇÃO</span>
-          <h2 id="receipts-preview-title">Acompanhe seus recebimentos e clientes.</h2>
-          <p>Consulte os recebimentos confirmados por período e mantenha os contatos e históricos dos clientes organizados.</p>
+          <span class="cro-kicker"><span class="cro-copy-desktop">VISÃO CLARA DA OPERAÇÃO</span><span class="cro-copy-mobile">INFORMAÇÕES ORGANIZADAS</span></span>
+          <h2 id="receipts-preview-title"><span class="cro-copy-desktop">Acompanhe seus recebimentos e clientes.</span><span class="cro-copy-mobile">Veja clientes e recebimentos.</span></h2>
+          <p><span class="cro-copy-desktop">Consulte os recebimentos confirmados por período e mantenha os contatos e históricos dos clientes organizados.</span><span class="cro-copy-mobile">Acompanhe os recebimentos do período e mantenha os contatos dos seus clientes organizados.</span></p>
         </div>
         <div class="cro-business-preview" role="group" aria-label="Prévia ilustrativa de recebimentos e clientes">
           <article class="cro-preview-panel cro-receipts-preview">
@@ -133,7 +140,7 @@
           </article>
           <article class="cro-preview-panel cro-clients-preview">
             <div class="cro-panel-heading"><h3>CLIENTES</h3><span>DADOS FICTÍCIOS</span></div>
-            <div class="cro-client-table" role="table" aria-label="Clientes de exemplo">
+            <div class="cro-client-table" role="table" aria-label="Clientes fictícios de demonstração">
               <div class="cro-client-row cro-client-head" role="row"><span role="columnheader">NOME</span><span role="columnheader">CONTATO</span><span role="columnheader">IDADE</span><span role="columnheader">AÇÕES</span></div>
               <div class="cro-client-row" role="row"><strong role="cell">Mariana Costa</strong><span role="cell">•••• 4821</span><span role="cell">29</span><span class="cro-more" role="cell" aria-label="Ações">•••</span></div>
               <div class="cro-client-row" role="row"><strong role="cell">Camila Rocha</strong><span role="cell">•••• 1936</span><span role="cell">34</span><span class="cro-more" role="cell" aria-label="Ações">•••</span></div>
@@ -149,12 +156,12 @@
       <div class="cro-container">
         <div class="cro-section-heading cro-centered-heading">
           <span class="cro-kicker">COMECE NO SEU RITMO</span>
-          <h2 id="steps-title">Pronto para organizar. Simples assim.</h2>
+          <h2 id="steps-title"><span class="cro-copy-desktop">Pronto para organizar. Simples assim.</span><span class="cro-copy-mobile">Três passos para começar.</span></h2>
         </div>
         <ol class="cro-steps-grid">
-          <li><span>1</span><div><strong>CONFIGURE SEU NEGÓCIO</strong><h3>Cadastre seus serviços e horários.</h3><p>Defina os preços e a disponibilidade da equipe.</p></div></li>
-          <li><span>2</span><div><strong>COMPARTILHE SEU LINK</strong><h3>Deixe seus clientes reservarem.</h3><p>O link mostra os horários disponíveis para agendamento.</p></div></li>
-          <li><span>3</span><div><strong>ACOMPANHE TUDO</strong><h3>Veja sua agenda e recebimentos.</h3><p>Organize os atendimentos e confira os valores confirmados.</p></div></li>
+          <li><span>1</span><div><strong>CONFIGURE</strong><h3>Configure seu negócio</h3><p><span class="cro-copy-desktop">Cadastre serviços, profissionais, preços e horários disponíveis.</span><span class="cro-copy-mobile">Cadastre serviços, profissionais, preços e horários.</span></p></div></li>
+          <li><span>2</span><div><strong>COMPARTILHE</strong><h3>Compartilhe seu link</h3><p><span class="cro-copy-desktop">Seus clientes escolhem um horário disponível e fazem a reserva online.</span><span class="cro-copy-mobile">Seus clientes escolhem um horário e fazem a reserva online.</span></p></div></li>
+          <li><span>3</span><div><strong>ACOMPANHE</strong><h3>Acompanhe tudo</h3><p>Gerencie agendamentos, clientes, lembretes e faturamento.</p></div></li>
         </ol>
       </div>
     </section>
@@ -167,16 +174,20 @@
         </div>
         <article class="cro-pricing-card">
           <div class="cro-plan-main">
-            <span class="cro-plan-label">PLANO MENSAL</span>
-            <div class="cro-plan-price"><strong>R$ 29,90</strong><span>/mês após o teste</span></div>
-            <p>Crie sua conta e teste o Marcaê por 14 dias grátis, sem precisar cadastrar cartão.</p>
-            <ul><li>Agenda online para sua equipe</li><li>Agendamentos pelo link público</li><li>Lembretes por e-mail quando habilitados</li><li>Lista de espera e ofertas por e-mail quando habilitadas</li><li>Gestão de serviços, recebimentos e clientes</li></ul>
+            <div class="cro-plan-intro"><span class="cro-plan-label">PLANO MARCAÊ</span><div class="cro-plan-price"><strong>R$ 29,90</strong><span>/mês após o teste</span></div></div>
+            <ul>
+              <li>Até 14 dias de teste grátis</li>
+              <li>Sem cartão de crédito para começar</li>
+              <li>Agendamento online e lembretes por e-mail</li>
+              <li>Lista de espera e gestão de clientes</li>
+              <li>Acompanhamento dos recebimentos confirmados</li>
+            </ul>
           </div>
           <div class="cro-payment-options">
-            <article><strong>Comece com o teste</strong><span>Crie sua conta sem informar os dados do cartão. O período começa no cadastro da conta.</span></article>
-            <article><strong>Pix avulso</strong><span>Faça um novo pagamento a cada mês. O Pix não renova automaticamente.</span></article>
-            <article><strong>Cartão</strong><span>Assinatura mensal com renovação automática.</span></article>
-            <a class="cro-button" href="/#login" data-start-trial>Criar minha conta <span aria-hidden="true">→</span></a>
+            <article><strong><span class="cro-copy-desktop">Como começa o teste</span><span class="cro-copy-mobile">Seu teste</span></strong><span><span class="cro-copy-desktop">Crie sua conta e teste o Marcaê por 14 dias grátis, sem precisar cadastrar cartão.</span><span class="cro-copy-mobile">Começa quando sua conta é criada e pode ser inferior a 14 dias se parte do prazo já passou.</span></span></article>
+            <article><strong>Pix ou cartão</strong><span><span class="cro-copy-desktop">Pix: pagamento mensal avulso, sem renovação automática. Cartão: assinatura mensal recorrente.</span><span class="cro-copy-mobile">Pix é pagamento mensal avulso, sem renovação automática. Cartão é assinatura mensal recorrente.</span></span></article>
+            <a class="cro-button" href="/#login" data-start-trial>Começar teste grátis <span aria-hidden="true">→</span></a>
+            <p class="cro-payment-note">Você continua pelo cadastro existente.</p>
           </div>
         </article>
       </div>
@@ -189,29 +200,34 @@
           <h2 id="faq-title">Tudo claro antes de começar.</h2>
         </div>
         <div class="cro-faq-list">
-          <details><summary>Preciso cadastrar cartão para testar?</summary><p>Não. Uma conta nova pode ser criada sem cartão e tem 14 dias de avaliação. Se o período de avaliação já tiver começado para a conta, será usado o tempo restante.</p></details>
-          <details><summary>Meus clientes precisam criar uma conta?</summary><p>Não. Eles acessam seu link público, escolhem um serviço e horário e informam os dados solicitados na reserva.</p></details>
-          <details><summary>Como funcionam os lembretes?</summary><p>O sistema prevê lembretes por e-mail 24 h e 2 h antes do atendimento. O envio depende de o e-mail estar habilitado.</p></details>
-          <details><summary>Posso configurar serviços e horários?</summary><p>Sim. Cadastre serviços, preços e duração. Configure a disponibilidade da equipe em Equipe e horários.</p></details>
-          <details><summary>O que acontece depois do teste grátis?</summary><p>Você escolhe Pix mensal avulso ou cartão em assinatura recorrente. Sem pagamento, novas gravações ficam bloqueadas, mas os dados permanecem consultáveis.</p></details>
+          <details><summary>Preciso de cartão de crédito para testar?</summary><p>Não. Você pode criar sua conta sem cadastrar cartão e usar o prazo de avaliação disponível para ela.</p></details>
+          <details><summary>Meus clientes precisam criar uma conta?</summary><p>Não. Seus clientes abrem o link público, escolhem serviço e horário disponíveis e informam os dados solicitados na reserva.</p></details>
+          <details><summary>Como funcionam os lembretes automáticos?</summary><p>Quando habilitado, o sistema envia lembretes por e-mail 24 horas e 2 horas antes do atendimento.</p></details>
+          <details><summary>Posso configurar meus serviços e horários?</summary><p>Sim. Você configura serviços, preços, duração e disponibilidade da equipe na área interna.</p></details>
+          <details open><summary>O que acontece depois dos 14 dias grátis?</summary><p>Você escolhe Pix mensal avulso, com um novo pagamento a cada ciclo e sem renovação automática, ou cartão em assinatura mensal recorrente. Sem pagamento, novas gravações ficam bloqueadas, mas os dados permanecem consultáveis.</p></details>
           <details><summary>O Pix renova automaticamente?</summary><p>Não. O Pix é um pagamento mensal avulso e precisa ser pago novamente a cada ciclo. O cartão funciona como uma assinatura recorrente.</p></details>
-          <details><summary>Como funciona a lista de espera?</summary><p>Quando surge uma vaga por cancelamento, o sistema pode oferecê-la por e-mail a clientes compatíveis da lista, quando o envio estiver habilitado.</p></details>
+          <details><summary>Como funciona a lista de espera?</summary><p>Quando surge uma vaga por cancelamento, o sistema pode oferecê-la por e-mail a quem aguarda, conforme a configuração da lista de espera.</p></details>
         </div>
       </div>
     </section>
 
     <section class="cro-final-cta" aria-labelledby="final-cta-title">
       <div class="cro-container cro-final-cta-inner">
-        <div><h2 id="final-cta-title">Mais tempo para atender bem.</h2><p>Crie sua conta e organize sua agenda no Marcaê.</p></div>
+        <div><h2 id="final-cta-title">Mais tempo para atender bem.</h2><p>Crie sua conta e configure a agenda no seu ritmo.</p></div>
         <a class="cro-button cro-button-light" href="/#login" data-start-trial>Começar 14 dias grátis <span aria-hidden="true">→</span></a>
       </div>
     </section>
 
-    <footer class="marketing-footer"><a class="marketing-brand" href="/" aria-label="Marcaê, início"><img src="/favicon.svg" alt="" width="30" height="30"><span>Marcaê</span></a><nav aria-label="Links do rodapé"><a href="#recursos">Funcionalidades</a><a href="#como-funciona">Como funciona</a><a href="#precos">Preços</a><a href="/#login">Acesso à conta</a></nav><span>© <span id="landing-year">2026</span> Marcaê</span></footer>
-    <a class="whatsapp-contact" href="https://wa.me/5521982877874?text=Ol%C3%A1%21%20Vim%20pelo%20site%20do%20Marca%C3%AA%20e%20gostaria%20de%20saber%20mais." target="_blank" rel="noopener noreferrer" aria-label="Fale com o Marcaê pelo WhatsApp">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2a9.8 9.8 0 0 0-8.4 14.8L2.4 22l5.3-1.1A9.9 9.9 0 1 0 12 2Zm0 17.9a8 8 0 0 1-4.1-1.1l-.3-.2-3.1.7.7-3-.2-.4A8 8 0 1 1 12 19.9Z" fill="currentColor"/><path d="M9 7.6c-.2-.4-.4-.4-.7-.4h-.6c-.2 0-.5.1-.7.4-.2.2-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.8 2.9 4.4 3.9 2.2.9 2.6.7 3.1.7.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.4l-1.7-.8c-.2-.1-.4-.1-.6.2-.2.3-.7.8-.9 1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.2-1.3-.8-.7-1.3-1.6-1.5-1.8-.2-.3 0-.4.1-.6l.4-.5.4-.5c.1-.2.1-.4 0-.5Z" fill="currentColor"/></svg>
-      <span>Fale pelo WhatsApp</span>
-    </a>
+    <footer class="marketing-footer">
+      <a class="marketing-brand" href="/" aria-label="Marcaê, início"><img src="/favicon.svg" alt="" width="30" height="30"><span>Marcaê</span></a>
+      <p class="marketing-footer-tagline">Agenda online para negócios com hora marcada.</p>
+      <nav aria-label="Links do rodapé"><a href="#recursos">Funcionalidades</a><a href="#como-funciona">Como funciona</a><a href="#precos">Preços</a><a href="/#login">Entrar</a></nav>
+      <a class="whatsapp-contact" href="https://wa.me/5521982877874?text=Ol%C3%A1%21%20Vim%20pelo%20site%20do%20Marca%C3%AA%20e%20gostaria%20de%20saber%20mais." target="_blank" rel="noopener noreferrer" aria-label="Fale com o Marcaê pelo WhatsApp">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2a9.8 9.8 0 0 0-8.4 14.8L2.4 22l5.3-1.1A9.9 9.9 0 1 0 12 2Zm0 17.9a8 8 0 0 1-4.1-1.1l-.3-.2-3.1.7.7-3-.2-.4A8 8 0 1 1 12 19.9Z" fill="currentColor"/><path d="M9 7.6c-.2-.4-.4-.4-.7-.4h-.6c-.2 0-.5.1-.7.4-.2.2-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.8 2.9 4.4 3.9 2.2.9 2.6.7 3.1.7.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.4l-1.7-.8c-.2-.1-.4-.1-.6.2-.2.3-.7.8-.9 1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.2-1.3-.8-.7-1.3-1.6-1.5-1.8-.2-.3 0-.4.1-.6l.4-.5.4-.5c.1-.2.1-.4 0-.5Z" fill="currentColor"/></svg>
+        <span>Fale pelo WhatsApp</span>
+      </a>
+      <span class="marketing-copyright">© <span id="landing-year">2026</span> Marcaê</span>
+    </footer>
   </main>
 
   <div id="login" class="login-route">

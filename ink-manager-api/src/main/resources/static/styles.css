@@ -2266,6 +2266,184 @@ body:has(#workspace:not([hidden])) #login { display:none; }
   .cro-button:hover { transform:none; }
 }
 
+/* Port fiel dos artboards 04/05 do Paper; regras restritas à landing pública. */
+#public-landing .marketing-header { padding-inline:max(24px,calc((100vw - 1296px)/2)); }
+#public-landing .marketing-nav { order:initial; flex:0 1 auto; justify-content:initial; padding:0; border:0; }
+#public-landing .cro-copy-mobile,
+#public-landing .cro-caption-mobile { display:none; }
+#public-landing .cro-hero-grid { min-height:680px; gap:56px; }
+#public-landing .cro-hero-copy h1 { max-width:530px; font-size:clamp(46px,4.1vw,58px); line-height:1.03; }
+#public-landing .cro-hero-copy>p:not(.cro-trial-copy):not(.cro-price-note) { max-width:500px; font-size:18px; line-height:1.65; }
+#public-landing .cro-button { min-height:56px; padding-inline:25px; border-radius:14px; box-shadow:0 8px 18px #2456D833; }
+#public-landing .cro-trial-copy { max-width:500px; margin:0; font-size:13px; font-weight:600; }
+#public-landing .cro-price-note { max-width:465px; margin:0; font-size:12px; }
+#public-landing .cro-hero-preview { padding:14px; border-color:#DEE4F0; border-radius:26px; box-shadow:0 28px 70px #171B2A1C; }
+#public-landing .cro-hero-preview figcaption { padding:4px 6px 13px; font-size:12px; letter-spacing:.08em; }
+#public-landing .cro-hero-preview figcaption span:last-child { font-size:12px; }
+#public-landing .cro-hero-preview picture { display:block; }
+#public-landing .cro-hero-preview img { width:100%; height:auto; border-radius:12px; }
+#public-landing .cro-section { padding:74px 0 80px; }
+#public-landing .cro-section-heading h2 { font-size:36px; }
+#public-landing .cro-preview-grid { gap:24px; }
+#public-landing .cro-preview-card { border-radius:20px; }
+#public-landing .cro-preview-media { display:flex; height:378px; align-items:center; justify-content:center; padding:16px; background:#F4F6FB; }
+#public-landing .cro-preview-media picture { display:block; width:100%; height:100%; }
+#public-landing .cro-preview-media img { display:block; width:100%; height:100%; object-fit:contain; background:#F4F6FB; }
+#public-landing .cro-preview-card figcaption { gap:5px; padding:19px 22px 21px; }
+#public-landing .cro-preview-card figcaption strong { font:700 18px/22px 'Inter Tight','Inter',system-ui,sans-serif; }
+#public-landing .cro-preview-card figcaption span { font-size:13px; }
+#public-landing .cro-feature-grid { gap:16px; }
+#public-landing .cro-feature { min-height:176px; padding:18px; border-radius:18px; }
+#public-landing .cro-feature h3 { font-size:16px; }
+#public-landing .cro-feature p { font-size:12px; line-height:1.55; }
+#public-landing .cro-preview-panel { padding:24px; }
+#public-landing .cro-steps-grid { gap:16px; }
+#public-landing .cro-steps-grid li { gap:13px; padding:20px; border-radius:15px; }
+#public-landing .cro-steps-grid li strong { font-size:10px; }
+#public-landing .cro-steps-grid h3 { font-size:17px; }
+#public-landing .cro-steps-grid p { font-size:12px; }
+#public-landing .cro-plan-intro { display:grid; gap:8px; }
+#public-landing .cro-plan-label { font-size:11px; }
+#public-landing .cro-plan-price strong { font-size:48px; }
+#public-landing .cro-plan-price span { font-size:14px; }
+#public-landing .cro-plan-main ul { gap:11px; }
+#public-landing .cro-plan-main li { font-size:13px; }
+#public-landing .cro-payment-options { gap:12px; }
+#public-landing .cro-payment-options article { padding:14px 15px; border-radius:13px; }
+#public-landing .cro-payment-options article strong { font-size:14px; }
+#public-landing .cro-payment-options article>span { font-size:12px; }
+#public-landing .cro-payment-note { margin:0; color:#727B8B; font-size:11px; text-align:center; }
+#public-landing .cro-faq-list summary { font:600 14px/18px 'Inter Tight','Inter',system-ui,sans-serif; }
+#public-landing .cro-faq-list details p { font-size:13px; }
+#public-landing .marketing-footer { display:grid; grid-template-columns:auto minmax(150px,1fr) auto auto; align-items:center; gap:22px; padding-inline:max(24px,calc((100vw - 1232px)/2)); }
+#public-landing .marketing-footer-tagline { margin:0; color:#778092; font-size:12px; }
+#public-landing .marketing-footer nav { gap:18px; }
+#public-landing .marketing-footer nav a,
+#public-landing .marketing-copyright { color:#778092; font-size:11px; }
+#public-landing .marketing-footer .whatsapp-contact { display:none; position:static; right:auto; bottom:auto; z-index:auto; min-height:42px; padding-inline:15px; font-size:12px; box-shadow:none; }
+
+@media(max-width:1050px) {
+  #public-landing .marketing-footer { grid-template-columns:auto 1fr auto; }
+  #public-landing .marketing-footer-tagline { grid-column:1 / 3; grid-row:2; }
+  #public-landing .marketing-footer nav { grid-column:1 / 3; grid-row:3; }
+  #public-landing .marketing-footer .whatsapp-contact { grid-column:3; grid-row:1; }
+  #public-landing .marketing-copyright { grid-column:3; grid-row:3; justify-self:end; }
+}
+@media(max-width:800px) {
+  #public-landing .marketing-header { flex-wrap:nowrap; gap:12px; }
+  #public-landing .marketing-nav { flex:1 1 auto; justify-content:flex-end; }
+  #public-landing .marketing-actions { gap:0; }
+  #public-landing .marketing-header-cta { display:none; }
+  #public-landing .marketing-header .marketing-nav a:nth-child(2) { display:none; }
+  #public-landing .cro-hero-grid { min-height:0; gap:28px; padding-top:44px; padding-bottom:48px; }
+  #public-landing .cro-hero-copy h1 { max-width:650px; font-size:clamp(42px,7.8vw,56px); }
+  #public-landing .cro-hero-preview { max-width:100%; }
+  #public-landing .cro-preview-grid { grid-template-columns:minmax(0,1fr); }
+  #public-landing .cro-preview-media { height:378px; }
+  #public-landing .cro-business-preview { gap:16px; }
+  #public-landing .cro-period-totals { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #public-landing .cro-steps-grid { grid-template-columns:minmax(0,1fr); }
+  #public-landing .cro-pricing-card { grid-template-columns:minmax(0,1fr); gap:18px; }
+  #public-landing .cro-pricing-card::before { display:none; }
+  #public-landing .cro-payment-options { grid-column:auto; }
+}
+@media(max-width:600px) {
+  #public-landing .marketing-header { height:66px; min-height:66px; flex-wrap:nowrap; gap:11px; padding:0 20px; }
+  #public-landing .marketing-header>.marketing-brand { margin:0 auto 0 0; font-size:17px; gap:7px; }
+  #public-landing .marketing-header .marketing-brand img { width:30px; height:30px; }
+  #public-landing .marketing-nav { flex:0 0 auto; gap:13px; }
+  #public-landing .marketing-nav a { font-size:10px; }
+  #public-landing .marketing-login { font-size:11px; }
+  #public-landing .marketing-actions { flex:0 0 auto; }
+  #public-landing .cro-container { width:calc(100% - 40px); }
+  #public-landing .cro-hero-grid { gap:21px; padding-top:31px; padding-bottom:39px; }
+  #public-landing .cro-kicker { font-size:10px; letter-spacing:.08em; }
+  #public-landing .cro-hero-copy h1 { max-width:350px; margin:12px 0 13px; font-size:39px; line-height:1.04; letter-spacing:-.045em; }
+  #public-landing .cro-hero-copy>p:not(.cro-trial-copy):not(.cro-price-note) { margin-bottom:17px; font-size:15px; line-height:1.58; }
+  #public-landing .cro-button { min-height:55px; width:auto; padding-inline:19px; font-size:15px; }
+  #public-landing .cro-trial-copy { font-size:11px; line-height:1.5; }
+  #public-landing .cro-price-note { font-size:10px; line-height:1.5; }
+  #public-landing .cro-hero-preview { padding:10px; border-radius:20px; }
+  #public-landing .cro-hero-preview figcaption { padding:4px 4px 10px; font-size:9px; }
+  #public-landing .cro-hero-preview figcaption .cro-caption-desktop { display:none; }
+  #public-landing .cro-hero-preview figcaption .cro-caption-mobile { display:inline; font-size:9px; font-weight:500; letter-spacing:0; }
+  #public-landing .cro-hero-preview img { width:100%; aspect-ratio:329 / 280; object-fit:contain; }
+  #public-landing .cro-section { padding:42px 0 46px; }
+  #public-landing .cro-section-heading { margin-bottom:20px; }
+  #public-landing .cro-section-heading h2 { margin:8px 0; font-size:29px; line-height:1.08; letter-spacing:-.03em; }
+  #public-landing .cro-section-heading p { font-size:13px; line-height:1.55; }
+  #public-landing .cro-copy-desktop { display:none; }
+  #public-landing .cro-copy-mobile { display:inline; }
+  #public-landing .cro-preview-grid { gap:14px; }
+  #public-landing .cro-preview-media { height:270px; padding:10px; }
+  #public-landing .cro-preview-card:nth-child(2) .cro-preview-media { height:450px; }
+  #public-landing .cro-preview-card figcaption { gap:4px; padding:14px 16px 15px; }
+  #public-landing .cro-preview-card figcaption strong { font-size:15px; line-height:18px; }
+  #public-landing .cro-preview-card figcaption span { font-size:11px; line-height:1.5; }
+  #public-landing .cro-feature-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  #public-landing .cro-feature { min-height:122px; padding:14px; border-radius:15px; }
+  #public-landing .cro-feature>span { width:27px; height:27px; margin-bottom:9px; font-size:9px; }
+  #public-landing .cro-feature h3 { font-size:13px; line-height:1.25; }
+  #public-landing .cro-feature p { font-size:11px; line-height:1.5; }
+  #public-landing .cro-feature:nth-child(n+7) { grid-column:1 / -1; min-height:0; }
+  #public-landing .cro-feature:nth-child(n+7) p { max-width:580px; }
+  #public-landing .cro-business-preview { grid-template-columns:minmax(0,1fr); gap:12px; }
+  #public-landing .cro-preview-panel { padding:16px; border-radius:16px; }
+  #public-landing .cro-period-totals { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  #public-landing .cro-period-totals>div { min-height:87px; padding:12px 10px; gap:8px; }
+  #public-landing .cro-period-totals span { font-size:8px; }
+  #public-landing .cro-period-totals strong { font-size:clamp(18px,5.4vw,24px); }
+  #public-landing .cro-transactions { padding:11px; }
+  #public-landing .cro-transaction { gap:8px; }
+  #public-landing .cro-transaction strong,#public-landing .cro-transaction b { font-size:11px; }
+  #public-landing .cro-transaction small { font-size:10px; }
+  #public-landing .cro-client-row { grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); gap:5px; min-height:42px; margin-inline:9px; font-size:10px; }
+  #public-landing .cro-client-row>span:nth-child(3),#public-landing .cro-client-row>span:nth-child(4) { display:none; }
+  #public-landing .cro-client-row strong { font-size:11px; }
+  #public-landing .cro-client-head { min-height:37px; margin:0; padding-inline:9px; font-size:8px; }
+  #public-landing .cro-panel-note { font-size:10px; }
+  #public-landing .cro-steps-grid { gap:10px; }
+  #public-landing .cro-steps-grid li { gap:13px; padding:16px; border-radius:15px; }
+  #public-landing .cro-steps-grid li>span { width:34px; height:34px; flex-basis:34px; }
+  #public-landing .cro-steps-grid li strong { font-size:9px; }
+  #public-landing .cro-steps-grid h3 { margin:6px 0 5px; font-size:15px; }
+  #public-landing .cro-steps-grid p { font-size:11px; line-height:1.5; }
+  #public-landing .cro-pricing-card { gap:18px; padding:22px; border-radius:20px; }
+  #public-landing .cro-plan-price { gap:6px; margin:4px 0 8px; }
+  #public-landing .cro-plan-price strong { font-size:42px; }
+  #public-landing .cro-plan-price span { font-size:11px; }
+  #public-landing .cro-plan-main ul { gap:10px; }
+  #public-landing .cro-plan-main li { font-size:11px; }
+  #public-landing .cro-payment-options { gap:10px; }
+  #public-landing .cro-payment-options article { padding:12px; }
+  #public-landing .cro-payment-options article strong { font-size:13px; }
+  #public-landing .cro-payment-options article>span { font-size:11px; }
+  #public-landing .cro-payment-options .cro-button { width:100%; }
+  #public-landing .cro-payment-note { font-size:10px; }
+  #public-landing .cro-faq-section { padding:42px 0 46px; }
+  #public-landing .cro-faq-list { border-radius:13px; }
+  #public-landing .cro-faq-list details { padding-inline:14px; }
+  #public-landing .cro-faq-list summary { padding:13px 28px 13px 0; font-size:12px; }
+  #public-landing .cro-faq-list details p { padding:0 14px 14px 0; font-size:11px; }
+  #public-landing .cro-final-cta { padding-bottom:38px; }
+  #public-landing .cro-final-cta-inner { align-items:flex-start; flex-direction:column; gap:16px; padding:22px; }
+  #public-landing .cro-final-cta h2 { font-size:22px; }
+  #public-landing .cro-final-cta p { font-size:12px; line-height:1.5; }
+  #public-landing .cro-button-light { width:100%; }
+  #public-landing .marketing-footer { display:flex; align-items:flex-start; flex-direction:column; gap:14px; padding:22px 20px; }
+  #public-landing .marketing-footer-tagline { font-size:12px; }
+  #public-landing .marketing-footer nav { gap:10px 16px; }
+  #public-landing .marketing-footer nav a { font-size:11px; }
+  #public-landing .marketing-footer .whatsapp-contact {
+  display:flex; align-items:center; gap:10px; position:static; right:auto; bottom:auto; z-index:auto;
+  min-height:42px; padding:0; border:0; border-radius:0; background:transparent; color:#475266;
+  font-size:11px; font-weight:600; box-shadow:none;
+}
+#public-landing .marketing-footer .whatsapp-contact:hover { transform:none; background:transparent; color:#475266; box-shadow:none; }
+#public-landing .marketing-footer .whatsapp-contact svg { width:42px; height:42px; padding:10px; border:1px solid #CFE9DC; border-radius:50%; background:#EAF8F1; color:#1B9A5A; box-sizing:border-box; }
+  #public-landing .marketing-copyright { font-size:10px; }
+}
+
 /* Agenda and Meu negócio — approved Editorial Cobalto layout. */
 #agenda-view,
 #studio-view {

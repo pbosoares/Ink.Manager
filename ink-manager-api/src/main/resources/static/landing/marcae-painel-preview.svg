@@ -8,23 +8,23 @@
   <line x1="18" y1="23.5" x2="31" y2="23.5" stroke="#FFFFFF" />
   <line x1="21" y1="18.5" x2="21" y2="22" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" />
   <line x1="28" y1="18.5" x2="28" y2="22" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" />
-  <text x="43" y="27" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">
+  <text x="43" y="27" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">
     Marcaê
   </text>
-  <text x="43" y="36" font-family="Inter,Arial,sans-serif" font-size="5.5" font-weight="600" letter-spacing=".7" fill="#AEB8CE">
+  <text x="43" y="36" font-family="Inter,system-ui,sans-serif" font-size="5.5" font-weight="600" letter-spacing=".7" fill="#AEB8CE">
     AGENDA DO NEGÓCIO
   </text>
-  <text x="15" y="61" font-family="Inter,Arial,sans-serif" font-size="7" font-weight="700" letter-spacing=".9" fill="#98A4BD">
+  <text x="15" y="61" font-family="Inter,system-ui,sans-serif" font-size="7" font-weight="700" letter-spacing=".9" fill="#98A4BD">
     O NEGÓCIO
   </text>
   <rect x="10" y="71" width="91" height="27" rx="7" fill="#2A3550" />
   <rect x="18" y="80" width="9" height="9" rx="2" fill="#2456D8" />
   <path d="M20.5 84.5l2-2 2 2-2 2z" fill="none" stroke="#FFFFFF" stroke-width="0.8" />
-  <text x="33" y="88.5" font-family="Inter,Arial,sans-serif" font-size="8.2" font-weight="600" fill="#FFFFFF">
+  <text x="33" y="88.5" font-family="Inter,system-ui,sans-serif" font-size="8.2" font-weight="600" fill="#FFFFFF">
     Visão geral
   </text>
   <path d="M92 81l3 3-3 3" fill="none" stroke="#AAB8D4" />
-  <g font-family="Inter,Arial,sans-serif" font-size="8.2">
+  <g font-family="Inter,system-ui,sans-serif" font-size="8.2">
     <rect x="19" y="109" width="8" height="8" rx="1.5" fill="none" stroke="#AEB8CE" />
     <line x1="19" y1="112" x2="27" y2="112" stroke="#AEB8CE" stroke-width="0.8" />
     <text x="33" y="116" fill="#D2D9E8">
@@ -52,122 +52,121 @@
     </text>
   </g>
   <line x1="13" y1="247" x2="99" y2="247" stroke="#30394E" />
+  <line x1="13" y1="379" x2="99" y2="379" stroke="#30394E" />
+  <circle cx="23" cy="400" r="9" fill="#2A3550" />
+  <text x="23" y="402.5" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7" font-weight="700" fill="#FFFFFF">S</text>
+  <text x="38" y="398" font-family="Inter,system-ui,sans-serif" font-size="6.4" font-weight="700" fill="#FFFFFF">Seu negócio</text>
+  <text x="38" y="407" font-family="Inter,system-ui,sans-serif" font-size="5.3" fill="#AEB8CE">Conta atual</text>
   <rect x="0" y="0" width="629" height="33" fill="#F8FAFD" style="translate: 112px 0px" />
   <line x1="112" y1="33.5" x2="629" y2="33.5" stroke="#E3E9F2" />
-  <text x="128" y="21" font-family="Inter,Arial,sans-serif" font-size="8" font-weight="700" letter-spacing="1" fill="#52617A">
+  <text x="128" y="21" font-family="Inter,system-ui,sans-serif" font-size="8" font-weight="700" letter-spacing="1" fill="#52617A">
     PAINEL DO NEGÓCIO
   </text>
   <circle cx="591" cy="17" r="3.2" fill="#31A875" />
-  <text x="601" y="20" font-family="Inter,Arial,sans-serif" font-size="8" font-weight="500" fill="#34425A">
+  <text x="601" y="20" font-family="Inter,system-ui,sans-serif" font-size="8" font-weight="500" fill="#34425A">
     Hoje
   </text>
-  <text x="128" y="57" font-family="Inter,Arial,sans-serif" font-size="7" font-weight="700" letter-spacing="1" fill="#2456D8">
+  <text x="128" y="57" font-family="Inter,system-ui,sans-serif" font-size="7" font-weight="700" letter-spacing="1" fill="#2456D8">
     SUA ROTINA
   </text>
-  <text x="128" y="79" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="750" letter-spacing="-.5" fill="#171B2A">
+  <text x="128" y="79" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="750" letter-spacing="-.5" fill="#171B2A">
     Sua agenda, em foco.
   </text>
-  <text x="128" y="94" font-family="Inter,Arial,sans-serif" font-size="8.6" fill="#69768B">
+  <text x="128" y="94" font-family="Inter,system-ui,sans-serif" font-size="8.6" fill="#69768B">
     Acompanhe os atendimentos e organize o dia do seu negócio.
   </text>
   <rect x="522" y="53" width="88" height="26" rx="7" fill="#2456D8" />
-  <text x="534" y="69.5" font-family="Inter,Arial,sans-serif" font-size="8" font-weight="650" fill="#FFFFFF">
+  <text x="534" y="69.5" font-family="Inter,system-ui,sans-serif" font-size="8" font-weight="650" fill="#FFFFFF">
     ＋ Nova marcação
   </text>
   <g>
     <rect x="128" y="107" width="151" height="59" rx="10" fill="#FFFFFF" stroke="#E4E9F2" />
     <rect x="289" y="107" width="151" height="59" rx="10" fill="#FFFFFF" stroke="#E4E9F2" />
     <rect x="450" y="107" width="160" height="59" rx="10" fill="#FFFFFF" stroke="#E4E9F2" />
-    <text x="139" y="123" font-family="Inter,Arial,sans-serif" font-size="6.7" font-weight="700" letter-spacing=".55" fill="#52617A">
+    <text x="139" y="123" font-family="Inter,system-ui,sans-serif" font-size="6.7" font-weight="700" letter-spacing=".55" fill="#52617A">
       NA AGENDA DE HOJE
     </text>
-    <text x="139" y="144" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#171B2A">
-      —
+    <text x="139" y="144" font-family="Inter,system-ui,sans-serif" font-size="17" font-weight="700" fill="#171B2A">00
     </text>
-    <text x="158" y="143" font-family="Inter,Arial,sans-serif" font-size="8" fill="#69768B">
+    <text x="158" y="143" font-family="Inter,system-ui,sans-serif" font-size="8" fill="#69768B">
       atendimentos
     </text>
-    <text x="139" y="157" font-family="Inter,Arial,sans-serif" font-size="7.2" fill="#718097">
+    <text x="139" y="157" font-family="Inter,system-ui,sans-serif" font-size="7.2" fill="#718097">
       Atendimentos não cancelados
     </text>
-    <text x="300" y="123" font-family="Inter,Arial,sans-serif" font-size="6.5" font-weight="700" letter-spacing=".45" fill="#52617A">
+    <text x="300" y="123" font-family="Inter,system-ui,sans-serif" font-size="6.5" font-weight="700" letter-spacing=".45" fill="#52617A">
       PRÓXIMOS ATENDIMENTOS
     </text>
-    <text x="300" y="144" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#171B2A">
-      —
+    <text x="300" y="144" font-family="Inter,system-ui,sans-serif" font-size="17" font-weight="700" fill="#171B2A">00
     </text>
-    <text x="319" y="143" font-family="Inter,Arial,sans-serif" font-size="8" fill="#69768B">
+    <text x="319" y="143" font-family="Inter,system-ui,sans-serif" font-size="8" fill="#69768B">
       atendimentos
     </text>
-    <text x="300" y="157" font-family="Inter,Arial,sans-serif" font-size="7.2" fill="#718097">
-      Agendados ou confirmados
+    <text x="300" y="157" font-family="Inter,system-ui,sans-serif" font-size="7.2" fill="#718097">
+      Agendadas ou confirmadas
     </text>
-    <text x="461" y="123" font-family="Inter,Arial,sans-serif" font-size="6.4" font-weight="700" letter-spacing=".4" fill="#52617A">
+    <text x="461" y="123" font-family="Inter,system-ui,sans-serif" font-size="6.4" font-weight="700" letter-spacing=".4" fill="#52617A">
       CLIENTES CADASTRADOS
     </text>
-    <text x="461" y="144" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="#171B2A">
-      —
+    <text x="461" y="144" font-family="Inter,system-ui,sans-serif" font-size="17" font-weight="700" fill="#171B2A">00
     </text>
-    <text x="480" y="143" font-family="Inter,Arial,sans-serif" font-size="8" fill="#69768B">
+    <text x="480" y="143" font-family="Inter,system-ui,sans-serif" font-size="8" fill="#69768B">
       clientes
     </text>
-    <text x="461" y="157" font-family="Inter,Arial,sans-serif" font-size="7.2" fill="#718097">
+    <text x="461" y="157" font-family="Inter,system-ui,sans-serif" font-size="7.2" fill="#718097">
       No cadastro do negócio
     </text>
   </g>
   <rect x="128" y="177" width="296" height="164" rx="12" fill="#FFFFFF" stroke="#E3E8F1" />
-  <text x="141" y="197" font-family="Inter,Arial,sans-serif" font-size="10.5" font-weight="700" fill="#171B2A">
+  <text x="141" y="197" font-family="Inter,system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#171B2A">
     Hoje no negócio
   </text>
-  <text x="141" y="210" font-family="Inter,Arial,sans-serif" font-size="7.4" fill="#77839A">
+  <text x="141" y="210" font-family="Inter,system-ui,sans-serif" font-size="7.4" fill="#77839A">
     Sua agenda de hoje, em um só lugar.
   </text>
-  <text x="374" y="198" font-family="Inter,Arial,sans-serif" font-size="7.5" font-weight="600" fill="#2456D8">
-    Ver agenda ›
+  <text x="374" y="198" font-family="Inter,system-ui,sans-serif" font-size="7.5" font-weight="600" fill="#2456D8">
+    Ver agenda ↗
   </text>
   <line x1="141" y1="218" x2="411" y2="218" stroke="#EDF0F6" />
   <rect x="141" y="226" width="270" height="101" rx="9" fill="#F8FAFD" />
   <rect x="263" y="241" width="26" height="26" rx="8" fill="#EAF0FF" />
   <rect x="270" y="248" width="12" height="12" rx="2" fill="none" stroke="#2456D8" />
   <line x1="270" y1="252" x2="282" y2="252" stroke="#2456D8" />
-  <text x="276" y="279" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="10.5" font-weight="650" fill="#171B2A">
+  <text x="276" y="279" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10.5" font-weight="650" fill="#171B2A">
     Um respiro na agenda.
   </text>
-  <text x="276" y="294" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="7.6" fill="#718097">
+  <text x="276" y="294" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7.6" fill="#718097">
     Nenhum atendimento marcado para hoje.
   </text>
   <rect x="436" y="177" width="174" height="164" rx="12" fill="#EAF0FF" stroke="#DCE6FF" />
   <circle cx="449" cy="192" r="2.7" fill="#2456D8" />
-  <text x="457" y="195" font-family="Inter,Arial,sans-serif" font-size="6.6" font-weight="700" letter-spacing=".7" fill="#2456D8">
+  <text x="457" y="195" font-family="Inter,system-ui,sans-serif" font-size="6.6" font-weight="700" letter-spacing=".7" fill="#2456D8">
     LEMBRETE DA CASA
   </text>
-  <text x="449" y="244" font-family="Inter,Arial,sans-serif" font-size="14.2" font-weight="750" letter-spacing="-.35" fill="#171B2A">
-    Seu tempo importa.
-  </text>
-  <text x="449" y="263" font-family="Inter,Arial,sans-serif" font-size="14.2" font-weight="750" letter-spacing="-.35" fill="#171B2A">
+  <text x="449" y="244" font-family="Inter,system-ui,sans-serif" font-size="14.2" font-weight="750" letter-spacing="-.35" fill="#171B2A">
     O cuidado também.
   </text>
-  <text x="449" y="283" font-family="Inter,Arial,sans-serif" font-size="7.5" fill="#69768B">
+  <text x="449" y="264" font-family="Inter,system-ui,sans-serif" font-size="7.5" fill="#69768B">
     Uma agenda em dia abre espaço para
   </text>
-  <text x="449" y="295" font-family="Inter,Arial,sans-serif" font-size="7.5" fill="#69768B">
+  <text x="449" y="276" font-family="Inter,system-ui,sans-serif" font-size="7.5" fill="#69768B">
     o que importa: atender bem.
   </text>
-  <text x="449" y="326" font-family="Inter,Arial,sans-serif" font-size="5.7" font-weight="700" letter-spacing=".7" fill="#52617A">
+  <text x="449" y="310" font-family="Inter,system-ui,sans-serif" font-size="5.7" font-weight="700" letter-spacing=".7" fill="#52617A">
     MARCAÊ / FEITO PARA QUEM ATENDE
   </text>
   <rect x="128" y="352" width="482" height="62" rx="11" fill="#FFFFFF" stroke="#E3E8F1" />
-  <text x="142" y="369" font-family="Inter,Arial,sans-serif" font-size="6.7" font-weight="700" letter-spacing=".8" fill="#2456D8">
+  <text x="142" y="369" font-family="Inter,system-ui,sans-serif" font-size="6.7" font-weight="700" letter-spacing=".8" fill="#2456D8">
     PRIMEIROS PASSOS
   </text>
-  <text x="142" y="385" font-family="Inter,Arial,sans-serif" font-size="10.5" font-weight="700" fill="#171B2A">
+  <text x="142" y="385" font-family="Inter,system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#171B2A">
     Organize a casa
   </text>
-  <text x="142" y="399" font-family="Inter,Arial,sans-serif" font-size="7.2" fill="#69768B">
-    Cadastre serviços, ajuste horários e compartilhe seu link de reservas.
+  <text x="142" y="399" font-family="Inter,system-ui,sans-serif" font-size="7.2" fill="#69768B">
+    Cadastre serviços, ajuste horários e compartilhe o link de reservas.
   </text>
   <rect x="494" y="371" width="102" height="25" rx="7" fill="#F8FAFD" stroke="#DCE4F1" />
-  <text x="505" y="387" font-family="Inter,Arial,sans-serif" font-size="6.9" font-weight="600" fill="#2456D8">
+  <text x="505" y="387" font-family="Inter,system-ui,sans-serif" font-size="6.9" font-weight="600" fill="#2456D8">
     Configurar serviços e link →
   </text>
 </svg>

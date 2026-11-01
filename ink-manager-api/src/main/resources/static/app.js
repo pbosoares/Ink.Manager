@@ -4,7 +4,7 @@
 const brandFonts = document.createElement('link');
 brandFonts.rel = 'preload';
 brandFonts.as = 'style';
-brandFonts.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&family=Libre+Caslon+Display&family=Rye&display=swap';
+brandFonts.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400..800&family=Inter+Tight:wght@600..800&family=Libre+Caslon+Display&family=Rye&display=swap';
 brandFonts.onload = () => { brandFonts.rel = 'stylesheet'; };
 document.head.append(brandFonts);
 
