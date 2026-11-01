@@ -2213,6 +2213,7 @@ body:has(#workspace:not([hidden])) #login { display:none; }
   .cro-hero-copy h1 { margin:12px 0; font-size:clamp(36px,9.5vw,46px); }
   .cro-hero-copy>p:not(.cro-trial-copy):not(.cro-price-note) { margin-bottom:18px; font-size:14px; }
   .cro-button { min-height:47px; padding-inline:17px; font-size:13px; }
+  #public-landing #landing-trial { position:relative; top:-6px; }
   .cro-trial-copy { font-size:12px; }
   .cro-price-note { font-size:10px; }
   .cro-hero-preview { padding:9px; border-radius:15px; }
