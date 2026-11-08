@@ -1,4 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="571" height="346" viewBox="0 0 571 346">
+      <title>Simulação de uma reserva online</title>
+      <desc>Prévia demonstrativa com dados fictícios; nenhuma reserva é enviada.</desc>
+      <style>
+        .demo-placeholder { opacity:0; }
+        .demo-value,.demo-slots,.demo-confirmation,.demo-button-done,.demo-check { opacity:1; }
+        .demo-focus,.demo-cursor,.demo-button-idle { opacity:0; }
+        @keyframes ph-service { 0%,8% {opacity:1} 11%,94% {opacity:0} 98%,100% {opacity:1} }
+        @keyframes val-service { 0%,9% {opacity:0} 12%,94% {opacity:1} 98%,100% {opacity:0} }
+        @keyframes ph-pro { 0%,18% {opacity:1} 21%,94% {opacity:0} 98%,100% {opacity:1} }
+        @keyframes val-pro { 0%,19% {opacity:0} 22%,94% {opacity:1} 98%,100% {opacity:0} }
+        @keyframes ph-date { 0%,28% {opacity:1} 31%,94% {opacity:0} 98%,100% {opacity:1} }
+        @keyframes val-date { 0%,29% {opacity:0} 32%,94% {opacity:1} 98%,100% {opacity:0} }
+        @keyframes ph-slots { 0%,38% {opacity:1} 41%,94% {opacity:0} 98%,100% {opacity:1} }
+        @keyframes val-slots { 0%,39% {opacity:0} 42%,94% {opacity:1} 98%,100% {opacity:0} }
+        @keyframes ph-name { 0%,51% {opacity:1} 54%,94% {opacity:0} 98%,100% {opacity:1} }
+        @keyframes val-name { 0%,52% {opacity:0} 55%,94% {opacity:1} 98%,100% {opacity:0} }
+        @keyframes ph-email { 0%,57% {opacity:1} 60%,94% {opacity:0} 98%,100% {opacity:1} }
+        @keyframes val-email { 0%,58% {opacity:0} 61%,94% {opacity:1} 98%,100% {opacity:0} }
+        @keyframes ph-phone { 0%,63% {opacity:1} 66%,94% {opacity:0} 98%,100% {opacity:1} }
+        @keyframes val-phone { 0%,64% {opacity:0} 67%,94% {opacity:1} 98%,100% {opacity:0} }
+        @keyframes focus-service { 0%,7% {opacity:0} 8%,11% {opacity:1} 14%,100% {opacity:0} }
+        @keyframes focus-pro { 0%,17% {opacity:0} 18%,21% {opacity:1} 24%,100% {opacity:0} }
+        @keyframes focus-date { 0%,27% {opacity:0} 28%,31% {opacity:1} 34%,100% {opacity:0} }
+        @keyframes focus-slots { 0%,38% {opacity:0} 39%,43% {opacity:1} 46%,100% {opacity:0} }
+        @keyframes focus-name { 0%,50% {opacity:0} 51%,55% {opacity:1} 58%,100% {opacity:0} }
+        @keyframes focus-submit { 0%,76% {opacity:0} 78%,81% {opacity:1} 84%,100% {opacity:0} }
+        @keyframes demo-cursor {
+          0%,6% {opacity:0;transform:translate(0,0)}
+          8%,10% {opacity:1;transform:translate(52px,154px)}
+          18%,20% {opacity:1;transform:translate(52px,188px)}
+          28%,30% {opacity:1;transform:translate(240px,188px)}
+          39%,42% {opacity:1;transform:translate(82px,219px)}
+          51%,54% {opacity:1;transform:translate(52px,257px)}
+          76%,81% {opacity:1;transform:translate(482px,250px) scale(.9)}
+          84%,100% {opacity:0;transform:translate(482px,250px) scale(.9)}
+        }
+        @keyframes demo-confirmation { 0%,80% {opacity:0} 83%,94% {opacity:1} 98%,100% {opacity:0} }
+        @keyframes demo-check { 0%,64% {opacity:0} 67%,94% {opacity:1} 98%,100% {opacity:0} }
+        @keyframes demo-idle { 0%,79% {opacity:1} 82%,100% {opacity:0} }
+        @keyframes demo-done { 0%,80% {opacity:0} 83%,94% {opacity:1} 98%,100% {opacity:0} }
+        @media (prefers-reduced-motion:no-preference) {
+          .demo-placeholder,.demo-value,.demo-slots,.demo-focus,.demo-cursor,.demo-confirmation,.demo-button-idle,.demo-button-done,.demo-check { animation-duration:12s; animation-iteration-count:infinite; animation-timing-function:ease-in-out; animation-fill-mode:both; }
+          .ph-service {animation-name:ph-service}.val-service {animation-name:val-service}.ph-pro {animation-name:ph-pro}.val-pro {animation-name:val-pro}
+          .ph-date {animation-name:ph-date}.val-date {animation-name:val-date}.ph-slots {animation-name:ph-slots}.val-slots {animation-name:val-slots}
+          .ph-name {animation-name:ph-name}.val-name {animation-name:val-name}.ph-email {animation-name:ph-email}.val-email {animation-name:val-email}
+          .ph-phone {animation-name:ph-phone}.val-phone {animation-name:val-phone}.focus-service {animation-name:focus-service}.focus-pro {animation-name:focus-pro}
+          .focus-date {animation-name:focus-date}.focus-slots {animation-name:focus-slots}.focus-name {animation-name:focus-name}.focus-submit {animation-name:focus-submit}
+          .demo-cursor {display:block;animation-name:demo-cursor;transform-box:fill-box;transform-origin:top left}
+          .demo-confirmation {animation-name:demo-confirmation}.demo-button-idle {animation-name:demo-idle}.demo-button-done {animation-name:demo-done}.demo-check {animation-name:demo-check}
+        }
+      </style>
       <rect width="571" height="346" rx="10" fill="#F4F6FB" />
       <rect x=".5" y=".5" width="570" height="345" rx="9.5" fill="none" stroke="#DCE4F1" />
       <rect x="0" y="0" width="571" height="33" fill="#FFFFFF" />
@@ -35,9 +86,11 @@
            Serviço
         </text>
         <rect x="30" y="150" width="366" height="20" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
-        <text x="39" y="163" font-size="7.8" fill="#64738A">
+        <text class="demo-placeholder ph-service" x="39" y="163" font-size="7.8" fill="#64738A">
            Selecione um serviço cadastrado
         </text>
+        <text class="demo-value val-service" x="39" y="163" font-size="7.8" font-weight="600" fill="#34425A">Corte e escova · R$ 85,00</text>
+        <rect class="demo-focus focus-service" x="29.5" y="149.5" width="367" height="21" rx="5.5" fill="none" stroke="#3985F6" stroke-width="1.4" />
         <path d="M387 158l3 3 3-3" fill="none" stroke="#64738A" stroke-width="0.8" />
         <text x="30" y="181" font-size="7.4" font-weight="650" fill="#34425A">
            Profissional
@@ -47,42 +100,57 @@
         </text>
         <rect x="30" y="185" width="179" height="20" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
         <rect x="219" y="185" width="177" height="20" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
-        <text x="39" y="198" font-size="7.8" fill="#64738A">
+        <text class="demo-placeholder ph-pro" x="39" y="198" font-size="7.8" fill="#64738A">
            Selecione um profissional
         </text>
+        <text class="demo-value val-pro" x="39" y="198" font-size="7.8" font-weight="600" fill="#34425A">Júlia Mendes</text>
+        <rect class="demo-focus focus-pro" x="29.5" y="184.5" width="180" height="21" rx="5.5" fill="none" stroke="#3985F6" stroke-width="1.4" />
         <path d="M200 193l3 3 3-3" fill="none" stroke="#64738A" stroke-width="0.8" />
-        <text x="228" y="198" font-size="7.8" fill="#64738A">
+        <text class="demo-placeholder ph-date" x="228" y="198" font-size="7.8" fill="#64738A">
            Escolha uma data
         </text>
+        <text class="demo-value val-date" x="228" y="198" font-size="7.8" font-weight="600" fill="#34425A">Qua, 18/11</text>
+        <rect class="demo-focus focus-date" x="218.5" y="184.5" width="178" height="21" rx="5.5" fill="none" stroke="#3985F6" stroke-width="1.4" />
         <rect x="386" y="192" width="5" height="5" rx="1" fill="none" stroke="#2456D8" stroke-width="0.8" />
         <text x="30" y="217" font-size="7.4" font-weight="650" fill="#34425A">
            Horários disponíveis
         </text>
         <rect x="30" y="221" width="366" height="20" rx="5" fill="#FFFFFF" stroke="#DCE4F1" stroke-dasharray="2 2" />
-        <text x="39" y="234" font-size="7.3" fill="#596981">
+        <text class="demo-placeholder ph-slots" x="39" y="234" font-size="7.3" fill="#596981">
            Escolha serviço, profissional e data para ver os horários.
         </text>
+        <g class="demo-value val-slots" font-family="Inter,system-ui,sans-serif" font-size="6.7" font-weight="600">
+          <rect x="30" y="222" width="48" height="17" rx="4" fill="#F4F7FC" stroke="#DCE4F1" /><text x="42" y="233.5" fill="#52627A">10:00</text>
+          <rect x="83" y="222" width="52" height="17" rx="4" fill="#EAF2FF" stroke="#2876EB" stroke-width="1.1" /><text x="95" y="233.5" fill="#1D5FD1">10:30</text>
+          <rect x="140" y="222" width="48" height="17" rx="4" fill="#F4F7FC" stroke="#DCE4F1" /><text x="152" y="233.5" fill="#52627A">11:00</text>
+        </g>
+        <rect class="demo-focus focus-slots" x="29.5" y="220.5" width="367" height="21" rx="5.5" fill="none" stroke="#3985F6" stroke-width="1.4" />
         <text x="30" y="254" font-size="6.7" font-weight="700" letter-spacing=".55" fill="#2456D8">
            SEUS DADOS
         </text>
         <rect x="30" y="259" width="137" height="19" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
         <rect x="174" y="259" width="137" height="19" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
         <rect x="318" y="259" width="78" height="19" rx="5" fill="#FFFFFF" stroke="#DCE4F1" />
-        <text x="39" y="271.5" font-size="7.2" fill="#68788F">
+        <text class="demo-placeholder ph-name" x="39" y="271.5" font-size="7.2" fill="#68788F">
            Seu nome
         </text>
-        <text x="183" y="271.5" font-size="7.2" fill="#68788F">
+        <text class="demo-value val-name" x="39" y="271.5" font-size="7.2" font-weight="600" fill="#34425A">Ana Exemplo</text>
+        <rect class="demo-focus focus-name" x="29.5" y="258.5" width="138" height="20" rx="5.5" fill="none" stroke="#3985F6" stroke-width="1.4" />
+        <text class="demo-placeholder ph-email" x="183" y="271.5" font-size="7.2" fill="#68788F">
            E-mail
         </text>
-        <text x="327" y="271.5" font-size="7.2" fill="#68788F">
+        <text class="demo-value val-email" x="183" y="271.5" font-size="7.2" font-weight="600" fill="#34425A">ana@exemplo.com</text>
+        <text class="demo-placeholder ph-phone" x="327" y="271.5" font-size="7.2" fill="#68788F">
            Telefone
         </text>
+        <text class="demo-value val-phone" x="327" y="271.5" font-size="6.7" font-weight="600" fill="#34425A">(00) 00000-0000</text>
         <rect x="30" y="285" width="366" height="17" rx="5" fill="#F4F6FB" />
         <path d="M39 291l2.5 2.5-2.5 2.5" fill="none" stroke="#2456D8" stroke-width="0.9" />
         <text x="47" y="296" font-size="7.3" font-weight="600" fill="#34425A">
            Aviso de privacidade
         </text>
         <rect x="31" y="312" width="8" height="8" rx="1.5" fill="#FFFFFF" stroke="#B8C3D6" stroke-width="0.8" />
+        <path class="demo-check" d="m32.5 315.5 1.7 1.7 3-3.6" fill="none" stroke="#2456D8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
         <text x="44" y="319" font-size="7.1" fill="#596981">
            Li o aviso de privacidade
         </text>
@@ -99,23 +167,26 @@
         <text x="424" y="156" fill="#64738A">
            Serviço
         </text>
-        <text x="493" y="156" font-weight="600" fill="#34425A">
+        <text class="demo-placeholder ph-service" x="493" y="156" font-weight="600" fill="#34425A">
            A selecionar
         </text>
+        <text class="demo-value val-service" x="493" y="156" font-size="6.1" font-weight="600" fill="#34425A">Corte e escova</text>
         <line x1="424" y1="163" x2="541" y2="163" stroke="#EDF0F6" />
         <text x="424" y="179" fill="#64738A">
            Profissional
         </text>
-        <text x="493" y="179" font-weight="600" fill="#34425A">
+        <text class="demo-placeholder ph-pro" x="493" y="179" font-weight="600" fill="#34425A">
            A selecionar
         </text>
+        <text class="demo-value val-pro" x="493" y="179" font-size="6.1" font-weight="600" fill="#34425A">Júlia Mendes</text>
         <line x1="424" y1="186" x2="541" y2="186" stroke="#EDF0F6" />
         <text x="424" y="202" fill="#64738A">
            Data e horário
         </text>
-        <text x="493" y="202" font-weight="600" fill="#34425A">
+        <text class="demo-placeholder ph-date" x="493" y="202" font-weight="600" fill="#34425A">
            A selecionar
         </text>
+        <text class="demo-value val-date" x="493" y="202" font-size="6.1" font-weight="600" fill="#34425A">18/11 · 10:30</text>
       </g>
       <rect x="424" y="211" width="117" height="37" rx="6" fill="#F4F6FB" />
       <text x="431" y="226" font-family="Inter,system-ui,sans-serif" font-size="6.8" fill="#596981">
@@ -125,13 +196,28 @@
          serviço cadastrado.
       </text>
       <rect x="424" y="255" width="117" height="22" rx="6" fill="#2456D8" />
-      <text x="439" y="269.5" font-family="Inter,system-ui,sans-serif" font-size="7.4" font-weight="700" fill="#FFFFFF">
+      <text class="demo-button-idle" x="439" y="269.5" font-family="Inter,system-ui,sans-serif" font-size="7.4" font-weight="700" fill="#FFFFFF">
          Reservar horário →
       </text>
+      <text class="demo-button-done" x="457" y="269.5" font-family="Inter,system-ui,sans-serif" font-size="7.4" font-weight="700" fill="#FFFFFF">Reservado ✓</text>
       <text x="431" y="289" font-family="Inter,system-ui,sans-serif" font-size="6.2" fill="#596981">
          Você não precisa de conta.
       </text>
       <text x="431" y="297" font-family="Inter,system-ui,sans-serif" font-size="6.2" fill="#596981">
          Nenhum pagamento nesta página.
       </text>
+      <rect class="demo-focus focus-submit" x="422.5" y="253.5" width="120" height="25" rx="7" fill="none" stroke="#68A5FF" stroke-width="1.8" />
+      <g class="demo-cursor" aria-hidden="true">
+        <path d="M0 0 0 13 3.5 9.5 6.5 16 9 15 6 8.5 11 8Z" fill="#FFFFFF" stroke="#1769E8" stroke-width="1.2" stroke-linejoin="round" />
+        <circle cx="5.5" cy="7.5" r="10" fill="none" stroke="#2C7DF0" stroke-width="1" opacity=".22" />
+      </g>
+      <g class="demo-confirmation" aria-hidden="true">
+        <rect x="165" y="119" width="241" height="112" rx="13" fill="#FFFFFF" stroke="#DCE4F1" />
+        <circle cx="286" cy="149" r="16" fill="#E5F8EF" />
+        <path d="m279 149 5 5 9-10" fill="none" stroke="#15965C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+        <text x="285.5" y="179" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#171B2A">Horário reservado!</text>
+        <text x="285.5" y="195" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="7.8" fill="#596981">Corte e escova · Qua, 18/11 às 10:30</text>
+        <rect x="243" y="205" width="85" height="17" rx="5" fill="#EAF2FF" />
+        <text x="285.5" y="216.5" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="6.8" font-weight="600" fill="#2456D8">Detalhes da reserva</text>
+      </g>
     </svg>

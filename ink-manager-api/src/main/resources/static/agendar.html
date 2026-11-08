@@ -17,25 +17,44 @@
     <main id="public-main">
       <span class="eyebrow accent">AGENDAMENTO ONLINE</span>
       <h1 id="business-name">Reserve seu horário.</h1>
-      <p>Escolha o serviço, o profissional e um horário livre. Sem criar conta. Para reservar, informe seu email e leia o aviso de privacidade.</p>
+      <p>Escolha um serviço, depois um profissional compatível, data e horário. Em seguida, informe seus dados para confirmar. Sem criar conta.</p>
       <p id="public-loading" role="status">Carregando serviços e profissionais…</p>
       <p id="public-error" class="form-error" role="alert"></p>
       <button id="retry-catalog" type="button" class="secondary" hidden>Tentar novamente</button>
       <form id="booking-form" hidden>
         <fieldset id="booking-fields">
           <legend class="sr-only">Dados do agendamento</legend>
-          <label>Serviço<select name="servicoId" id="public-service" required><option value="">Selecione o serviço</option></select></label>
-          <p id="service-summary" class="booking-summary" aria-live="polite">Escolha um serviço para consultar preço e duração.</p>
-          <label>Profissional<select name="profissionalId" id="public-professional" required><option value="">Selecione o profissional</option></select></label>
-          <div class="form-row"><label>Dia<input name="data" id="public-date" type="date" required></label><label>Horário<select name="horario" id="public-time" required disabled><option value="">Escolha serviço, profissional e dia</option></select></label></div>
-          <p id="slots-status" role="status"></p>
-          <button id="refresh-slots" type="button" class="text-button">Atualizar horários</button>
-          <p id="public-timezone" class="muted"></p>
-          <label>Seu nome<input name="nome" autocomplete="name" maxlength="100" required></label>
-          <label>E-mail<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
-          <label>Celular com DDD<input name="telefone" type="tel" autocomplete="tel" maxlength="30" minlength="8" placeholder="(11) 99999-9999" required></label>
-        <details class="privacy-notice"><summary>Aviso de privacidade <span id="privacy-version"></span></summary><p>O estabelecimento usa seu nome, telefone e email para identificar e organizar esta reserva. O email fica vinculado ao cadastro criado para o atendimento. A versão do aviso e a data da leitura são registradas junto à reserva.</p></details>
-          <label class="checkbox-label privacy-ack"><input name="avisoPrivacidadeLido" type="checkbox" required> Li o aviso de privacidade</label>
+          <section class="booking-flow-step" data-booking-step="service" aria-labelledby="booking-service-title">
+            <div class="booking-flow-heading"><span class="booking-flow-number" aria-hidden="true">1</span><div><h2 id="booking-service-title">Serviço</h2><p>Escolha o atendimento que deseja reservar.</p></div></div>
+            <label>Serviço<select name="servicoId" id="public-service" required><option value="">Selecione o serviço</option></select></label>
+            <p id="service-summary" class="booking-summary" aria-live="polite">Escolha um serviço para consultar preço e duração.</p>
+          </section>
+          <section class="booking-flow-step" data-booking-step="professional" aria-labelledby="booking-professional-title">
+            <div class="booking-flow-heading"><span class="booking-flow-number" aria-hidden="true">2</span><div><h2 id="booking-professional-title">Profissional</h2><p>As opções correspondem ao serviço selecionado.</p></div></div>
+            <label>Profissional<select name="profissionalId" id="public-professional" required disabled><option value="">Selecione um serviço primeiro</option></select></label>
+          </section>
+          <section class="booking-flow-step" data-booking-step="date" aria-labelledby="booking-date-title">
+            <div class="booking-flow-heading"><span class="booking-flow-number" aria-hidden="true">3</span><div><h2 id="booking-date-title">Data</h2><p>Escolha um dia no calendário local do estabelecimento.</p></div></div>
+            <label>Dia<input name="data" id="public-date" type="date" required disabled></label>
+          </section>
+          <section class="booking-flow-step" data-booking-step="time" aria-labelledby="booking-time-title">
+            <div class="booking-flow-heading"><span class="booking-flow-number" aria-hidden="true">4</span><div><h2 id="booking-time-title">Horário</h2><p>Os horários disponíveis são atualizados pelo servidor.</p></div></div>
+            <label>Horário<select name="horario" id="public-time" required disabled><option value="">Escolha serviço, profissional e dia</option></select></label>
+            <p id="slots-status" role="status"></p>
+            <button id="refresh-slots" type="button" class="text-button">Atualizar horários</button>
+            <p id="public-timezone" class="muted"></p>
+          </section>
+          <section class="booking-flow-step" data-booking-step="details" aria-labelledby="booking-details-title">
+            <div class="booking-flow-heading"><span class="booking-flow-number" aria-hidden="true">5</span><div><h2 id="booking-details-title">Seus dados</h2><p>Informe seus contatos para receber a confirmação da reserva.</p></div></div>
+            <fieldset id="booking-contact-fields" disabled>
+              <legend class="sr-only">Seus dados e aviso de privacidade</legend>
+              <label>Seu nome<input name="nome" autocomplete="name" maxlength="100" required></label>
+              <label>E-mail<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+              <label>Celular com DDD<input name="telefone" type="tel" autocomplete="tel" maxlength="30" minlength="8" placeholder="(11) 99999-9999" required></label>
+              <details class="privacy-notice"><summary>Aviso de privacidade <span id="privacy-version"></span></summary><p>O estabelecimento usa seu nome, telefone e email para identificar e organizar esta reserva. O email fica vinculado ao cadastro criado para o atendimento. A versão do aviso e a data da leitura são registradas junto à reserva.</p></details>
+              <label class="checkbox-label privacy-ack"><input name="avisoPrivacidadeLido" type="checkbox" required> Li o aviso de privacidade</label>
+            </fieldset>
+          </section>
         </fieldset>
         <p id="booking-error" class="form-error" role="alert"></p>
         <p id="pending-note" class="booking-summary" hidden>Estamos verificando sua reserva. Tente novamente para confirmar o mesmo pedido, sem duplicar.</p>
@@ -43,7 +62,7 @@
         <p class="muted">Você não precisa de conta. Nenhum pagamento é feito nesta página.</p>
       </form>
       <section id="booking-confirmation" class="booking-confirmation" tabindex="-1" aria-labelledby="confirmation-heading" hidden>
-        <span class="eyebrow accent">TUDO CERTO</span><h2 id="confirmation-heading">Reserva confirmada</h2>
+        <div class="booking-flow-heading"><span class="booking-flow-number" aria-hidden="true">6</span><div><span class="eyebrow accent">TUDO CERTO</span><h2 id="confirmation-heading">Reserva confirmada</h2></div></div>
         <dl id="confirmation-details"></dl>
         <p>Guarde o protocolo. Para alterar ou cancelar, fale diretamente com o estabelecimento.</p>
         <button id="another-booking" type="button" class="secondary">Fazer outro agendamento</button>
