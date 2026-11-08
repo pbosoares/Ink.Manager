@@ -54,6 +54,10 @@ public class EmailOutboxWorker {
                 outbox.markInvalidated(claimed);
                 return;
             }
+            if (matches.getFirst().obsoleto(claimed.job())) {
+                outbox.markInvalidated(claimed);
+                return;
+            }
             sender.enviar(claimed.job().destinatario(), content);
             outbox.markSent(claimed, clock.instant());
         } catch (RuntimeException failure) {
