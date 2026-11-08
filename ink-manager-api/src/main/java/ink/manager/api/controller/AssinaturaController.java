@@ -21,6 +21,8 @@ public class AssinaturaController {
     public AssinaturaService.Resumo sincronizar(){return service.sincronizar();}
     @PostMapping("/cancelar-recorrencia") @PreAuthorize("hasRole('PROPRIETARIO')")
     public AssinaturaService.Resumo cancelar(){return service.cancelarRecorrencia();}
+    @PostMapping("/reativar-recorrencia") @PreAuthorize("hasRole('PROPRIETARIO')")
+    public AssinaturaService.Resumo reativar(){return service.reativarRecorrencia();}
     @PostMapping("/webhook")
     public void webhook(@RequestHeader(name="x-signature",required=false) String signature,@RequestHeader(name="x-request-id",required=false) String requestId,
             @RequestParam(name="data.id",required=false) String dataId,@RequestBody JsonNode notification){

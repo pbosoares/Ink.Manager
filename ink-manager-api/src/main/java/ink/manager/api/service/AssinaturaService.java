@@ -21,7 +21,7 @@ public class AssinaturaService {
     private static final Logger log=LoggerFactory.getLogger(AssinaturaService.class);
     public enum Metodo { CARTAO, PIX }
     public record Resumo(String status,BigDecimal mensalidade,String moeda,LocalDateTime avaliacaoAte,
-            LocalDateTime pagoAte,boolean cobrancaDisponivel,boolean cobrancaObrigatoria,boolean cartaoEmRecorrencia){}
+            LocalDateTime pagoAte,boolean cobrancaDisponivel,boolean cobrancaObrigatoria,boolean cartaoEmRecorrencia,boolean avisoFimAvaliacao,Integer diasAvaliacaoRestantes,boolean avaliacaoVenceHoje,boolean recorrenciaCancelamentoAgendado){}
     public record LinkCheckout(String id,String url){}
     private final AssinaturaStore store;
     private final EstudioRepository estudios;
@@ -53,8 +53,8 @@ public class AssinaturaService {
         var estudio=estudios.findById(id).orElseThrow();var agora=LocalDateTime.now(clock);
         var trial=estudio.getCriadoEm().plusDays(trialDays);var pago=estudio.getPagoAte();
         String status=pago!=null&&pago.isAfter(agora)?"ATIVA":trial.isAfter(agora)?"AVALIACAO":"EXPIRADA";
-        boolean recorrente=store.aberto(id,"CARTAO",provider).map(c->provider.equals("STRIPE")?Set.of("trialing","active","past_due").contains(c.status()):"authorized".equals(c.status())).orElse(false);
-        return new Resumo(status,valor,"BRL",trial,pago,provedorDisponivel(),enforce,recorrente);
+        var cartao=store.aberto(id,"CARTAO",provider).orElse(null);boolean cancelamentoAgendado=cartao!=null&&cartao.cancelAtPeriodEnd();boolean recorrente=cartao!=null&&(provider.equals("STRIPE")?Set.of("trialing","active","past_due").contains(cartao.status()):"authorized".equals(cartao.status()))&&!cancelamentoAgendado;
+        Instant agoraInstant=clock.instant();Instant fimAvaliacao=trial.atZone(clock.getZone()).toInstant();boolean avisoFimAvaliacao="AVALIACAO".equals(status)&&!fimAvaliacao.isAfter(agoraInstant.plus(Duration.ofHours(24)));Integer diasAvaliacaoRestantes=null;boolean avaliacaoVenceHoje=false;if("AVALIACAO".equals(status)){long segundos=Math.max(0,Duration.between(agoraInstant,fimAvaliacao).getSeconds());diasAvaliacaoRestantes=(int)Math.max(1L,(segundos+86_399L)/86_400L);avaliacaoVenceHoje=trial.toLocalDate().equals(agora.toLocalDate());}return new Resumo(status,valor,"BRL",trial,pago,provedorDisponivel(),enforce,recorrente,avisoFimAvaliacao,diasAvaliacaoRestantes,avaliacaoVenceHoje,cancelamentoAgendado);
     }
     public boolean podeGravar(long id){return !enforce||!"EXPIRADA".equals(resumo(id).status());}
     public LinkCheckout checkout(Metodo metodo){
@@ -63,6 +63,8 @@ public class AssinaturaService {
         // Persist the intent before the external request. Retries reuse its idempotency key.
         String id=tx.execute(status->{
             estudoAbertoParaCheckout(estudioId);var aberto=store.aberto(estudioId,metodo.name(),provider);
+            if(metodo==Metodo.CARTAO&&provider.equals("STRIPE")&&aberto.map(AssinaturaStore.Checkout::cancelAtPeriodEnd).orElse(false))
+                throw new ApiException(HttpStatus.CONFLICT,"A recorrencia atual tem cancelamento agendado. Use reativar-recorrencia para retoma-la.");
             if(aberto.isPresent()&&aberto.get().valor().compareTo(valor)==0&&
                     (Set.of("authorized","paused","trialing","active","past_due").contains(aberto.get().status())||aberto.get().criadoEm().plusHours(24).isAfter(LocalDateTime.now(clock))))return aberto.get().id();
             String novo=UUID.randomUUID().toString();store.criar(novo,estudioId,metodo.name(),valor,provider,LocalDateTime.now(clock));return novo;
@@ -171,18 +173,62 @@ public class AssinaturaService {
         }
     }
     public Resumo cancelarRecorrencia(){
-        var checkout=store.aberto(acesso.estudioId(),"CARTAO",provider).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Nenhuma recorrencia ativa."));
+        long estudioId=acesso.estudioId();var checkout=store.aberto(estudioId,"CARTAO",provider).orElseGet(()->store.maisRecente(estudioId,"CARTAO",provider).filter(c->c.cancelAtPeriodEnd()||"cancelled".equals(c.status())).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Nenhuma recorrencia ativa.")));
         if(provider.equals("STRIPE")){
-            if(checkout.subscriptionId()==null)throw new ApiException(HttpStatus.CONFLICT,"Ainda nao ha uma recorrencia Stripe ativa para cancelar.");
-            var subscription=stripe.cancelarSubscription(checkout.subscriptionId());
+            if(checkout.cancelAtPeriodEnd()||"cancelled".equals(normalizarStatusStripe(checkout.status())))return resumo();if(checkout.subscriptionId()==null)throw new ApiException(HttpStatus.CONFLICT,"Ainda nao ha uma recorrencia Stripe ativa para cancelar.");
+            var subscription=stripe.agendarCancelamentoSubscription(checkout.subscriptionId(),checkout.providerUpdatedAt());
             String normalized=normalizarStatusStripe(subscription.path("status").asText());
-            if(!normalized.equals("cancelled"))throw new ApiException(HttpStatus.BAD_GATEWAY,"Stripe ainda nao confirmou o cancelamento.");
-            store.stripeSubscription(checkout.id(),checkout.estudioId(),checkout.subscriptionId(),normalized,clock.millis());return resumo();
+            if(stripeFinalizada(normalized))throw recorrenciaEncerrada();
+            var cancelFlag=subscription.get("cancel_at_period_end");
+            if(!checkout.subscriptionId().equals(subscription.path("id").asText())||cancelFlag==null||cancelFlag.isNull()||!cancelFlag.asBoolean(false))
+                throw new ApiException(HttpStatus.BAD_GATEWAY,"Stripe nao confirmou o agendamento do cancelamento.");
+            int atualizadas=store.stripeSubscription(checkout.id(),checkout.estudioId(),checkout.subscriptionId(),normalized,proximoProviderUpdatedAt(checkout.providerUpdatedAt()),true);
+            if(atualizadas==0){
+                var atual=store.checkout(checkout.id()).orElse(checkout);
+                if(atual.cancelAtPeriodEnd())return resumo();
+                if(stripeFinalizada(atual.status()))throw recorrenciaEncerrada();
+                throw new ApiException(HttpStatus.CONFLICT,"A recorrencia mudou durante a operacao. Consulte o estado atual antes de tentar novamente.");
+            }
+            return resumo();
         }
         var contrato=gateway.atualizar("/preapproval/"+identificador(checkout.providerId()),Map.of("status","cancelled"));
         if(!"cancelled".equals(contrato.path("status").asText()))throw new ApiException(HttpStatus.BAD_GATEWAY,"O provedor ainda nao confirmou o cancelamento.");
         processarContrato(contrato);return resumo();
     }
+    public Resumo reativarRecorrencia(){
+        if(!provider.equals("STRIPE"))throw new ApiException(HttpStatus.CONFLICT,"A retomada esta disponivel somente para recorrencia Stripe.");
+        long estudioId=acesso.estudioId();
+        var checkout=store.maisRecente(estudioId,"CARTAO","STRIPE")
+                .orElseThrow(()->new ApiException(HttpStatus.CONFLICT,"Nao ha recorrencia Stripe para retomar. Inicie uma nova assinatura."));
+        String status=normalizarStatusStripe(checkout.status());
+        if(stripeFinalizada(status))throw recorrenciaEncerrada();
+        if(checkout.subscriptionId()==null)throw new ApiException(HttpStatus.CONFLICT,"A recorrencia nao esta ativa no Stripe. Inicie uma nova assinatura.");
+        Set<String> retomaveis=Set.of("active","trialing","past_due");
+        if(!checkout.cancelAtPeriodEnd()){
+            if(retomaveis.contains(status))return resumo();
+            throw new ApiException(HttpStatus.CONFLICT,"Nao ha cancelamento agendado para retomar. Inicie uma nova assinatura se necessario.");
+        }
+        if(!retomaveis.contains(status))throw new ApiException(HttpStatus.CONFLICT,"A recorrencia nao esta em estado retomavel. Inicie uma nova assinatura.");
+        var subscription=stripe.reativarSubscription(checkout.subscriptionId(),checkout.providerUpdatedAt());
+        String atualizado=normalizarStatusStripe(subscription.path("status").asText());
+        if(stripeFinalizada(atualizado))throw recorrenciaEncerrada();
+        var cancelFlag=subscription.get("cancel_at_period_end");
+        if(!checkout.subscriptionId().equals(subscription.path("id").asText())||cancelFlag==null||cancelFlag.isNull()||cancelFlag.asBoolean(true))
+            throw new ApiException(HttpStatus.BAD_GATEWAY,"Stripe nao confirmou a retomada da recorrencia.");
+        if(!retomaveis.contains(atualizado))throw new ApiException(HttpStatus.CONFLICT,"A recorrencia nao esta em estado retomavel. Inicie uma nova assinatura.");
+        int atualizadas=store.stripeSubscription(checkout.id(),estudioId,checkout.subscriptionId(),atualizado,proximoProviderUpdatedAt(checkout.providerUpdatedAt()),false);
+        if(atualizadas==0){
+            var atual=store.checkout(checkout.id()).orElse(checkout);
+            String estadoAtual=normalizarStatusStripe(atual.status());
+            if(stripeFinalizada(estadoAtual))throw recorrenciaEncerrada();
+            if(!atual.cancelAtPeriodEnd()&&retomaveis.contains(estadoAtual))return resumo();
+            throw new ApiException(HttpStatus.CONFLICT,"A recorrencia mudou durante a operacao. Consulte o estado atual antes de tentar novamente.");
+        }
+        return resumo();
+    }
+    private boolean stripeFinalizada(String status){return Set.of("cancelled","incomplete_expired").contains(normalizarStatusStripe(status));}
+    private ApiException recorrenciaEncerrada(){return new ApiException(HttpStatus.CONFLICT,"A recorrencia ja foi encerrada. Inicie uma nova assinatura no cartao.");}
+    private long proximoProviderUpdatedAt(long anterior){return Math.max(clock.millis(),Math.incrementExact(anterior));}
     private void sincronizarStripe(AssinaturaStore.Checkout checkout){
         if(!stripe.disponivel()||checkout.providerId()==null)return;
         var session=stripe.checkout(checkout.providerId());processarSessaoStripe(session,clock.millis());
@@ -274,7 +320,7 @@ public class AssinaturaService {
         }
         if(!checkout.provedor().equals("STRIPE")||!checkout.metodo().equals("CARTAO"))return;
         if(!validarMetadataStripe(subscription.path("metadata"),checkout))return;
-        store.stripeSubscription(checkout.id(),checkout.estudioId(),identificador(id),normalizarStatusStripe(subscription.path("status").asText()),updatedAt);
+        store.stripeSubscription(checkout.id(),checkout.estudioId(),identificador(id),normalizarStatusStripe(subscription.path("status").asText()),updatedAt,subscription.path("cancel_at_period_end").asBoolean(false));
     }
     private void processarFaturaStripe(JsonNode invoice,long updatedAt){
         String invoiceId=referenciaStripe(invoice.path("id"));if(invoiceId.isBlank())return;
