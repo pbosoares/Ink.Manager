@@ -20,13 +20,15 @@ public class DisponibilidadeService {
     private final HorarioTrabalhoRepository horarios;
     private final BloqueioAgendaRepository bloqueios;
     private final MarcacaoRepository marcacoes;
+    private final ServicoProfissionalRepository servicoProfissionais;
     private final AcessoAtual acesso;
     private final Clock clock;
 
     public DisponibilidadeService(ProfissionalRepository profissionais,HorarioTrabalhoRepository horarios,
-            BloqueioAgendaRepository bloqueios,MarcacaoRepository marcacoes,AcessoAtual acesso,Clock clock){
+            BloqueioAgendaRepository bloqueios,MarcacaoRepository marcacoes,ServicoProfissionalRepository servicoProfissionais,
+            AcessoAtual acesso,Clock clock){
         this.profissionais=profissionais;this.horarios=horarios;this.bloqueios=bloqueios;
-        this.marcacoes=marcacoes;this.acesso=acesso;this.clock=clock;
+        this.marcacoes=marcacoes;this.servicoProfissionais=servicoProfissionais;this.acesso=acesso;this.clock=clock;
     }
     public Profissional profissional(Long id){
         return profissional(acesso.estudioId(), id);
@@ -37,6 +39,10 @@ public class DisponibilidadeService {
             new ApiException(HttpStatus.NOT_FOUND,"Profissional nao encontrado."));
     }
     public static boolean ativa(Marcacao m){return m.getStatus()==StatusMarcacao.AGENDADA||m.getStatus()==StatusMarcacao.CONFIRMADA;}
+    public void validarCompatibilidade(Long estudioId,Long servicoId,Long profissionalId){
+        if(servicoId!=null&&!servicoProfissionais.existeVinculo(estudioId,servicoId,profissionalId))
+            throw new ApiException(HttpStatus.CONFLICT,"Servico nao esta habilitado para este profissional.");
+    }
     public static boolean sobrepoe(LocalDateTime inicio,LocalDateTime fim,LocalDateTime outroInicio,LocalDateTime outroFim){
         return inicio.isBefore(outroFim)&&fim.isAfter(outroInicio);
     }
@@ -59,6 +65,7 @@ public class DisponibilidadeService {
     public void validarReserva(Marcacao m){
         var profissional=profissional(m.getProfissional().getId());
         if(!profissional.isAtivo()) throw new ApiException(HttpStatus.CONFLICT,"Profissional inativo.");
+        if(m.getServico()!=null)validarCompatibilidade(profissional.getEstudio().getId(),m.getServico().getId(),profissional.getId());
         if(!cabeNosTurnos(m.getData(),m.getHorario(),m.getDuracaoMinutos(),turnos(profissional.getId())))
             throw new ApiException(HttpStatus.CONFLICT,"Horario fora do expediente do profissional.");
         var reservas=marcacoes.findByProfissionalIdAndEstudioIdAndDataBetween(profissional.getId(),acesso.estudioId(),m.getData(),m.getData());
@@ -66,32 +73,39 @@ public class DisponibilidadeService {
             throw new ApiException(HttpStatus.CONFLICT,"Horario ocupado ou bloqueado para este profissional.");
     }
     public HorariosDisponiveis consultar(Long id,LocalDate data,int duracao,Long ignorarId){
-        return consultarEstudio(acesso.estudioId(),id,data,duracao,ignorarId);
+        return consultar(id,data,duracao,ignorarId,null);
+    }
+    public HorariosDisponiveis consultar(Long id,LocalDate data,int duracao,Long ignorarId,Long servicoId){
+        return consultarEstudio(acesso.estudioId(),id,data,duracao,ignorarId,servicoId);
     }
     public HorariosDisponiveis consultarEstudio(Long estudioId,Long id,LocalDate data,int duracao,Long ignorarId){
-        validarDuracao(duracao);var profissional=profissional(estudioId,id);
+        return consultarEstudio(estudioId,id,data,duracao,ignorarId,null);
+    }
+    public HorariosDisponiveis consultarEstudio(Long estudioId,Long id,LocalDate data,int duracao,Long ignorarId,Long servicoId){
+        validarDuracao(duracao);var profissional=profissional(estudioId,id);var zona=ZoneId.of(profissional.getEstudio().getFusoHorario());
+        validarCompatibilidade(estudioId,servicoId,id);
         if(ignorarId!=null&&!marcacoes.existsByIdAndProfissionalIdAndEstudioId(ignorarId,id,estudioId))
             throw new ApiException(HttpStatus.BAD_REQUEST,"Marcacao nao pertence ao profissional selecionado.");
         var reservas=marcacoes.findByProfissionalIdAndEstudioIdAndDataBetween(id,estudioId,data,data);
-        var livres=slots(profissional,data,duracao,ignorarId,turnos(id),reservas,bloqueios.findByProfissionalIdOrderByInicioAsc(id));
-        return new HorariosDisponiveis(id,data,duracao,clock.getZone().getId(),livres);
+        var livres=slots(profissional,data,duracao,ignorarId,turnos(id),reservas,bloqueios.findByProfissionalIdOrderByInicioAsc(id),zona);
+        return new HorariosDisponiveis(id,data,duracao,zona.getId(),livres);
     }
     public List<DiaDisponivel> dias(Long id,LocalDate inicio,int dias,int duracao){
         validarDuracao(duracao);
         if(dias<1||dias>62) throw new ApiException(HttpStatus.BAD_REQUEST,"Consulte entre 1 e 62 dias.");
-        var profissional=profissional(id);var turnos=turnos(id);
+        var profissional=profissional(id);var zona=ZoneId.of(profissional.getEstudio().getFusoHorario());var turnos=turnos(id);
         var reservas=marcacoes.findByProfissionalIdAndEstudioIdAndDataBetween(id,acesso.estudioId(),inicio,inicio.plusDays(dias-1));
         var ausencias=bloqueios.findByProfissionalIdOrderByInicioAsc(id);var resultado=new ArrayList<DiaDisponivel>();
         for(int i=0;i<dias;i++){
             var data=inicio.plusDays(i);var reservasDoDia=reservas.stream().filter(m->m.getData().equals(data)).toList();
-            resultado.add(new DiaDisponivel(data,slots(profissional,data,duracao,null,turnos,reservasDoDia,ausencias).size()));
+            resultado.add(new DiaDisponivel(data,slots(profissional,data,duracao,null,turnos,reservasDoDia,ausencias,zona).size()));
         }
         return resultado;
     }
     private List<LocalTime> slots(Profissional profissional,LocalDate data,int duracao,Long ignorarId,
-            List<ProfissionalRequest.Turno> turnos,List<Marcacao> reservas,List<BloqueioAgenda> ausencias){
+            List<ProfissionalRequest.Turno> turnos,List<Marcacao> reservas,List<BloqueioAgenda> ausencias,ZoneId zona){
         if(!profissional.isAtivo()) return List.of();
-        var resultado=new TreeSet<LocalTime>();var agora=LocalDateTime.now(clock);
+        var resultado=new TreeSet<LocalTime>();var agora=LocalDateTime.now(clock.withZone(zona));
         for(var turno:turnos){
             if(turno.diaSemana()!=data.getDayOfWeek().getValue()) continue;
             for(var slot=data.atTime(turno.inicio());!slot.plusMinutes(duracao).isAfter(data.atTime(turno.fim()));slot=slot.plusMinutes(15)){

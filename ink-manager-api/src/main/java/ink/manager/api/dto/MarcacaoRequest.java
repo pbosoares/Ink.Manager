@@ -6,6 +6,14 @@ import ink.manager.api.model.*;
 public record MarcacaoRequest(@NotNull @Valid ClienteReferencia cliente,
  @NotNull LocalDate data, @NotNull LocalTime horario, @Size(max=255) String descricao,
  @NotNull StatusMarcacao status, @Min(1) @Max(720) Integer duracaoMinutos,
- @PositiveOrZero Long version, @NotNull @Positive Long profissionalId) {
- public Marcacao toModel() { var c=new Cliente(); c.setId(cliente.id()); var m=new Marcacao(c,data,horario,descricao,status); m.setDuracaoMinutos(duracaoMinutos == null ? 60 : duracaoMinutos); m.setVersion(version); var profissional = new Profissional(); profissional.setId(profissionalId); m.setProfissional(profissional); return m; }
+ @PositiveOrZero Long version, @NotNull @Positive Long profissionalId,@Positive Long servicoId) {
+ public MarcacaoRequest(ClienteReferencia cliente,LocalDate data,LocalTime horario,String descricao,StatusMarcacao status,
+        Integer duracaoMinutos,Long version,Long profissionalId){this(cliente,data,horario,descricao,status,duracaoMinutos,version,profissionalId,null);}
+ public Marcacao toModel() {
+  var c=new Cliente(); c.setId(cliente.id()); var m=new Marcacao(c,data,horario,descricao,status);
+  m.setDuracaoMinutos(duracaoMinutos == null ? 60 : duracaoMinutos); m.setVersion(version);
+  var profissional = new Profissional(); profissional.setId(profissionalId); m.setProfissional(profissional);
+  if(servicoId!=null){var servico=new Servico();servico.setId(servicoId);m.setServico(servico);}
+  return m;
+ }
 }

@@ -77,7 +77,8 @@ public class StripeGateway {
         var query=new java.util.LinkedHashMap<String,String>();query.put("type","charge.refunded");query.put("created[gte]",Long.toString(createdGte));query.put("limit",Integer.toString(validarLimit(limit)));
         adicionarCursor(query,cursor);return chamar("GET","/v1/events",query,null);
     }
-    public JsonNode cancelarSubscription(String subscriptionId){return chamar("DELETE","/v1/subscriptions/"+id(subscriptionId),Map.of(),null);}
+    public JsonNode agendarCancelamentoSubscription(String subscriptionId,long cancellationCycle){String valid=id(subscriptionId);return chamar("POST","/v1/subscriptions/"+valid,Map.of("cancel_at_period_end","true"),"cancel-at-period-end:"+valid+":"+cancellationCycle);}
+    public JsonNode reativarSubscription(String subscriptionId,long cancellationCycle){String valid=id(subscriptionId);return chamar("POST","/v1/subscriptions/"+valid,Map.of("cancel_at_period_end","false"),"reactivate-cancel-at-period-end:"+valid+":"+cancellationCycle);}
     private int validarLimit(int limit){if(limit<1||limit>100)throw new ApiException(HttpStatus.BAD_REQUEST,"Limite de pagina Stripe deve estar entre 1 e 100.");return limit;}
     private void adicionarCursor(Map<String,String> query,String startingAfter){if(startingAfter!=null&&!startingAfter.isBlank())query.put("starting_after",id(startingAfter));}
     private String id(String value){if(value==null||!value.matches("[A-Za-z0-9_]{1,100}"))throw new ApiException(HttpStatus.BAD_REQUEST,"Identificador Stripe invalido.");return value;}

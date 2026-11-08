@@ -8,7 +8,7 @@ import ink.manager.api.service.UsuarioService;
 
 @RestController @RequestMapping("/auth")
 public class AuthController {
-    public record EstudioResumo(Long id,String nome,Long version){}
+    public record EstudioResumo(Long id,String nome,Long version,String fusoHorario){}
     public record Sessao(UsuarioResponse usuario,EstudioResumo estudio){}
     private final UsuarioService usuarios;
     public AuthController(UsuarioService usuarios){this.usuarios=usuarios;}
@@ -19,7 +19,7 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request){return new LoginResponse(usuarios.login(request.email(),request.senha()));}
     @GetMapping("/me")
-    public Sessao me(){var usuario=usuarios.atual();var estudio=usuario.getEstudio();return new Sessao(UsuarioResponse.from(usuario),new EstudioResumo(estudio.getId(),estudio.getNome(),estudio.getVersion()));}
+    public Sessao me(){var usuario=usuarios.atual();var estudio=usuario.getEstudio();return new Sessao(UsuarioResponse.from(usuario),new EstudioResumo(estudio.getId(),estudio.getNome(),estudio.getVersion(),estudio.getFusoHorario()));}
     @PostMapping("/logout") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(){usuarios.sair();}
 }

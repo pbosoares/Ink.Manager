@@ -48,7 +48,7 @@ class StudioIntegrationTest {
     @BeforeEach void clean(){
         try{java.nio.file.Files.deleteIfExists(java.nio.file.Path.of("target/studio-test-manifest.log"));}catch(java.io.IOException failure){throw new IllegalStateException(failure);}
         org.springframework.test.util.ReflectionTestUtils.setField(assinaturaService,"provider","MERCADOPAGO");
-        for(String table:List.of("email_action_tokens","ofertas_lista_espera","lista_espera","email_outbox","retencoes_legais_financeiras","recebimentos_arquivo","expurgos_estudio","assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","recebimentos","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","servicos","estudios")) jdbc.update("DELETE FROM "+table);
+        for(String table:List.of("email_action_tokens","ofertas_lista_espera","lista_espera","email_outbox","retencoes_legais_financeiras","recebimentos_arquivo","expurgos_estudio","assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","recebimentos","marcacoes","bloqueios_agenda","horarios_trabalho","servicos_profissionais","profissionais","cliente","usuarios","servicos","estudios")) jdbc.update("DELETE FROM "+table);
     }
     HttpResponse<String> request(String method,String path,String body,String token)throws Exception{
         var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).timeout(Duration.ofSeconds(20));
@@ -499,6 +499,16 @@ class StudioIntegrationTest {
         assertEquals(201,response.statusCode(),response.body());
         return json(response);
     }
+    void vincularProfissionalAoServico(Conta owner,long servicoId,long profissionalId)throws Exception{
+        var servico=java.util.stream.StreamSupport.stream(json(request("GET","/servicos",null,owner.token())).spliterator(),false)
+            .filter(item->item.get("id").asLong()==servicoId).findFirst().orElseThrow();
+        var ids=new java.util.ArrayList<Long>();servico.get("profissionalIds").forEach(id->ids.add(id.asLong()));
+        if(!ids.contains(profissionalId))ids.add(profissionalId);
+        var body=new java.util.LinkedHashMap<String,Object>();body.put("nome",servico.get("nome").asText());
+        body.put("preco",servico.get("preco").decimalValue());body.put("duracaoMinutos",servico.get("duracaoMinutos").asInt());
+        body.put("ativo",servico.get("ativo").asBoolean());body.put("version",servico.get("version").asLong());body.put("profissionalIds",ids);
+        var response=request("PUT","/servicos/"+servicoId,stringify(body),owner.token());assertEquals(200,response.statusCode(),response.body());
+    }
     String linkPublico(Conta owner) throws Exception {
         var response=request("GET","/servicos/link",null,owner.token());
         assertEquals(200,response.statusCode(),response.body());
@@ -678,7 +688,7 @@ class StudioIntegrationTest {
         assertTrue(catalogo.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
         var data=json(catalogo);assertEquals(7,data.size());assertEquals("Marcae publico",data.get("nome").asText());
         assertEquals("America/Sao_Paulo",data.get("fusoHorario").asText());assertEquals(1,data.get("servicos").size());
-        var s=data.get("servicos").get(0);assertEquals(4,s.size());assertEquals(p.servico(),s.get("id").asLong());dinheiro("25.90",s.get("preco"));
+        var s=data.get("servicos").get(0);assertEquals(5,s.size());assertEquals(p.servico(),s.get("id").asLong());dinheiro("25.90",s.get("preco"));
         for(var profissional:data.get("profissionais")){assertEquals(2,profissional.size());assertTrue(profissional.has("id"));assertTrue(profissional.has("nome"));}
         for(var campo:List.of("telefone","email","clientes","reservas","version","estudioId"))assertFalse(catalogo.body().contains("\""+campo+"\""),catalogo.body());
         var me=json(request("GET","/auth/me",null,p.conta().token()));
@@ -756,7 +766,7 @@ class StudioIntegrationTest {
         assertEquals(0,json(request("GET","/clientes",null,a.conta().token())).size());
     }
     @Test void profissionaisDiferentesPodemReservarSimultaneamente() throws Exception {
-        var p=publico("Agendas independentes");long outro=profissionalPublico(p.conta(),p.dia(),"Outro profissional");
+        var p=publico("Agendas independentes");long outro=profissionalPublico(p.conta(),p.dia(),"Outro profissional");vincularProfissionalAoServico(p.conta(),p.servico(),outro);
         var a=pedido(p,"10:00");var b=pedido(p,"10:00");b.put("profissionalId",outro);
         var responses=concorrentes(()->reservar(p,a),()->reservar(p,b));
         assertEquals(List.of(201,201),responses.stream().map(HttpResponse::statusCode).sorted().toList());
@@ -777,7 +787,7 @@ class StudioIntegrationTest {
     @Test void publicoNaoContornaAssinaturaExpirada() throws Exception {
         var p=publico("Assinatura expirada");
         jdbc.update("UPDATE estudios SET criado_em=?,pago_ate=NULL WHERE id=?",java.sql.Timestamp.valueOf(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")).minusDays(40)),p.conta().estudio());
-        assertEquals(409,reservar(p,pedido(p,"10:00")).statusCode());
+        assertEquals(503,reservar(p,pedido(p,"10:00")).statusCode());
         assertEquals(0,json(request("GET","/clientes",null,p.conta().token())).size());
         assertEquals(0,json(request("GET","/marcacoes",null,p.conta().token())).size());
     }
@@ -918,7 +928,7 @@ class StudioIntegrationTest {
         for(var hora:List.of("15:00","09:00","13:00")){
             var response=reservar(p,pedido(p,hora));assertEquals(201,response.statusCode(),response.body());
         }
-        long outro=profissionalPublico(p.conta(),p.dia(),"Segunda agenda");
+        long outro=profissionalPublico(p.conta(),p.dia(),"Segunda agenda");vincularProfissionalAoServico(p.conta(),p.servico(),outro);
         var simultanea=pedido(p,"09:00");simultanea.put("profissionalId",outro);assertEquals(201,reservar(p,simultanea).statusCode());
         var agenda=json(request("GET","/marcacoes",null,p.conta().token()));assertEquals(4,agenda.size());
         var anterior=agenda.get(0);

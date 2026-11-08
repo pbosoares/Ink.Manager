@@ -10,11 +10,11 @@ public class AssinaturaAccessFilter extends OncePerRequestFilter {
     private final AssinaturaService assinatura;
     public AssinaturaAccessFilter(AssinaturaService assinatura){this.assinatura=assinatura;}
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain)throws ServletException,IOException{
-        String path=request.getServletPath();boolean business=path.startsWith("/clientes")||path.startsWith("/marcacoes")||path.startsWith("/profissionais")||path.startsWith("/servicos")||path.startsWith("/recebimentos")||path.startsWith("/configuracao/agendamento");
+        String path=request.getServletPath();boolean business=path.startsWith("/clientes")||path.startsWith("/marcacoes")||path.startsWith("/profissionais")||path.startsWith("/servicos")||path.startsWith("/recebimentos")||path.startsWith("/configuracao/agendamento")||path.startsWith("/lista-espera")||path.startsWith("/equipe")||path.equals("/estudio");
         var auth=SecurityContextHolder.getContext().getAuthentication();
         if(business&&!"GET".equals(request.getMethod())&&auth instanceof JwtAuthenticationToken jwt){
             long id=((Number)jwt.getToken().getClaim("estudioId")).longValue();
-            if(!assinatura.podeGravar(id)){response.setStatus(402);response.setContentType("application/json;charset=UTF-8");response.getWriter().write("{\"erro\":\"Assinatura vencida. O responsavel pode renovar em Meu estudio. Seus dados continuam disponiveis para consulta.\"}");return;}
+            if(!assinatura.podeGravar(id)){response.setStatus(402);response.setContentType("application/json;charset=UTF-8");response.getWriter().write("{\"erro\":\"Assinatura vencida. Abra Assinatura e escolha Pix ou cartao. As gravacoes voltam apos a confirmacao do pagamento; seus dados continuam disponiveis para consulta.\"}");return;}
         }
         chain.doFilter(request,response);
     }

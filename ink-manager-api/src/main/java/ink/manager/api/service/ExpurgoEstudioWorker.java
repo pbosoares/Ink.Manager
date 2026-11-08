@@ -187,6 +187,7 @@ public class ExpurgoEstudioWorker {
         jdbc.update("DELETE FROM cliente WHERE estudio_id = ?", estudioId);
         jdbc.update("DELETE FROM horarios_trabalho WHERE profissional_id IN (SELECT id FROM profissionais WHERE estudio_id = ?)", estudioId);
         jdbc.update("DELETE FROM bloqueios_agenda WHERE profissional_id IN (SELECT id FROM profissionais WHERE estudio_id = ?)", estudioId);
+        jdbc.update("DELETE FROM servicos_profissionais WHERE estudio_id = ?", estudioId);
         jdbc.update("DELETE FROM profissionais WHERE estudio_id = ?", estudioId);
         jdbc.update("DELETE FROM servicos WHERE estudio_id = ?", estudioId);
         jdbc.update("DELETE FROM usuarios WHERE estudio_id = ?", estudioId);

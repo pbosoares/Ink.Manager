@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.*;
 public interface EstudioRepository extends JpaRepository<Estudio, Long> {
     Optional<Estudio> findByLinkPublico(String linkPublico);
     Optional<Estudio> findByLinkPublicoAndEncerradoEmIsNull(String linkPublico);
+    java.util.List<Estudio> findByEncerradoEmIsNullAndCriadoEmBetween(java.time.LocalDateTime inicio, java.time.LocalDateTime fim);
     boolean existsByIdAndEncerradoEmIsNull(Long id);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Estudio e where e.id = :id")

@@ -26,6 +26,7 @@ public class Marcacao {
     @Column(length=36) private String chavePublica;
     @Column(length=64) private String pedidoPublicoHash;
     public Servico getServico(){return servico;}
+    public void setServico(Servico value){servico=value;}
     public String getServicoNome(){return servicoNome;}
     public java.math.BigDecimal getPrecoPrevisto(){return precoPrevisto;}
     public void definirServico(Servico value){servico=value;servicoNome=value.getNome();precoPrevisto=value.getPreco();}

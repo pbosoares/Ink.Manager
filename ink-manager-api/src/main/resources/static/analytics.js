@@ -5,7 +5,7 @@
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money = value => Number(value || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   const fmt = value => Number(value || 0).toLocaleString('pt-BR');
-  const state = { report:null, reportKey:'', reportRequest:0, config:null, configLoaded:false, configLoading:false };
+  const state = { report:null, reportKey:'', reportRequest:0, reportLoadingFor:'', config:null, configLoaded:false, configLoading:false };
   const api = (path, options) => window.inkApp.api(path, options);
   const monthNow = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
   function signed(value, suffix='') { if (value == null) return 'Sem base anterior'; const n=Number(value); return `${n>0?'+':''}${fmt(n)}${suffix}`; }
@@ -51,7 +51,7 @@
   }
   async function loadReport(){
     if(!owner())return;
-    const mes=$('report-month').value||monthNow(), request=++state.reportRequest;
+    const mes=$('report-month').value||monthNow(), request=++state.reportRequest;state.reportLoadingFor=mes;
     $('report-data').hidden=true;
     $('report-error').textContent='';$('report-loading').hidden=false;$('report-reload').disabled=true;
     try{
@@ -60,7 +60,13 @@
       if(request!==state.reportRequest)return;
       state.report=data;state.reportKey=mes;renderReport();
     }catch(e){if(request===state.reportRequest)$('report-error').textContent=e.message;}
-    finally{if(request===state.reportRequest){$('report-loading').hidden=true;$('report-reload').disabled=false;}}
+    finally{if(request===state.reportRequest){state.reportLoadingFor='';$('report-loading').hidden=true;$('report-reload').disabled=false;}}
+  }
+  function ensureReportLoaded(){
+    if(!owner())return;
+    const mes=$('report-month').value||monthNow();
+    if(state.reportKey===mes||state.reportLoadingFor===mes)return;
+    return loadReport();
   }
   async function loadConfig(){
     if(!owner()||state.configLoaded||state.configLoading)return;
@@ -105,10 +111,10 @@
     try{await api(`/marcacoes/${id}/presenca`,{method:'PUT',body:{presenca:value}});await window.inkApp.reload();if(state.reportKey)await loadReport();}
     catch(e){actions.querySelectorAll('button').forEach(x=>x.disabled=false);window.inkApp.notify(e.message);}
   }
-  function render(){if(!owner())return;renderReport();if(window.inkApp.view()==='overview'&&state.reportKey!==($('report-month').value||monthNow()))loadReport();if(window.inkApp.view()==='agenda'||window.inkApp.view()==='studio')loadConfig();}
+  function render(){if(!owner())return;renderReport();if(window.inkApp.view()==='overview')ensureReportLoaded();if(window.inkApp.view()==='agenda'||window.inkApp.view()==='studio')loadConfig();}
   $('report-reload').addEventListener('click',loadReport);$('report-month').value=monthNow();$('report-range').addEventListener('change',renderReport);
   $('schedule-config-form').addEventListener('submit',saveConfig);
   document.addEventListener('click',event=>{const button=event.target.closest('[data-presence]');if(button)setPresence(button);});
   $('report-month').addEventListener('change',loadReport);
-  window.inkAnalytics={render,loadReport,attendanceAction,close(){state.report=null;state.config=null;state.configLoaded=false;state.configLoading=false;state.reportRequest++;state.reportKey='';},refreshHistory:renderAbsenceHistory};
+  window.inkAnalytics={render,loadReport,ensureReportLoaded,attendanceAction,close(){state.report=null;state.config=null;state.configLoaded=false;state.configLoading=false;state.reportRequest++;state.reportKey='';state.reportLoadingFor='';},refreshHistory:renderAbsenceHistory};
 })()

@@ -8,6 +8,7 @@
   let settingsUser = null;
   let polling = false, refreshTimer = null, focusTimer = null, queuedRefresh = false;
   const days = ['Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado', 'Domingo'];
+  const availabilityToolsOpen = () => state.view === 'overview' && Boolean($('agenda-secondary-tools')?.open);
   const owner = () => state.user?.perfil === 'PROPRIETARIO';
   document.body.insertAdjacentHTML('beforeend', `
     <dialog id="professional-dialog" aria-labelledby="professional-title">
@@ -40,7 +41,7 @@
     if (!$('availability-month').value) $('availability-month').value = localDate().slice(0, 7);
     $('professional-list').innerHTML = state.professionals.map(p => `<article class="team-card"><strong>${escapeHtml(p.nome)}</strong><p>${p.ativo ? 'Ativo' : 'Inativo'} / ${p.horarios.length} turno(s) por semana</p>${owner() ? `<button class="secondary" data-professional="${p.id}">Expediente e folgas</button>` : ''}</article>`).join('');
     if (owner()) renderSettings();
-    if (state.view === 'agenda') loadCalendar(false);
+    if (availabilityToolsOpen()) loadCalendar(false);
   }
   function shiftRow(shift = { diaSemana: 1, inicio: '09:00', fim: '18:00' }) {
     const row = document.createElement('div'); row.className = 'shift-row';
@@ -127,7 +128,7 @@
     } catch (error) { if (request === editorRequest && $('editor').open) { $('editor-error').textContent = error.message; select.innerHTML = '<option value="">Consulta indisponivel</option>'; } }
   }
   async function loadCalendar(force) {
-    if (!state.loaded || state.view !== 'agenda') return;
+    if (!state.loaded || !availabilityToolsOpen()) return;
     const id = $('availability-professional').value, month = $('availability-month').value, duration = Number($('availability-duration').value);
     const key = `${id}|${month}|${duration}`;
     if (!force && calendarKey === key) return;
@@ -241,7 +242,7 @@
         state.appointments = appointments;
         state.professionals = professionals;
         render();
-        if (state.view === 'agenda') loadCalendar(true);
+        if (availabilityToolsOpen()) loadCalendar(true);
       }
     } catch (error) {
       if (generation === state.generation) $('page-error').textContent = error.message;

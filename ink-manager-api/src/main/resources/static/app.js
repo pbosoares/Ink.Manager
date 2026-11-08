@@ -9,11 +9,339 @@ brandFonts.onload = () => { brandFonts.rel = 'stylesheet'; };
 document.head.append(brandFonts);
 
 const $ = (id) => document.getElementById(id);
+const installDesktopSidebarToggle = () => {
+  const workspace = $('workspace');
+  const sidebar = workspace?.querySelector('.sidebar');
+  const topbar = workspace?.querySelector('.topbar');
+  if (!workspace || !sidebar || !topbar || topbar.querySelector('#sidebar-toggle')) return;
+  const label = topbar.firstElementChild;
+  if (!label) return;
+  sidebar.id = 'workspace-sidebar';
+  const toggle = document.createElement('button');
+  toggle.id = 'sidebar-toggle';
+  toggle.type = 'button';
+  toggle.className = 'sidebar-toggle';
+  toggle.setAttribute('aria-controls', sidebar.id);
+  toggle.setAttribute('aria-expanded', 'true');
+  toggle.setAttribute('aria-label', 'Recolher navega\u00e7\u00e3o lateral');
+  toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2"></rect><path d="M9 4v16"></path></svg>';
+  const leading = document.createElement('div');
+  leading.className = 'topbar-leading';
+  topbar.insertBefore(leading, label);
+  leading.append(toggle, label);
+  toggle.addEventListener('click', () => {
+    const collapsed = workspace.classList.toggle('sidebar-collapsed');
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.setAttribute('aria-label', collapsed
+      ? 'Expandir navega\u00e7\u00e3o lateral'
+      : 'Recolher navega\u00e7\u00e3o lateral');
+  });
+};
+installDesktopSidebarToggle();
 const statuses = { AGENDADA: 'Agendada', CONFIRMADA: 'Confirmada', CONCLUIDA: 'Concluída', CANCELADA: 'Cancelada' };
+const appointmentActionsLocked = (item) => Boolean(item?.presenca || item?.recebimentoConfirmado);
+const dailyAgendaColors = ['#2456D8', '#168B74', '#C05B36', '#7A58A7', '#BB4F73', '#667C2B', '#287E9D'];
+let dailyAgendaPixelsPerMinute = window.matchMedia('(max-width: 700px)').matches ? 1.35 : 1.05;
+const civilMonthNames = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const civilWeekdayNames = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 const state = { token: sessionStorage.getItem('ink.token'), clients: [], appointments: [], professionals: [], user: null, studio: null, view: 'overview', register: false, registrationEnabled: false, edit: null, deletion: null, generation: 0, loaded: false, loading: false, loadRequest: 0 };
+let overviewTrialSummary = null;
+let overviewTrialSummaryGeneration = -1;
+let overviewTrialSummaryRequest = 0;
+let overviewTrialSummaryLoading = false;
+let overviewTrialSummaryLoaded = false;
+
+function resetOverviewTrialSummary() {
+  overviewTrialSummary = null;
+  overviewTrialSummaryLoaded = false;
+  overviewTrialSummaryLoading = false;
+  overviewTrialSummaryRequest++;
+  overviewTrialSummaryGeneration = state.generation;
+}
+
+function renderOverviewTrialNotice() {
+  const overview = $('overview-view');
+  const toolbar = overview?.querySelector('.daily-agenda-toolbar');
+  if (!overview || !toolbar) return;
+  let notice = $('overview-trial-notice');
+  if (!notice) {
+    notice = document.createElement('aside');
+    notice.id = 'overview-trial-notice';
+    notice.className = 'panel';
+    notice.setAttribute('role', 'status');
+    notice.setAttribute('aria-live', 'polite');
+    notice.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid #DCE5FB;border-left:3px solid #0878E8;border-radius:12px;background:#F4F7FF;color:#171D2B;box-shadow:0 4px 14px rgba(23,29,43,.04)';
+    const content = document.createElement('div');
+    content.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap';
+    const copy = document.createElement('span');
+    copy.id = 'overview-trial-copy';
+    copy.style.cssText = 'min-width:0;font-size:13px;font-weight:650;line-height:1.45';
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'secondary';
+    action.dataset.view = 'subscription';
+    action.textContent = 'Ver assinatura';
+    content.append(copy, action);
+    notice.append(content);
+    overview.insertBefore(notice, toolbar);
+  }
+  if (overviewTrialSummaryGeneration !== state.generation) resetOverviewTrialSummary();
+  const canShow = state.loaded && state.view === 'overview' && state.user?.perfil === 'PROPRIETARIO';
+  if (!canShow) {
+    notice.hidden = true;
+    return;
+  }
+  if (!overviewTrialSummaryLoaded && !overviewTrialSummaryLoading) {
+    overviewTrialSummaryLoading = true;
+    const generation = state.generation;
+    const request = ++overviewTrialSummaryRequest;
+    api('/assinatura').then((summary) => {
+      if (generation !== state.generation || request !== overviewTrialSummaryRequest) return;
+      overviewTrialSummary = summary;
+      overviewTrialSummaryLoaded = true;
+      renderOverviewTrialNotice();
+    }).catch(() => {
+      if (generation !== state.generation || request !== overviewTrialSummaryRequest) return;
+      overviewTrialSummary = null;
+      overviewTrialSummaryLoaded = true;
+      notice.hidden = true;
+    }).finally(() => {
+      if (generation === state.generation && request === overviewTrialSummaryRequest) overviewTrialSummaryLoading = false;
+    });
+    return;
+  }
+  const summary = overviewTrialSummary;
+  if (!overviewTrialSummaryLoaded || summary?.status !== 'AVALIACAO') {
+    notice.hidden = true;
+    return;
+  }
+  const days = Number.isInteger(summary.diasAvaliacaoRestantes) ? summary.diasAvaliacaoRestantes : null;
+  const endingSoon = summary.avisoFimAvaliacao === true;
+  let message;
+  if (summary.avaliacaoVenceHoje === true) message = 'Sua avaliacao vence hoje.';
+  else if (days === 1 && endingSoon) message = 'Sua avaliacao termina amanha. Resta 1 dia.';
+  else if (days === 1) message = 'Resta 1 dia de avaliacao.';
+  else if (days > 1) message = 'Restam ' + days + ' dias de avaliacao.';
+  else if (endingSoon) message = 'Sua avaliacao termina em breve.';
+  else message = 'Sua avaliacao esta ativa.';
+  const copy = $('overview-trial-copy');
+  if (copy) copy.textContent = message;
+  notice.dataset.endingSoon = String(endingSoon);
+  notice.style.borderLeftColor = endingSoon || summary.avaliacaoVenceHoje === true ? '#C58A2B' : '#0878E8';
+  notice.hidden = false;
+}
+let applyMobileNavigationLayout = () => {};
+let updateMobileDockPresentation = () => {};
+let closeMobileDockMenu = () => {};
+const installMobileNavigationDock = () => {
+  const workspace = $('workspace');
+  const sidebarNavigation = $('sidebar-navigation');
+  const primaryNavigation = $('mobile-primary-navigation');
+  const extraNavigation = $('mobile-more-navigation');
+  const menu = $('mobile-menu-popover');
+  const menuToggle = $('mobile-menu-toggle');
+  const dock = $('mobile-navigation-dock');
+  const action = $('main-action');
+  const actionRow = $('mobile-action-row');
+  const stats = $('overview-stats');
+  const statsSlot = $('mobile-stats-slot');
+  const account = workspace?.querySelector('.sidebar-bottom');
+  if (!workspace || !sidebarNavigation || !primaryNavigation || !extraNavigation || !menu || !menuToggle || !dock || !action || !actionRow || !stats || !statsSlot || !account) return;
+
+  const desktopButtons = Array.from(sidebarNavigation.querySelectorAll('[data-view]'));
+  const buttonsByView = new Map(desktopButtons.map((button) => [button.dataset.view, button]));
+  buttonsByView.get('agenda')?.setAttribute('hidden', '');
+  const actionHome = action.parentNode;
+  const actionHomeNext = action.nextSibling;
+  const statsHome = stats.parentNode;
+  const statsHomeNext = stats.nextSibling;
+  const accountHome = account.parentNode;
+  const accountHomeNext = account.nextSibling;
+  const media = window.matchMedia('(max-width: 700px)');
+  const primaryViews = ['overview', 'clients', 'receipts'];
+  const moreViews = ['team', 'reports', 'subscription', 'studio'];
+  const navLabels = {
+    subscription: 'Assinatura',
+    overview: 'Visão geral',
+    agenda: 'Agenda',
+    clients: 'Clientes',
+    receipts: 'Recebimentos',
+    team: 'Equipe e horários',
+    studio: 'Meu negócio',
+    reports: 'Relatórios'
+  };
+
+  const closeMenu = (restoreFocus = false) => {
+    if (menuToggle.getAttribute('aria-expanded') !== 'true') return;
+    menu.hidden = true;
+    menuToggle.setAttribute('aria-expanded', 'false');
+    menuToggle.setAttribute('aria-label', 'Abrir menu de navegação');
+    if (restoreFocus) menuToggle.focus();
+  };
+  closeMobileDockMenu = closeMenu;
+
+  updateMobileDockPresentation = () => {
+    const mobile = media.matches;
+    workspace.classList.toggle('mobile-overview-active', mobile && state.view === 'overview');
+    document.body.classList.toggle('workspace-mobile-active', mobile && !workspace.hidden);
+    dock.classList.toggle('has-action', !action.hidden);
+    menuToggle.classList.toggle('is-current', moreViews.includes(state.view));
+  };
+
+  applyMobileNavigationLayout = () => {
+    if (media.matches) {
+      primaryViews.forEach((view) => {
+        const button = buttonsByView.get(view);
+        if (!button) return;
+        button.setAttribute('aria-label', navLabels[view]);
+        primaryNavigation.insertBefore(button, menuToggle);
+      });
+      moreViews.forEach((view) => {
+        const button = buttonsByView.get(view);
+        if (!button) return;
+        button.setAttribute('aria-label', navLabels[view]);
+        extraNavigation.append(button);
+      });
+      actionRow.append(action);
+      statsSlot.append(stats);
+      $('mobile-account-slot').append(account);
+    } else {
+      sidebarNavigation.append(...desktopButtons);
+      actionHome.insertBefore(action, actionHomeNext);
+      statsHome.insertBefore(stats, statsHomeNext);
+      accountHome.insertBefore(account, accountHomeNext);
+      closeMenu(false);
+    }
+    updateMobileDockPresentation();
+  };
+
+  menuToggle.addEventListener('click', () => {
+    if (menuToggle.getAttribute('aria-expanded') === 'true') {
+      closeMenu(false);
+      return;
+    }
+    menu.hidden = false;
+    menuToggle.setAttribute('aria-expanded', 'true');
+    menuToggle.setAttribute('aria-label', 'Fechar menu de navegação');
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && menuToggle.getAttribute('aria-expanded') === 'true') closeMenu(true);
+  });
+  document.addEventListener('click', (event) => {
+    if (menuToggle.getAttribute('aria-expanded') !== 'true') return;
+    if (menu.contains(event.target) || menuToggle.contains(event.target)) return;
+    closeMenu(false);
+  });
+
+  applyMobileNavigationLayout();
+};
+installMobileNavigationDock();
+
+function installUnifiedAgendaTools() {
+  const overview = $('overview-view');
+  const dayActions = $('today-appointments-details');
+  const actionButton = $('see-agenda');
+  const legacyAgenda = $('agenda-view');
+  const availability = legacyAgenda?.querySelector('.availability-panel');
+  const history = legacyAgenda?.querySelector('.agenda-book-details');
+  if (!overview || !dayActions || !actionButton || !legacyAgenda || !availability || !history) return null;
+
+  history.id = 'agenda-book-details';
+  const historyTitle = history.querySelector('.agenda-book-summary-title');
+  if (historyTitle?.firstChild) historyTitle.firstChild.textContent = 'Busca e hist\u00f3rico';
+  const historyAction = history.querySelector('.agenda-book-summary-action');
+  if (historyAction?.firstChild) historyAction.firstChild.textContent = 'Filtrar e consultar marca\u00e7\u00f5es';
+  const tools = document.createElement('details');
+  tools.id = 'agenda-secondary-tools';
+  tools.className = 'agenda-secondary-tools';
+  tools.innerHTML = '<summary><span>Disponibilidade, busca e hist\u00f3rico</span><span class="agenda-secondary-tools-indicator" aria-hidden="true"></span></summary>';
+  tools.append(availability, history);
+  actionButton.insertAdjacentElement('afterend', tools);
+  actionButton.textContent = 'Abrir ferramentas da agenda';
+  actionButton.setAttribute('aria-controls', tools.id);
+  actionButton.setAttribute('aria-expanded', 'false');
+
+  const sync = () => {
+    const toolsVisible = dayActions.open && tools.open;
+    actionButton.setAttribute('aria-expanded', String(toolsVisible));
+    overview.classList.toggle('showing-day-actions', dayActions.open);
+    overview.classList.toggle('showing-agenda-history', toolsVisible && history.open);
+  };
+  const reveal = () => {
+    dayActions.open = true;
+    tools.open = true;
+    sync();
+    tools.querySelector('summary')?.focus();
+    tools.scrollIntoView({ block: 'nearest' });
+  };
+  const close = () => {
+    tools.open = false;
+    history.open = false;
+    actionButton.setAttribute('aria-expanded', 'false');
+    sync();
+  };
+
+  dayActions.addEventListener('toggle', sync);
+  tools.addEventListener('toggle', () => {
+    sync();
+    if (tools.open) $('availability-load')?.click();
+  });
+  history.addEventListener('toggle', sync);
+  return { reveal, close, sync, details: tools, history };
+}
+const unifiedAgendaTools = installUnifiedAgendaTools();
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : 'Sem data';
+const ownerAttendanceAction = (item) => {
+  const presence = item?.presenca === 'FALTOU' ? 'Faltou' : item?.presenca === 'COMPARECEU' ? 'Compareceu' : '';
+  if (presence) return '<span class="daily-agenda-presence ' + (item.presenca === 'FALTOU' ? 'is-absence' : 'is-present') + '">Presen\u00e7a: ' + presence + '</span>';
+  if (state.user?.perfil !== 'PROPRIETARIO') return '';
+  return window.inkAnalytics?.attendanceAction(item) || '';
+};
+const ownerReceiptAction = (item) => {
+  if (state.user?.perfil === 'PROPRIETARIO') return window.inkSimple?.receiptAction(item) || '';
+  return item?.recebimentoConfirmado ? '<small class="receipt-recorded">Recebimento confirmado</small>' : '';
+};
+const presenceStatusLabel = (item) => item?.presenca === 'FALTOU' ? 'Faltou' : item?.presenca === 'COMPARECEU' ? 'Compareceu' : '';
+function studioNowContext() {
+  const timeZone = state.studio?.fusoHorario;
+  if (typeof timeZone !== 'string' || !timeZone.trim()) return null;
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+    const values = Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+    const date = `${values.year}-${values.month}-${values.day}`;
+    const hour = Number(values.hour), minute = Number(values.minute);
+    if (!civilDateParts(date) || !Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    return { date, time: `${values.hour}:${values.minute}`, minuteOfDay: hour * 60 + minute };
+  } catch {
+    return null;
+  }
+}
+const localDate = () => studioNowContext()?.date || '';
+
+function formatCivilDateLong(value) {
+  const parts = civilDateParts(value);
+  if (!parts) return '';
+  const weekday = civilWeekdayNumber(value);
+  return `${civilWeekdayNames[(weekday || 7) % 7]}, ${parts.day} de ${civilMonthNames[parts.month - 1]} de ${parts.year}`;
+}
+function refreshStudioDateContext(seedToday = false) {
+  const current = studioNowContext();
+  const input = $('daily-agenda-date');
+  if (seedToday && input && !input.value && current) input.value = current.date;
+  const selected = input?.value || '';
+  const label = $('today-label');
+  if (label) {
+    label.dataset.timezoneValid = current ? 'true' : 'false';
+    if (!current) label.textContent = state.loading ? 'Carregando fuso do estúdio…' : (selected ? `Data selecionada · ${formatCivilDateLong(selected)} · fuso do estúdio indisponível` : 'Fuso do estúdio indisponível · selecione uma data');
+    else if (state.view === 'overview' && selected) label.textContent = 'FUSO DO ESTÚDIO';
+    else label.textContent = `Hoje · ${formatCivilDateLong(current.date)}`;
+  }
+  return current;
+}
+const formatDate = (value) => {
+  const parts = civilDateParts(value);
+  return parts ? `${String(parts.day).padStart(2, '0')} de ${civilMonthNames[parts.month - 1].slice(0, 3)}.` : 'Sem data';
+};
 const badge = (value) => `<span class="badge ${Object.hasOwn(statuses, value) ? value : ''}">${escapeHtml(statuses[value] || 'Sem status')}</span>`;
 function whatsappAction(item) {
   let digits = String(item.cliente?.telefone || '').replace(/\D/g, '');
@@ -82,8 +410,16 @@ function logout(message = '') {
   state.clients = [];
   state.appointments = [];
   state.professionals = []; state.user = null; state.studio = null; state.edit = null; state.deletion = null;
-  ['today-list','agenda-list','client-list','account-name'].forEach(id => { $(id).textContent = ''; });
+  ['today-list','agenda-list','client-list','account-name','topbar-user-name','topbar-user-role','topbar-user-initials'].forEach(id => { $(id).textContent = ''; });
+  $('topbar-profile').hidden = true;
+  $('daily-agenda-date').value = '';
+  $('today-appointments-details').open = false;
+  unifiedAgendaTools?.close();
+  $('agenda-book-details').open = false;
+  $('overview-view').classList.remove('showing-day-actions');
   $('workspace').hidden = true;
+  closeMobileDockMenu(false);
+  updateMobileDockPresentation();
   $('auth').hidden = false;
   $('editor').close();
   $('confirmation').close();
@@ -109,7 +445,9 @@ async function api(path, { method = 'GET', body, publicRequest = false } = {}) {
   if (!response.ok) {
     if (response.status === 401 && !publicRequest && state.token === requestToken) logout('Sua sessão expirou. Entre novamente.');
     const message = data?.erro || (data && !data.timestamp && typeof data === 'object' ? Object.values(data).filter((v) => typeof v === 'string').join(' ') : '');
-    throw new Error(message || (response.status === 401 ? 'E-mail ou senha inválidos.' : 'Não foi possível concluir. Tente novamente.'));
+    const error = new Error(message || (response.status === 401 ? 'E-mail ou senha inválidos.' : 'Não foi possível concluir. Tente novamente.'));
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
@@ -132,6 +470,11 @@ async function loadData() {
     state.professionals = professionals;
     state.user = session.usuario;
     state.studio = session.estudio;
+    $('topbar-profile').hidden = !state.user?.nome;
+    $('topbar-user-name').textContent = state.user?.nome || '';
+    $('topbar-user-role').textContent = state.user?.perfil === 'PROPRIETARIO' ? 'Propriet\u00e1rio' : 'Equipe';
+    $('topbar-user-initials').textContent = dailyProfessionalInitials(state.user?.nome);
+    refreshStudioDateContext(true);
     $('account-name').textContent = state.studio.nome;
     render();
   } catch (error) {
@@ -158,7 +501,7 @@ function openWorkspace() {
   $('auth').hidden = true;
   $('workspace').hidden = false;
   $('account-name').textContent = 'Seu negócio';
-  $('today-label').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('today-label').textContent = 'Carregando fuso do estúdio…';
   setView('overview');
   loadData();
 }
@@ -214,27 +557,52 @@ $('auth-form').addEventListener('submit', async (event) => {
 });
 
 function setView(view) {
-  if (view === 'receipts' && state.user?.perfil !== 'PROPRIETARIO') view = 'overview';
+  const openAgendaTools = view === 'agenda';
+  if (openAgendaTools) view = 'overview';
+  if (['receipts', 'reports', 'subscription'].includes(view) && state.user?.perfil !== 'PROPRIETARIO') view = 'overview';
+  const studioSection = view === 'subscription' ? 'billing-settings' : null;
+  if (studioSection) view = 'studio';
+  if (view === 'overview') {
+    $('today-appointments-details').open = false;
+    unifiedAgendaTools?.close();
+    $('overview-view').classList.remove('showing-day-actions', 'showing-agenda-history');
+  }
+  $('studio-view').classList.toggle('billing-only', Boolean(studioSection));
+  if (view === 'overview' && state.view !== 'overview') resetOverviewTrialSummary();
   state.view = view;
+  updateMobileDockPresentation();
   const copy = {
-    overview: ['A CASA ESTÁ ABERTA', 'Cada dia, uma nova história.', 'Sua rotina organizada. Seus atendimentos em primeiro lugar.'],
+    overview: ['VISÃO GERAL', 'Agenda da equipe', 'Atendimentos, confirmações e horários do dia.'],
     agenda: ['TEMPO PARA ATENDER BEM', 'Sua agenda, no lugar.', 'Cada atendimento tem seu espaço. Cuide dos próximos encontros.'],
+    reports: ['CADERNO DO MÊS', 'Agenda e comparecimento.', 'Acompanhe os resultados e o ritmo do negócio.'],
     team: ['A EQUIPE', 'Cada profissional, sua agenda.', 'Expedientes e folgas compartilhados com a equipe.'],
     studio: ['SEU ESPACO', 'Seu negócio tem a sua cara.', 'Serviços, link de reservas, acessos e assinatura no mesmo lugar.'],
     receipts: ['VALORES CONFIRMADOS', 'Recebimentos, sem complicação.', 'Confirme o atendimento e o valor recebido para acompanhar a semana e o mês.'],
     clients: ['QUEM CONFIA NO SEU TRABALHO', 'Seus clientes, sempre por perto.', 'Contatos e histórias para manter sempre por perto.']
-  }[view];
-  ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts'].forEach((key) => { $(`${key}-view`).hidden = key !== view; });
+  }[view] || ['A CASA ESTÁ ABERTA', 'Cada dia, uma nova história.', 'Sua rotina organizada. Seus atendimentos em primeiro lugar.'];
+  ['overview', 'agenda', 'reports', 'clients', 'team', 'studio', 'receipts'].forEach((key) => { $(`${key}-view`).hidden = key !== view; });
+  const activeView = studioSection ? 'subscription' : view;
   document.querySelectorAll('[data-view]').forEach((button) => {
-    button.classList.toggle('active', button.dataset.view === view);
-    if (button.dataset.view === view) button.setAttribute('aria-current', 'page');
+    const active = button.dataset.view === activeView;
+    button.classList.toggle('active', active);
+    if (active) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
   $('page-kicker').textContent = copy[0];
-  $('page-title').textContent = copy[1];
+  if (view === 'overview') {
+    const title = $('page-title');
+    title.replaceChildren(document.createTextNode('Agenda da '), Object.assign(document.createElement('span'), { textContent: 'equipe' }));
+  } else $('page-title').textContent = copy[1];
   $('page-description').textContent = copy[2];
+  if (studioSection) {
+    $('page-kicker').textContent = 'SUA ASSINATURA';
+    $('page-title').textContent = 'Assinatura';
+    $('page-description').textContent = 'Plano e pagamentos da sua conta.';
+  }
   $('main-action').textContent = view === 'clients' ? '+ Novo cliente' : '+ Nova marcação';
   render();
+  if (openAgendaTools) unifiedAgendaTools?.reveal();
+  if (view === 'reports' && state.user?.perfil === 'PROPRIETARIO') window.inkAnalytics?.ensureReportLoaded();
 }
 
 function empty(title, description, action) {
@@ -243,29 +611,102 @@ function empty(title, description, action) {
 
 function render() {
   $('main-action').disabled = !state.loaded;
-  $('main-action').hidden = ['team', 'studio', 'receipts'].includes(state.view);
+  $('main-action').hidden = ['team', 'studio', 'receipts', 'reports'].includes(state.view);
+  updateMobileDockPresentation();
   document.querySelectorAll('.owner-only').forEach((element) => { element.hidden = state.user?.perfil !== 'PROPRIETARIO'; });
-  ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts'].forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
+  ['overview', 'agenda', 'reports', 'clients', 'team', 'studio', 'receipts'].forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
   $('workspace').setAttribute('aria-busy', String(state.loading));
+  refreshStudioDateContext();
+  renderOverviewTrialNotice();
   if (!state.loaded) {
     ['stat-today', 'stat-upcoming', 'stat-clients'].forEach((id) => { $(id).textContent = '—'; });
     ['today-list', 'agenda-list', 'client-list', 'agenda-count', 'client-count'].forEach((id) => { $(id).textContent = ''; });
+    $('today-business-title').textContent = 'Resumo do dia';
+    $('today-business-summary').textContent = 'Aguardando os dados da agenda.';
     return;
   }
-  const today = localDate();
   const appointments = sortedAppointments();
-  const todays = appointments.filter((item) => item.data === today && item.status !== 'CANCELADA');
-  $('stat-today').textContent = String(todays.length).padStart(2, '0');
-  const now = new Date();
-  const currentTime = `${today}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
-  $('stat-upcoming').textContent = String(appointments.filter((item) => `${item.data}T${item.horario}` >= currentTime && ['AGENDADA', 'CONFIRMADA'].includes(item.status)).length).padStart(2, '0');
-  $('stat-clients').textContent = String(state.clients.length).padStart(2, '0');
-  $('today-list').innerHTML = todays.length ? todays.map((item) => `<div class="session"><span class="session-time">${escapeHtml(item.horario?.slice(0, 5))}</span><div class="session-info"><div class="session-name">${escapeHtml(item.cliente?.nome)}</div><div class="session-description">${escapeHtml(item.servicoNome || item.descricao || 'Atendimento')}${window.inkSimple?.appointmentDetails(item) || ''}</div>${window.inkAnalytics?.attendanceAction(item) || ''}</div>${badge(item.status)}${window.inkSimple?.receiptAction(item) || ''}${whatsappAction(item)}<button class="text-button" ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-edit-appointment="${item.id}" aria-label="Editar marcação de ${escapeHtml(item.cliente?.nome)}">Editar</button></div>`).join('') : empty('Um respiro na agenda.', 'Nenhum atendimento marcado para hoje.', 'appointment');
+  const selectedDate = $('daily-agenda-date').value;
+  const studioToday = studioNowContext()?.date;
+  const dayAppointments = selectedDate ? appointments.filter((item) => item.data === selectedDate) : [];
+  const booked = dayAppointments.filter((item) => ['AGENDADA', 'CONFIRMADA'].includes(item.status));
+  const awaitingConfirmation = dayAppointments.filter((item) => item.status === 'AGENDADA');
+  const completed = dayAppointments.filter((item) => item.status === 'CONCLUIDA');
+  const confirmed = dayAppointments.filter((item) => item.status === 'CONFIRMADA');
+  const canceled = dayAppointments.filter((item) => item.status === 'CANCELADA').length;
+  const selectedWeekday = selectedDate ? civilWeekdayNumber(selectedDate) : null;
+  let currentWeekStart = selectedWeekday ? selectedDate : '';
+  for (let offset = 1; currentWeekStart && offset < selectedWeekday; offset++) currentWeekStart = shiftCivilDate(currentWeekStart, -1);
+  let currentWeekEnd = currentWeekStart;
+  for (let offset = 0; currentWeekStart && offset < 6; offset++) currentWeekEnd = shiftCivilDate(currentWeekEnd, 1);
+  const previousWeekEnd = currentWeekStart ? shiftCivilDate(currentWeekStart, -1) : '';
+  let previousWeekStart = previousWeekEnd;
+  for (let offset = 0; previousWeekStart && offset < 6; offset++) previousWeekStart = shiftCivilDate(previousWeekStart, -1);
+  const countNonCanceledInRange = (start, end) => start && end
+    ? state.appointments.filter((item) => item.status !== 'CANCELADA' && item.data >= start && item.data <= end).length
+    : 0;
+  const currentWeekCount = currentWeekStart ? countNonCanceledInRange(currentWeekStart, currentWeekEnd) : null;
+  const previousWeekCount = previousWeekStart ? countNonCanceledInRange(previousWeekStart, previousWeekEnd) : null;
+  const weeklyCaption = $('stat-today-caption');
+  let trendClass = 'is-trend-neutral';
+  let trendMessage = 'Selecione uma data';
+  if (currentWeekStart && previousWeekCount === 0) trendMessage = 'Sem base de comparação';
+  else if (currentWeekStart) {
+    const percentage = ((currentWeekCount - previousWeekCount) / previousWeekCount) * 100;
+    const formattedPercentage = Math.abs(percentage).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+    if (percentage > 0) {
+      trendClass = 'is-trend-up';
+      trendMessage = '↑ Aumento de ' + formattedPercentage + '% em relação à semana anterior';
+    } else if (percentage < 0) {
+      trendClass = 'is-trend-down';
+      trendMessage = '↓ Redução de ' + formattedPercentage + '% em relação à semana anterior';
+    } else trendMessage = 'Sem variação em relação à semana anterior';
+  }
+  weeklyCaption.classList.remove('is-trend-up', 'is-trend-down', 'is-trend-neutral');
+  weeklyCaption.classList.add(trendClass);
+  $('stat-today-label').textContent = 'Atendimentos na semana';
+  $('stat-today').textContent = currentWeekCount === null ? '—' : String(currentWeekCount).padStart(2, '0');
+  weeklyCaption.textContent = trendMessage;
+  $('stat-upcoming-label').textContent = 'A CONFIRMAR';
+  $('stat-upcoming').textContent = selectedDate ? String(awaitingConfirmation.length).padStart(2, '0') : '—';
+  $('stat-upcoming-caption').textContent = selectedDate ? 'Agendadas na data' : 'Selecione uma data';
+  $('stat-completed-label').textContent = 'CONCLUÍDOS';
+  $('stat-clients').textContent = selectedDate ? String(completed.length).padStart(2, '0') : '—';
+  $('stat-completed-caption').textContent = selectedDate ? 'Concluídas na data' : 'Selecione uma data';
+  $('today-business-title').textContent = selectedDate && selectedDate === studioToday ? 'Hoje no negócio' : 'Resumo do dia';
+  $('today-business-summary').textContent = selectedDate
+    ? `${dayAppointments.length} ${dayAppointments.length === 1 ? 'marcação' : 'marcações'} · ${awaitingConfirmation.length} a confirmar · ${confirmed.length} confirmadas · ${completed.length} concluídas · ${canceled} canceladas`
+    : 'Selecione uma data; sem o fuso IANA do estúdio, “hoje” não será inferido do navegador.';
+  $('today-list').innerHTML = selectedDate && dayAppointments.length
+    ? '<div class="daily-agenda-actions-rows">' + dayAppointments.map((item) => {
+      const client = escapeHtml(item.cliente?.nome || 'Cliente');
+      const professional = escapeHtml(item.profissional?.nome || 'Sem profissional');
+      const service = escapeHtml(item.servicoNome || item.descricao || 'Atendimento');
+      return '<article class="daily-agenda-action-row">' +
+        '<span class="daily-agenda-action-time">' + escapeHtml(item.horario?.slice(0, 5) || '—') + '</span>' +
+        '<div class="daily-agenda-action-person"><strong>' + client + '</strong><small title="' + professional + ' &middot; ' + service + '">' + professional + ' &middot; ' + service + '</small></div>' +
+        badge(item.status) +
+        '<div class="daily-agenda-action-buttons" role="group" aria-label="Ações para ' + client + '">' +
+        (ownerAttendanceAction(item)) +
+        (ownerReceiptAction(item)) +
+        whatsappAction(item) +
+        '<button class="text-button" ' + (appointmentActionsLocked(item) ? 'disabled title="Presença ou recebimento registrado"' : '') + ' data-edit-appointment="' + escapeHtml(item.id) + '" aria-label="Editar marcação de ' + client + '">Editar</button>' +
+        '</div></article>';
+    }).join('') + '</div>'
+    : selectedDate ? empty('Um respiro na agenda.', 'Nenhum atendimento marcado para a data selecionada.', 'appointment') : empty('Selecione uma data.', 'O fuso do estúdio não está disponível para determinar “hoje”.', '');
   renderAgenda();
   renderClients();
   window.inkTeam?.render();
+  if ($('studio-view').classList.contains('billing-only')) $('billing-settings')?.scrollIntoView({ block: 'start' });
   window.inkSimple?.render();
-  window.inkAnalytics?.render();
+  if (state.view === 'overview' && state.user?.perfil === 'PROPRIETARIO') {
+    // The analytics module lazy-loads owner-only presence rules in the Agenda context.
+    const currentView = state.view;
+    state.view = 'agenda';
+    try { window.inkAnalytics?.render(); } finally { state.view = currentView; }
+  } else if (['agenda', 'studio', 'reports'].includes(state.view)) window.inkAnalytics?.render();
+  disableLockedAppointmentActions($('today-list'));
+  renderDailyAgenda();
 }
 
 function renderAgenda() {
@@ -277,16 +718,248 @@ function renderAgenda() {
   const pendingReceipt = status === 'PENDENTE_RECEBIMENTO';
   const items = sortedAppointments().filter((item) => (!professional || String(item.profissional?.id) === professional) && (!date || item.data === date) && (pendingReceipt ? item.status === 'CONCLUIDA' && !item.recebimentoConfirmado && item.podeConfirmarRecebimento : !status || item.status === status) && `${item.cliente?.nome || ''} ${item.servicoNome || ''} ${item.descricao || ''}`.toLocaleLowerCase('pt-BR').includes(query));
   $('agenda-count').textContent = `${items.length} registro(s)`;
-  $('agenda-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>DATA / HORA</th><th>CLIENTE / ATENDIMENTO</th><th>STATUS</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(formatDate(item.data))}<small>${escapeHtml(item.data?.slice(0, 4))} · ${escapeHtml(item.horario?.slice(0, 5))}</small></td><td>${escapeHtml(item.cliente?.nome)}<small>${escapeHtml(item.profissional?.nome)} / ${escapeHtml(item.servicoNome || item.descricao || 'Sem descrição')}</small>${window.inkSimple?.appointmentDetails(item) || ''}${window.inkAnalytics?.attendanceAction(item) || ''}</td><td>${badge(item.status)}</td><td><div class="row-actions">${window.inkSimple?.receiptAction(item) || ''}${whatsappAction(item)}<button class="text-button" ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-edit-appointment="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-delete-appointment="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Nenhuma marcação por aqui.', query || date || status ? 'Experimente mudar os filtros.' : 'Reserve um horário para o próximo atendimento.', query || date || status ? '' : 'appointment');
+  $('agenda-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>DATA / HORA</th><th>CLIENTE / ATENDIMENTO</th><th>STATUS</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(formatDate(item.data))}<small>${escapeHtml(item.data?.slice(0, 4))} · ${escapeHtml(item.horario?.slice(0, 5))}</small></td><td>${escapeHtml(item.cliente?.nome)}<small>${escapeHtml(item.profissional?.nome)} / ${escapeHtml(item.servicoNome || item.descricao || 'Sem descrição')}</small>${window.inkSimple?.appointmentDetails(item) || ''}${ownerAttendanceAction(item)}</td><td>${badge(item.status)}</td><td><div class="row-actions">${ownerReceiptAction(item)}${whatsappAction(item)}<button class="text-button" ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-edit-appointment="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-delete-appointment="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Nenhuma marcação por aqui.', query || date || status ? 'Experimente mudar os filtros.' : 'Reserve um horário para o próximo atendimento.', query || date || status ? '' : 'appointment');
+  disableLockedAppointmentActions($('agenda-list'));
+}
+
+function civilDateParts(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+  return match ? { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) } : null;
+}
+
+function civilDateLabel(value) {
+  const parts = civilDateParts(value);
+  return parts ? String(parts.day).padStart(2, '0') + '/' + String(parts.month).padStart(2, '0') + '/' + parts.year : '';
+}
+
+function shiftCivilDate(value, delta) {
+  const parts = civilDateParts(value);
+  if (!parts) return '';
+  let { year, month, day } = parts;
+  const daysInMonth = (y, m) => [31, (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+  if (delta > 0) {
+    day++;
+    if (day > daysInMonth(year, month)) { day = 1; month++; if (month > 12) { month = 1; year++; } }
+  } else {
+    day--;
+    if (day < 1) { month--; if (month < 1) { month = 12; year--; } day = daysInMonth(year, month); }
+  }
+  return String(year).padStart(4, '0') + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+}
+
+function civilWeekdayNumber(value) {
+  const parts = civilDateParts(value);
+  if (!parts) return null;
+  const offsets = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
+  const year = parts.month < 3 ? parts.year - 1 : parts.year;
+  const sundayZero = (year + Math.floor(year / 4) - Math.floor(year / 100) + Math.floor(year / 400) + offsets[parts.month - 1] + parts.day) % 7;
+  return sundayZero === 0 ? 7 : sundayZero;
+}
+
+function civilMinutes(value) {
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(String(value || ''));
+  if (!match) return null;
+  const hour = Number(match[1]), minute = Number(match[2]);
+  return hour <= 23 && minute <= 59 ? hour * 60 + minute : null;
+}
+
+function civilClockLabel(value) {
+  const minute = Math.max(0, Math.floor(value));
+  const dayOffset = Math.floor(minute / 1440);
+  const minuteOfDay = minute % 1440;
+  return String(Math.floor(minuteOfDay / 60)).padStart(2, '0') + ':' + String(minuteOfDay % 60).padStart(2, '0') + (dayOffset ? ' (+1 dia)' : '');
+}
+
+function dailyProfessionalKey(item) {
+  return item?.profissional?.id == null ? 'sem-profissional' : String(item.profissional.id);
+}
+
+function dailyProfessionalColor(id) {
+  let hash = 0;
+  for (const character of String(id ?? 'sem-profissional')) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  return dailyAgendaColors[hash % dailyAgendaColors.length];
+}
+
+function dailyProfessionalInitials(value) {
+  const words = String(value || '').trim().split(/\s+/).filter(Boolean);
+  return words.length ? words.slice(0, 2).map((word) => Array.from(word)[0]).join('').toLocaleUpperCase('pt-BR') : 'PR';
+}
+
+function disableLockedAppointmentActions(root) {
+  if (!root) return;
+  root.querySelectorAll('[data-edit-appointment], [data-delete-appointment]').forEach((button) => {
+    const id = Number(button.dataset.editAppointment ?? button.dataset.deleteAppointment);
+    const item = state.appointments.find((entry) => Number(entry.id) === id);
+    if (!appointmentActionsLocked(item)) return;
+    button.disabled = true;
+    button.title = 'Presença ou recebimento registrado; ação indisponível.';
+  });
+}
+
+function packDailyAppointments(items) {
+  const events = items.map((item) => {
+    const start = civilMinutes(item.horario);
+    const rawDuration = Number(item.duracaoMinutos);
+    const duration = Number.isFinite(rawDuration) && rawDuration >= 1 && rawDuration <= 720 ? rawDuration : 60;
+    return { item, start, duration };
+  }).filter((event) => event.start != null).sort((a, b) => a.start - b.start || Number(a.item.id) - Number(b.item.id));
+  const trackEnds = [];
+  for (const event of events) {
+    let track = trackEnds.findIndex((end) => end <= event.start);
+    if (track < 0) { track = trackEnds.length; trackEnds.push(event.start + event.duration); }
+    else trackEnds[track] = event.start + event.duration;
+    event.track = track;
+  }
+  return { events, trackCount: Math.max(1, trackEnds.length) };
+}
+
+function renderDailyAgenda() {
+  if (!state.loaded || state.view !== 'overview') return;
+  const dateInput = $('daily-agenda-date');
+  const previous = $('daily-agenda-previous');
+  const todayButton = $('daily-agenda-today');
+  const next = $('daily-agenda-next');
+  const professionalWrap = $('daily-agenda-professional-wrap');
+  const professionalSelect = $('daily-agenda-professional');
+  const grid = $('daily-agenda-grid');
+  const history = $('daily-agenda-history');
+  const summary = $('daily-agenda-summary');
+  const date = dateInput.value;
+  previous.disabled = next.disabled = !date;
+  todayButton.disabled = !studioNowContext();
+  if (!date) {
+    summary.textContent = 'Selecione uma data para ver os atendimentos.';
+    grid.innerHTML = '<p class="daily-agenda-placeholder">' + (studioNowContext() ? 'Selecione uma data para ver a agenda.' : 'O fuso IANA do estúdio não está disponível. Selecione uma data manualmente; a agenda não usará o fuso do navegador.') + '</p>';
+    history.hidden = true;
+    history.innerHTML = '';
+    professionalWrap.hidden = true;
+    return;
+  }
+
+  const dayItems = sortedAppointments().filter((item) => item.data === date);
+  const bookedKeys = new Set(dayItems.map(dailyProfessionalKey));
+  const professionalsByKey = new Map(state.professionals
+    .filter((professional) => professional.ativo || bookedKeys.has(String(professional.id)))
+    .map((professional) => [String(professional.id), {
+      id: String(professional.id), nome: professional.nome || 'Profissional',
+      ativo: Boolean(professional.ativo), horarios: Array.isArray(professional.horarios) ? professional.horarios : []
+    }]));
+  for (const item of dayItems) {
+    const key = dailyProfessionalKey(item);
+    if (!professionalsByKey.has(key)) professionalsByKey.set(key, {
+      id: key, nome: item.profissional?.nome || 'Sem profissional',
+      ativo: Boolean(item.profissional?.ativo), horarios: []
+    });
+  }
+  const professionals = [...professionalsByKey.values()].sort((a, b) => Number(b.ativo) - Number(a.ativo) || a.nome.localeCompare(b.nome, 'pt-BR'));
+  const priorSelection = professionalSelect.value;
+  professionalSelect.innerHTML = professionals.length
+    ? professionals.map((professional) => '<option value="' + escapeHtml(professional.id) + '">' + escapeHtml(professional.nome) + (professional.ativo ? '' : ' (inativo)') + '</option>').join('')
+    : '<option value="">Nenhum profissional</option>';
+  const selected = professionals.some((professional) => professional.id === priorSelection)
+    ? priorSelection : (professionals.find((professional) => professional.ativo) || professionals[0])?.id || '';
+  professionalSelect.value = selected;
+  const mobile = window.matchMedia('(max-width: 700px)').matches;
+  professionalWrap.hidden = !mobile || !professionals.length;
+  const displayedProfessionals = mobile
+    ? professionals.filter((professional) => professional.id === selected)
+    : [...professionals].sort((a, b) => Number(b.ativo) - Number(a.ativo) || Number(a.id) - Number(b.id));
+  const displayedKeys = new Set(displayedProfessionals.map((professional) => professional.id));
+  const displayedItems = dayItems.filter((item) => displayedKeys.has(dailyProfessionalKey(item)));
+  const occupying = displayedItems.filter((item) => ['AGENDADA', 'CONFIRMADA'].includes(item.status));
+  const ended = displayedItems.filter((item) => !['AGENDADA', 'CONFIRMADA'].includes(item.status));
+  const invalidTimeCount = occupying.filter((item) => civilMinutes(item.horario) == null).length;
+  summary.textContent = occupying.length + ' horários · ' + displayedProfessionals.length + ' profissionais' + (ended.length ? ' · ' + ended.length + ' no histórico' : '') + (invalidTimeCount ? ' · ' + invalidTimeCount + ' sem horário válido' : '');
+  history.hidden = !ended.length;
+  history.innerHTML = ended.length
+    ? '<strong>Histórico do dia · não ocupa horários</strong><ul>' + ended.map((item) => {
+      const time = civilMinutes(item.horario);
+      const professionalRecord = professionalsByKey.get(dailyProfessionalKey(item));
+      const isInactiveProfessional = item.profissional?.id != null && professionalRecord && !professionalRecord.ativo;
+      const professional = (item.profissional?.nome || 'Sem profissional') + (isInactiveProfessional ? ' (inativo)' : '');
+      const label = statuses[item.status] || item.status || 'Sem status';
+      const presence = presenceStatusLabel(item);
+      const color = dailyProfessionalColor(item.profissional?.id ?? 'sem-profissional');
+      return '<li style="--professional-color:' + color + '"><span>' + (time == null ? 'Horário não informado' : civilClockLabel(time)) + '</span><strong>' + escapeHtml(item.cliente?.nome || 'Cliente') + '</strong><small>' + escapeHtml(item.servicoNome || item.descricao || 'Atendimento') + ' · ' + escapeHtml(professional) + ' · ' + escapeHtml(label) + (presence ? ' \u00b7 Presen\u00e7a: ' + escapeHtml(presence) : '') + '</small></li>';
+    }).join('') + '</ul>'
+    : '';
+
+  if (!displayedProfessionals.length) {
+    summary.textContent = '0 horários · 0 profissionais';
+    grid.innerHTML = '<p class="daily-agenda-placeholder">Nenhum profissional ativo ou com marcações neste dia.</p>';
+    return;
+  }
+
+  const weekday = civilWeekdayNumber(date);
+  const shifts = displayedProfessionals.flatMap((professional) => (professional.ativo ? professional.horarios : [])
+    .filter((shift) => Number(shift.diaSemana) === weekday)
+    .map((shift) => ({ start: civilMinutes(shift.inicio), end: civilMinutes(shift.fim) }))
+    .filter((shift) => shift.start != null && shift.end != null && shift.end > shift.start));
+  const validOccupying = occupying.filter((item) => civilMinutes(item.horario) != null);
+  const starts = shifts.map((shift) => shift.start).concat(validOccupying.map((item) => civilMinutes(item.horario)));
+  const ends = shifts.map((shift) => shift.end).concat(validOccupying.map((item) => civilMinutes(item.horario) + (Number(item.duracaoMinutos) || 60)));
+  const startMinute = starts.length ? Math.floor(Math.min(...starts) / 60) * 60 : 8 * 60;
+  let endMinute = ends.length ? Math.ceil(Math.max(...ends) / 60) * 60 : 18 * 60;
+  if (endMinute <= startMinute) endMinute = startMinute + 60;
+  const timelineHeight = (endMinute - startMinute) * dailyAgendaPixelsPerMinute;
+  const now = studioNowContext();
+  const showNowMarker = Boolean(now && now.date === date && now.minuteOfDay >= startMinute && now.minuteOfDay <= endMinute);
+  const nowOffset = showNowMarker ? (now.minuteOfDay - startMinute) * dailyAgendaPixelsPerMinute : 0;
+  const nowMinutes = showNowMarker ? Number(now.time.slice(3, 5)) : 30;
+  const nowLabelTop = nowOffset + (nowMinutes < 12 ? 17 : nowMinutes >= 48 ? -17 : 0);
+  const nowLabelMarkup = showNowMarker
+    ? '<span class="daily-agenda-now-label" aria-hidden="true" style="--now-top:' + nowOffset + 'px;--now-label-top:' + nowLabelTop + 'px">AGORA ' + escapeHtml(now.time) + '</span>'
+    : '';
+  const timeLabels = [];
+  for (let minute = startMinute; minute <= endMinute; minute += 60) {
+    timeLabels.push('<span style="--time-top:' + ((minute - startMinute) * dailyAgendaPixelsPerMinute) + 'px">' + civilClockLabel(minute) + '</span>');
+  }
+  const headers = displayedProfessionals.map((professional) => {
+    const color = dailyProfessionalColor(professional.id);
+    const initials = dailyProfessionalInitials(professional.nome);
+    return '<div class="daily-agenda-professional-head" style="--professional-color:' + color + '"><i class="daily-agenda-avatar" aria-hidden="true">' + escapeHtml(initials) + '</i><span>' + escapeHtml(professional.nome) + (professional.ativo ? '' : '<small>Inativo</small>') + '</span></div>';
+  }).join('');
+  const lanes = displayedProfessionals.map((professional) => {
+    const color = dailyProfessionalColor(professional.id);
+    const packed = packDailyAppointments(validOccupying.filter((item) => dailyProfessionalKey(item) === professional.id));
+    const events = packed.events.map((event) => {
+      const item = event.item;
+      const name = item.cliente?.nome || 'Cliente';
+      const service = item.servicoNome || item.descricao || 'Atendimento';
+      const end = event.start + event.duration;
+      const lockReason = appointmentActionsLocked(item)
+        ? (item.presenca && item.recebimentoConfirmado
+          ? 'Presen\u00e7a e recebimento registrados; edi\u00e7\u00e3o indispon\u00edvel.'
+          : item.presenca
+            ? (item.presenca === 'FALTOU' ? 'Faltou registrado' : 'Comparecimento registrado') + '; edi\u00e7\u00e3o indispon\u00edvel.'
+            : 'Recebimento confirmado; edi\u00e7\u00e3o indispon\u00edvel.')
+        : (!professional.ativo ? 'Profissional inativo; somente leitura no hist\u00f3rico.' : '');
+      const locked = Boolean(lockReason);
+      const left = (event.track / packed.trackCount) * 100;
+      const width = 100 / packed.trackCount;
+      const eventClass = (item.status === 'CONFIRMADA' ? 'is-confirmed' : 'is-scheduled') + (event.duration < 24 ? ' is-short' : '') + (event.duration < 12 ? ' is-micro' : '');
+      const detail = civilClockLabel(event.start) + '–' + civilClockLabel(end) + ' · ' + event.duration + ' min · ' + (statuses[item.status] || item.status) + ' · ' + service;
+      return '<button type="button" class="daily-agenda-event ' + eventClass + (locked ? ' is-locked' : '') + '" ' +
+        (locked ? 'aria-disabled="true" title="' + escapeHtml(lockReason + ' ' + name + ', ' + detail + ', ' + professional.nome) + '"' : 'data-edit-appointment="' + escapeHtml(item.id) + '" title="' + escapeHtml(name + ', ' + detail + ', ' + professional.nome) + '"') +
+        ' aria-label="' + escapeHtml(name + ', ' + detail + ', ' + professional.nome + (locked ? ', ' + lockReason : '')) + '" ' +
+        'style="--event-top:' + ((event.start - startMinute) * dailyAgendaPixelsPerMinute) + 'px;--event-height:' + (event.duration * dailyAgendaPixelsPerMinute) + 'px;--professional-color:' + color + ';left:calc(' + (left + 0.5) + '% + 4px);width:calc(' + Math.max(0, width - 1) + '% - 8px)">' +
+        '<span class="daily-agenda-event-meta"><span class="daily-agenda-event-time">' + escapeHtml(civilClockLabel(event.start) + '\u2013' + civilClockLabel(end)) + '</span><span class="daily-agenda-event-status ' + (item.status === 'CONFIRMADA' ? 'is-confirmed' : 'is-scheduled') + '">' + escapeHtml(statuses[item.status] || item.status || 'Sem status') + '</span></span><span class="daily-agenda-event-main"><strong>' + escapeHtml(name) + '</strong><span class="daily-agenda-event-service">' + escapeHtml(service) + '</span></span></button>';
+    }).join('');
+    return '<section class="daily-agenda-lane' + (professional.ativo ? '' : ' is-inactive') + (showNowMarker ? ' has-now-marker' : '') + '" aria-label="Agenda de ' + escapeHtml(professional.nome) + '" style="--timeline-height:' + timelineHeight + 'px;--professional-color:' + color + ';--now-top:' + nowOffset + 'px">' + events + '</section>';
+  }).join('');
+  grid.style.setProperty('--agenda-columns', String(displayedProfessionals.length));
+  grid.style.setProperty('--timeline-height', timelineHeight + 'px');
+  grid.innerHTML = '<div class="daily-agenda-corner">HORÁRIO</div>' + headers +
+    '<div class="daily-agenda-time-rail' + (showNowMarker ? ' has-now-marker' : '') + '" aria-hidden="true" style="--timeline-height:' + timelineHeight + 'px;--now-top:' + nowOffset + 'px">' + timeLabels.join('') + nowLabelMarkup + '</div>' + lanes;
 }
 
 function renderClients() {
   if (!state.loaded) return;
   const query = $('client-search').value.toLocaleLowerCase('pt-BR');
   const nextAppointmentByClient = new Map();
-  const today = localDate();
+  const referenceDate = studioNowContext()?.date || '';
   for (const appointment of sortedAppointments()) {
-    if (!['AGENDADA', 'CONFIRMADA'].includes(appointment.status) || appointment.presenca === 'FALTOU' || appointment.recebimentoConfirmado || !appointment.data || appointment.data < today) continue;
+    if (!referenceDate || !['AGENDADA', 'CONFIRMADA'].includes(appointment.status) || appointment.presenca === 'FALTOU' || appointment.recebimentoConfirmado || !appointment.data || appointment.data < referenceDate) continue;
     const clientId = appointment.cliente?.id;
     if (clientId != null && !nextAppointmentByClient.has(String(clientId))) {
       nextAppointmentByClient.set(String(clientId), `${appointment.data}T${appointment.horario?.slice(0, 5) || '00:00'}`);
@@ -310,7 +983,7 @@ function renderClients() {
 function openEditor(type, id = null) {
   if (!state.loaded) return;
   const item = (type === 'client' ? state.clients : state.appointments).find((entry) => entry.id === id) || {};
-  if (type === 'appointment' && item.recebimentoConfirmado) { notify('Atendimento com recebimento confirmado não pode ser alterado.'); return; }
+  if (type === 'appointment' && appointmentActionsLocked(item)) { notify('Atendimento com presença ou recebimento registrado não pode ser alterado.'); return; }
   state.edit = { type, id, clientId: item.cliente?.id, version: item.version, original: item };
   $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcacao'}`;
   $('editor-error').textContent = '';
@@ -323,7 +996,7 @@ function openEditor(type, id = null) {
       : `<label>Cliente<select name="clientMode" id="client-mode"><option value="existing">Cliente existente</option><option value="new">Novo cliente</option></select></label><fieldset id="existing-client"><legend>Cliente existente</legend><label>Selecione o cliente<select name="clienteId" required><option value="">Selecione...</option>${[...state.clients].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((c) => `<option value="${c.id}">${escapeHtml(c.nome)} - ${escapeHtml(c.telefone)}</option>`).join('')}</select></label></fieldset><fieldset id="new-client" hidden disabled><legend>Novo cliente</legend>${customerFields}</fieldset>`;
     $('editor-fields').innerHTML = `${customer}<label>Profissional<select name="profissionalId" required>${state.professionals.filter((p) => p.ativo || p.id === item.profissional?.id).map((p) => `<option value="${p.id}">${escapeHtml(p.nome)}${p.ativo ? '' : ' (inativo)'}</option>`).join('')}</select></label><div class="form-row"><label>Data<input name="data" type="date" required></label><label>Horario<select name="horario" required><option value="">Consultando...</option></select></label></div><label>Descricao<textarea name="descricao" maxlength="255"></textarea></label><label>Duracao (minutos)<input name="duracaoMinutos" type="number" min="1" max="720" required></label><label>Status<select name="status">${Object.entries(statuses).map(([v,label]) => `<option value="${v}">${label}</option>`).join('')}</select></label>`;
   }
-  const values = type === 'client' ? item : { ...item, data: item.data || localDate(), horario: item.horario?.slice(0,5), status: item.status || 'AGENDADA', duracaoMinutos: item.duracaoMinutos || 60, profissionalId: item.profissional?.id || state.professionals.find((p) => p.ativo)?.id };
+  const values = type === 'client' ? item : { ...item, data: item.data || $('daily-agenda-date').value || studioNowContext()?.date || '', horario: item.horario?.slice(0,5), status: item.status || 'AGENDADA', duracaoMinutos: item.duracaoMinutos || 60, profissionalId: item.profissional?.id || state.professionals.find((p) => p.ativo)?.id };
   for (const field of $('editor-fields').querySelectorAll('[name]')) field.value = values[field.name] ?? '';
   const mode = $('client-mode');
   if (mode) {
@@ -363,18 +1036,27 @@ $('editor-form').addEventListener('submit', async (event) => {
     await loadData();
     if (type === 'appointment' && state.token) {
       ['agenda-search', 'agenda-date', 'agenda-status', 'agenda-professional'].forEach((key) => { $(key).value = ''; });
-      setView('agenda');
+      if (body.data) $('daily-agenda-date').value = body.data;
+      setView('overview');
     }
   } catch (error) {
-    $('editor-error').textContent = error.message;
+    if (type === 'appointment' && error.status === 409) {
+      await loadData();
+      if (id) {
+        $('editor').close();
+        state.edit = null;
+        notify(error.message || 'A marcação mudou. A agenda foi atualizada; abra a edição novamente.');
+      } else $('editor-error').textContent = error.message || 'O horário mudou. A agenda foi atualizada; escolha outro horário.';
+    } else $('editor-error').textContent = error.message;
   } finally {
     buttons.forEach((key) => { $(key).disabled = false; });
   }
 });
 
 function askDelete(type, id) {
-  state.deletion = { type, id };
   const item = (type === 'client' ? state.clients : state.appointments).find((entry) => entry.id === id);
+  if (type === 'appointment' && appointmentActionsLocked(item)) { notify('Atendimento com presença ou recebimento registrado não pode ser excluído.'); return; }
+  state.deletion = { type, id };
   $('confirmation-description').textContent = type === 'client' ? `Excluir ${item.nome}? Clientes com marcações vinculadas não podem ser excluídos. Esta ação não pode ser desfeita.` : `Excluir a marcação de ${item.cliente?.nome} em ${formatDate(item.data)}? Você também pode editar o status para Cancelada e manter o histórico. Esta exclusão não pode ser desfeita.`;
   $('delete-error').textContent = '';
   $('confirmation').showModal();
@@ -389,7 +1071,12 @@ $('confirm-delete').addEventListener('click', async () => {
     notify('Registro excluído.');
     await loadData();
   } catch (error) {
-    $('delete-error').textContent = error.message;
+    if (type === 'appointment' && error.status === 409) {
+      await loadData();
+      $('confirmation').close();
+      state.deletion = null;
+      notify(error.message || 'A marcação mudou. A agenda foi atualizada.');
+    } else $('delete-error').textContent = error.message;
   } finally {
     $('confirm-delete').disabled = $('cancel-delete').disabled = false;
   }
@@ -398,7 +1085,11 @@ $('confirm-delete').addEventListener('click', async () => {
 document.addEventListener('click', (event) => {
   const button = event.target.closest('button');
   if (!button) return;
-  if (button.dataset.view) setView(button.dataset.view);
+  if (button.dataset.view) {
+    const selectedFromMenu = $("mobile-more-navigation").contains(button);
+    setView(button.dataset.view);
+    closeMobileDockMenu(selectedFromMenu);
+  }
   if (button.dataset.create) openEditor(button.dataset.create);
   for (const type of ['Client', 'Appointment']) {
     if (button.dataset[`edit${type}`]) openEditor(type.toLowerCase(), Number(button.dataset[`edit${type}`]));
@@ -407,7 +1098,7 @@ document.addEventListener('click', (event) => {
 });
 $('logout').onclick = async () => { try { await api('/auth/logout', { method: 'POST' }); } catch {} finally { logout(); } };
 $('main-action').onclick = () => openEditor(state.view === 'clients' ? 'client' : 'appointment');
-$('see-agenda').onclick = () => setView('agenda');
+$('see-agenda').onclick = () => unifiedAgendaTools?.reveal();
 $('close-editor').onclick = $('cancel-editor').onclick = () => $('editor').close();
 $('cancel-delete').onclick = () => $('confirmation').close();
 $('editor').addEventListener('cancel', (event) => { if ($('save-editor').disabled) event.preventDefault(); });
@@ -418,6 +1109,29 @@ $('clear-filters').onclick = () => {
   ['agenda-search', 'agenda-date', 'agenda-status', 'agenda-professional'].forEach((id) => { $(id).value = ''; });
   renderAgenda();
 };
+function moveDailyAgendaDate(delta) {
+  const input = $('daily-agenda-date');
+  if (!input.value) return;
+  input.value = shiftCivilDate(input.value, delta);
+  render();
+}
+$('daily-agenda-date').addEventListener('input', render);
+$('daily-agenda-date').addEventListener('change', render);
+$('daily-agenda-previous').onclick = () => moveDailyAgendaDate(-1);
+$('daily-agenda-today').onclick = () => {
+  const today = studioNowContext();
+  if (!today) return;
+  $('daily-agenda-date').value = today.date;
+  render();
+};
+$('daily-agenda-next').onclick = () => moveDailyAgendaDate(1);
+$('daily-agenda-professional').addEventListener('change', render);
+$('today-appointments-details').addEventListener('toggle', () => unifiedAgendaTools?.sync());
+window.matchMedia('(max-width: 700px)').addEventListener?.('change', (event) => {
+  dailyAgendaPixelsPerMinute = event.matches ? 1.35 : 1.05;
+  applyMobileNavigationLayout();
+  render();
+});
 async function loadAuthConfig() {
   $('toggle-auth').disabled = true;
   try {
