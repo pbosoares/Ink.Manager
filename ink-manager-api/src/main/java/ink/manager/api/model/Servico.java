@@ -13,6 +13,7 @@ public class Servico {
     @Column(nullable=false) private boolean ativo=true;
     @Version private Long version;
     public Long getId(){return id;}
+    public void setId(Long value){id=value;}
     public Estudio getEstudio(){return estudio;}
     public void setEstudio(Estudio value){estudio=value;}
     public String getNome(){return nome;}

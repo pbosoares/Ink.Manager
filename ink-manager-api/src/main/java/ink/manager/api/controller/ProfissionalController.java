@@ -20,7 +20,8 @@ public class ProfissionalController {
     public ProfissionalResponse atualizar(@PathVariable Long id,@Valid @RequestBody ProfissionalRequest request){return profissionais.salvar(id,request);}
     @GetMapping("/{id}/disponibilidade")
     public DisponibilidadeService.HorariosDisponiveis horarios(@PathVariable Long id,@RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate data,
-            @RequestParam(defaultValue="60") int duracaoMinutos,@RequestParam(required=false) Long ignorarMarcacaoId){return disponibilidade.consultar(id,data,duracaoMinutos,ignorarMarcacaoId);}
+            @RequestParam(defaultValue="60") int duracaoMinutos,@RequestParam(required=false) Long ignorarMarcacaoId,
+            @RequestParam(required=false) Long servicoId){return disponibilidade.consultar(id,data,duracaoMinutos,ignorarMarcacaoId,servicoId);}
     @GetMapping("/{id}/dias-disponiveis")
     public List<DisponibilidadeService.DiaDisponivel> dias(@PathVariable Long id,@RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate inicio,
             @RequestParam(defaultValue="31") int dias,@RequestParam(defaultValue="60") int duracaoMinutos){return disponibilidade.dias(id,inicio,dias,duracaoMinutos);}

@@ -37,15 +37,15 @@ public class ListaEsperaService {
     private final ClienteRepository clientes; private final DisponibilidadeService disponibilidade;
     private final AgendaGuard guard; private final AcessoAtual acesso; private final Clock clock;
     private final AgendamentoEmailService agendamentoEmail;
-    private final EmailOutboxService outbox;
+    private final EmailOutboxService outbox; private final AssinaturaService assinatura;
 
     public ListaEsperaService(EstudioRepository estudios,ListaEsperaRepository entradas,OfertaListaEsperaRepository ofertas,
             ServicoRepository servicos,ProfissionalRepository profissionais,MarcacaoRepository marcacoes,
             ClienteRepository clientes,DisponibilidadeService disponibilidade,AgendaGuard guard,AcessoAtual acesso,
-            Clock clock,EmailOutboxService outbox,AgendamentoEmailService agendamentoEmail){
+            Clock clock,EmailOutboxService outbox,AgendamentoEmailService agendamentoEmail,AssinaturaService assinatura){
         this.estudios=estudios;this.entradas=entradas;this.ofertas=ofertas;this.servicos=servicos;this.profissionais=profissionais;
         this.marcacoes=marcacoes;this.clientes=clientes;this.disponibilidade=disponibilidade;this.guard=guard;
-        this.acesso=acesso;this.clock=clock;this.outbox=outbox;this.agendamentoEmail=agendamentoEmail;
+        this.acesso=acesso;this.clock=clock;this.outbox=outbox;this.agendamentoEmail=agendamentoEmail;this.assinatura=assinatura;
     }
 
     private Estudio porLink(String link){String id=PublicLinkCode.decode(link).orElse(link);return estudios.findByLinkPublicoAndEncerradoEmIsNull(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
@@ -56,13 +56,14 @@ public class ListaEsperaService {
         Estudio estudio=porLink(link); guard.bloquear(estudio.getId());
         ListaEspera existente=entradas.findByEstudioIdAndChaveIdempotencia(estudio.getId(),pedido.chaveIdempotencia()).orElse(null);
         if(existente!=null){if(!mesmoPedido(existente,pedido))throw new ApiException(HttpStatus.CONFLICT,"Chave de pedido ja utilizada.");return new EntradaCriada(true,"Voce esta na lista de espera.");}
-        Instant agora=clock.instant(); ZoneId zona=ZoneId.of(estudio.getFusoHorario());
+        if(!assinatura.podeGravar(estudio.getId()))throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Agendamentos temporariamente pausados. Fale com o estabelecimento.");Instant agora=clock.instant(); ZoneId zona=ZoneId.of(estudio.getFusoHorario());
         Instant inicio=pedido.inicio().toInstant(),fim=pedido.fim().toInstant();
         if(!fim.isAfter(inicio)||inicio.isBefore(agora.plus(Duration.ofMinutes(estudio.getAntecedenciaMinimaMinutos())))
                 ||Duration.between(inicio,fim).compareTo(Duration.ofDays(90))>0
                 ||inicio.isAfter(agora.plus(Duration.ofDays(365)))) throw new ApiException(HttpStatus.BAD_REQUEST,"Escolha um periodo futuro de ate 90 dias.");
         Servico servico=servico(estudio.getId(),pedido.servicoId());
         Profissional profissional=pedido.profissionalId()==null?null:disponibilidade.profissional(estudio.getId(),pedido.profissionalId());
+        if(profissional!=null)disponibilidade.validarCompatibilidade(estudio.getId(),servico.getId(),profissional.getId());
         ListaEspera e=new ListaEspera();e.setEstudio(estudio);e.setServico(servico);e.setProfissional(profissional);
         e.setInicioDesejado(pedido.inicio());e.setFimDesejado(pedido.fim());e.setNome(pedido.nome().trim());
         e.setEmail(pedido.email().trim().toLowerCase(Locale.ROOT));e.setTelefone(pedido.telefone().trim());
@@ -92,7 +93,7 @@ public class ListaEsperaService {
 
     /** Called by the MarcacaoService cancellation transition, inside its transaction after AgendaGuard.bloquear. */
     @Transactional public void processarCancelamento(long estudioId,long marcacaoId){
-        guard.bloquear(estudioId);Marcacao cancelada=marcacoes.findByIdAndEstudioId(marcacaoId,estudioId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Marcacao nao encontrada."));
+        guard.bloquear(estudioId);if(!assinatura.podeGravar(estudioId))return;Marcacao cancelada=marcacoes.findByIdAndEstudioId(marcacaoId,estudioId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Marcacao nao encontrada."));
         if(cancelada.getStatus()!=StatusMarcacao.CANCELADA) return;
         if(cancelada.getServico()==null)return;
         if(ofertas.existsByEstudioIdAndMarcacaoCanceladaIdAndEstado(estudioId,marcacaoId,EstadoOfertaListaEspera.AGUARDANDO_ENVIO)
@@ -104,7 +105,8 @@ public class ListaEsperaService {
             if(!cancelada.getData().atTime(cancelada.getHorario()).plusMinutes(dur).toLocalDate().equals(cancelada.getData()))continue;
             if(!cabeNaJanela(e,cancelada.getData(),cancelada.getHorario(),(int)dur))continue;
             if(e.getProfissional()!=null&&!Objects.equals(e.getProfissional().getId(),cancelada.getProfissional().getId()))continue;
-            if(!disponibilidade.consultarEstudio(estudioId,cancelada.getProfissional().getId(),cancelada.getData(),(int)dur,null).horarios().contains(cancelada.getHorario()))continue;
+            if(!disponibilidade.consultarEstudio(estudioId,cancelada.getProfissional().getId(),cancelada.getData(),(int)dur,null,
+                    e.getServico().getId()).horarios().contains(cancelada.getHorario()))continue;
             OfertaListaEspera o=new OfertaListaEspera();o.setEstudio(cancelada.getEstudio());o.setEntrada(e);o.setMarcacaoCancelada(cancelada);
             o.setData(cancelada.getData());o.setHorario(cancelada.getHorario());o.setEstado(EstadoOfertaListaEspera.AGUARDANDO_ENVIO);o.setCriadoEm(clock.instant());o=ofertas.saveAndFlush(o);
             e.setEstado(EstadoListaEspera.OFERTADA);
@@ -117,6 +119,7 @@ public class ListaEsperaService {
     /** Revalida a vaga a cada tentativa e avanca a fila quando ela deixa de ser utilizavel. */
     @Transactional public Optional<OfertaEmail> prepararEmailOferta(long estudioId,long ofertaId,String tokenRaw,Instant agora){
         guard.bloquear(estudioId);
+        if(!assinatura.podeGravar(estudioId)){outbox.invalidate(estudioId,"LISTA_ESPERA_OFERTA",Long.toString(ofertaId));return Optional.empty();}
         OfertaListaEspera o=ofertas.bloquearPorEstudio(estudioId,ofertaId).orElse(null);
         if(o==null||(o.getEstado()!=EstadoOfertaListaEspera.AGUARDANDO_ENVIO&&o.getEstado()!=EstadoOfertaListaEspera.OFERTADA))return Optional.empty();
         ListaEspera e=o.getEntrada();Marcacao cancelada=o.getMarcacaoCancelada();Estudio estudio=o.getEstudio();
@@ -125,7 +128,8 @@ public class ListaEsperaService {
             &&e.getServico().isAtivo()&&cancelada.getProfissional().isAtivo()
             &&cabeNaJanela(e,o.getData(),o.getHorario(),e.getServico().getDuracaoMinutos())
             &&!inicio.isBefore(LocalDateTime.ofInstant(agora,zone).plusMinutes(estudio.getAntecedenciaMinimaMinutos()))
-            &&disponibilidade.consultarEstudio(estudioId,cancelada.getProfissional().getId(),o.getData(),e.getServico().getDuracaoMinutos(),null).horarios().contains(o.getHorario());
+            &&disponibilidade.consultarEstudio(estudioId,cancelada.getProfissional().getId(),o.getData(),e.getServico().getDuracaoMinutos(),null,
+                    e.getServico().getId()).horarios().contains(o.getHorario());
         Instant prazo=inicio.atZone(zone).toInstant().minus(Duration.ofMinutes(estudio.getAntecedenciaMinimaMinutos()));
         Instant maximo=agora.plus(Duration.ofMinutes(30));if(maximo.isBefore(prazo))prazo=maximo;
         if(!utilizavel||!prazo.isAfter(agora)){
@@ -161,6 +165,7 @@ public class ListaEsperaService {
         final long ofertaId;
         try{ofertaId=Long.parseLong(referencia);}catch(RuntimeException invalid){return;}
         guard.bloquear(estudioId);
+        if(!assinatura.podeGravar(estudioId)){outbox.invalidate(estudioId,"LISTA_ESPERA_OFERTA",Long.toString(ofertaId));return;}
         OfertaListaEspera o=ofertas.bloquearPorEstudio(estudioId,ofertaId).orElse(null);
         if(o==null||(o.getEstado()!=EstadoOfertaListaEspera.AGUARDANDO_ENVIO&&o.getEstado()!=EstadoOfertaListaEspera.OFERTADA))return;
         long vaga=o.getMarcacaoCancelada().getId();encerrarOferta(o);processarCancelamento(estudioId,vaga);
@@ -172,12 +177,12 @@ public class ListaEsperaService {
 
     @Transactional public ReservaAceita aceitarOferta(String link,String raw){Estudio e=porLink(link);guard.bloquear(e.getId());OfertaListaEspera o=ofertaPorToken(e.getId(),raw);
         if(o.getEstado()==EstadoOfertaListaEspera.ACEITA&&o.getReserva()!=null)return resposta(o.getReserva(),e);
-        validarOfertaAberta(o);ListaEspera l=o.getEntrada();if(l.getEstado()!=EstadoListaEspera.OFERTADA)throw new ApiException(HttpStatus.CONFLICT,"Oferta ja utilizada.");
+        if(!assinatura.podeGravar(e.getId()))throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Agendamentos temporariamente pausados. Fale com o estabelecimento.");validarOfertaAberta(o);ListaEspera l=o.getEntrada();if(l.getEstado()!=EstadoListaEspera.OFERTADA)throw new ApiException(HttpStatus.CONFLICT,"Oferta ja utilizada.");
         Servico s=servico(e.getId(),l.getServico().getId());Profissional p=disponibilidade.profissional(e.getId(),o.getMarcacaoCancelada().getProfissional().getId());
         LocalDateTime start=o.getData().atTime(o.getHorario());ZoneId zone=ZoneId.of(e.getFusoHorario());
         if(!cabeNaJanela(l,o.getData(),o.getHorario(),s.getDuracaoMinutos())
                 ||start.isBefore(LocalDateTime.now(clock.withZone(zone)).plusMinutes(e.getAntecedenciaMinimaMinutos()))
-                ||!disponibilidade.consultarEstudio(e.getId(),p.getId(),o.getData(),s.getDuracaoMinutos(),null).horarios().contains(o.getHorario()))
+                ||!disponibilidade.consultarEstudio(e.getId(),p.getId(),o.getData(),s.getDuracaoMinutos(),null,s.getId()).horarios().contains(o.getHorario()))
             throw new ApiException(HttpStatus.CONFLICT,"A vaga ja nao esta disponivel.");
         Cliente c=new Cliente();c.setEstudio(e);c.setNome(l.getNome());c.setEmail(l.getEmail());c.setTelefone(l.getTelefone());c=clientes.save(c);
         Marcacao m=new Marcacao(c,o.getData(),o.getHorario(),s.getNome(),StatusMarcacao.AGENDADA);m.setEstudio(e);m.setProfissional(p);m.setDuracaoMinutos(s.getDuracaoMinutos());m.definirServico(s);

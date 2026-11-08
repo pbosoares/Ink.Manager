@@ -52,8 +52,9 @@ public class ProfissionalService {
         var profissional=id==null?new Profissional():disponibilidade.profissional(id);
         if(id!=null){
             if(request.version()==null||!Objects.equals(profissional.getVersion(),request.version())) throw new ApiException(HttpStatus.CONFLICT,"Profissional alterado. Recarregue antes de salvar.");
+            var agora=LocalDateTime.now(clock.withZone(ZoneId.of(profissional.getEstudio().getFusoHorario())));
             for(var reserva:marcacoes.findByProfissionalIdAndEstudioId(id,acesso.estudioId())){
-                if(!DisponibilidadeService.ativa(reserva)||!reserva.getData().atTime(reserva.getHorario()).plusMinutes(reserva.getDuracaoMinutos()).isAfter(LocalDateTime.now(clock))) continue;
+                if(!DisponibilidadeService.ativa(reserva)||!reserva.getData().atTime(reserva.getHorario()).plusMinutes(reserva.getDuracaoMinutos()).isAfter(agora)) continue;
                 if(!request.ativo()||!DisponibilidadeService.cabeNosTurnos(reserva.getData(),reserva.getHorario(),reserva.getDuracaoMinutos(),turnos))
                     throw new ApiException(HttpStatus.CONFLICT,"Existem sessoes afetadas. Reagende ou cancele antes de alterar o expediente.");
             }
