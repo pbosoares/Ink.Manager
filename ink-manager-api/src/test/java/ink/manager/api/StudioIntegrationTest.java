@@ -48,7 +48,7 @@ class StudioIntegrationTest {
     @BeforeEach void clean(){
         try{java.nio.file.Files.deleteIfExists(java.nio.file.Path.of("target/studio-test-manifest.log"));}catch(java.io.IOException failure){throw new IllegalStateException(failure);}
         org.springframework.test.util.ReflectionTestUtils.setField(assinaturaService,"provider","MERCADOPAGO");
-        for(String table:List.of("email_action_tokens","ofertas_lista_espera","lista_espera","email_outbox","retencoes_legais_financeiras","recebimentos_arquivo","expurgos_estudio","assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","recebimentos","marcacoes","bloqueios_agenda","horarios_trabalho","profissionais","cliente","usuarios","servicos","estudios")) jdbc.update("DELETE FROM "+table);
+        for(String table:List.of("email_action_tokens","ofertas_lista_espera","lista_espera","email_outbox","retencoes_legais_financeiras","recebimentos_arquivo","expurgos_estudio","assinatura_pagamentos","assinatura_checkouts","recuperacoes_senha","recebimentos","marcacoes","bloqueios_agenda","horarios_trabalho","servicos_profissionais","profissionais","cliente","usuarios","servicos","estudios")) jdbc.update("DELETE FROM "+table);
     }
     HttpResponse<String> request(String method,String path,String body,String token)throws Exception{
         var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).timeout(Duration.ofSeconds(20));
