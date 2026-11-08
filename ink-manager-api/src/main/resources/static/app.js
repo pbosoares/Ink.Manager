@@ -45,6 +45,91 @@ let dailyAgendaPixelsPerMinute = window.matchMedia('(max-width: 700px)').matches
 const civilMonthNames = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const civilWeekdayNames = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 const state = { token: sessionStorage.getItem('ink.token'), clients: [], appointments: [], professionals: [], user: null, studio: null, view: 'overview', register: false, registrationEnabled: false, edit: null, deletion: null, generation: 0, loaded: false, loading: false, loadRequest: 0 };
+let overviewTrialSummary = null;
+let overviewTrialSummaryGeneration = -1;
+let overviewTrialSummaryRequest = 0;
+let overviewTrialSummaryLoading = false;
+let overviewTrialSummaryLoaded = false;
+
+function resetOverviewTrialSummary() {
+  overviewTrialSummary = null;
+  overviewTrialSummaryLoaded = false;
+  overviewTrialSummaryLoading = false;
+  overviewTrialSummaryRequest++;
+  overviewTrialSummaryGeneration = state.generation;
+}
+
+function renderOverviewTrialNotice() {
+  const overview = $('overview-view');
+  const toolbar = overview?.querySelector('.daily-agenda-toolbar');
+  if (!overview || !toolbar) return;
+  let notice = $('overview-trial-notice');
+  if (!notice) {
+    notice = document.createElement('aside');
+    notice.id = 'overview-trial-notice';
+    notice.className = 'panel';
+    notice.setAttribute('role', 'status');
+    notice.setAttribute('aria-live', 'polite');
+    notice.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid #DCE5FB;border-left:3px solid #0878E8;border-radius:12px;background:#F4F7FF;color:#171D2B;box-shadow:0 4px 14px rgba(23,29,43,.04)';
+    const content = document.createElement('div');
+    content.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap';
+    const copy = document.createElement('span');
+    copy.id = 'overview-trial-copy';
+    copy.style.cssText = 'min-width:0;font-size:13px;font-weight:650;line-height:1.45';
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'secondary';
+    action.dataset.view = 'subscription';
+    action.textContent = 'Ver assinatura';
+    content.append(copy, action);
+    notice.append(content);
+    overview.insertBefore(notice, toolbar);
+  }
+  if (overviewTrialSummaryGeneration !== state.generation) resetOverviewTrialSummary();
+  const canShow = state.loaded && state.view === 'overview' && state.user?.perfil === 'PROPRIETARIO';
+  if (!canShow) {
+    notice.hidden = true;
+    return;
+  }
+  if (!overviewTrialSummaryLoaded && !overviewTrialSummaryLoading) {
+    overviewTrialSummaryLoading = true;
+    const generation = state.generation;
+    const request = ++overviewTrialSummaryRequest;
+    api('/assinatura').then((summary) => {
+      if (generation !== state.generation || request !== overviewTrialSummaryRequest) return;
+      overviewTrialSummary = summary;
+      overviewTrialSummaryLoaded = true;
+      renderOverviewTrialNotice();
+    }).catch(() => {
+      if (generation !== state.generation || request !== overviewTrialSummaryRequest) return;
+      overviewTrialSummary = null;
+      overviewTrialSummaryLoaded = true;
+      notice.hidden = true;
+    }).finally(() => {
+      if (generation === state.generation && request === overviewTrialSummaryRequest) overviewTrialSummaryLoading = false;
+    });
+    return;
+  }
+  const summary = overviewTrialSummary;
+  if (!overviewTrialSummaryLoaded || summary?.status !== 'AVALIACAO') {
+    notice.hidden = true;
+    return;
+  }
+  const days = Number.isInteger(summary.diasAvaliacaoRestantes) ? summary.diasAvaliacaoRestantes : null;
+  const endingSoon = summary.avisoFimAvaliacao === true;
+  let message;
+  if (summary.avaliacaoVenceHoje === true) message = 'Sua avaliacao vence hoje.';
+  else if (days === 1 && endingSoon) message = 'Sua avaliacao termina amanha. Resta 1 dia.';
+  else if (days === 1) message = 'Resta 1 dia de avaliacao.';
+  else if (days > 1) message = 'Restam ' + days + ' dias de avaliacao.';
+  else if (endingSoon) message = 'Sua avaliacao termina em breve.';
+  else message = 'Sua avaliacao esta ativa.';
+  const copy = $('overview-trial-copy');
+  if (copy) copy.textContent = message;
+  notice.dataset.endingSoon = String(endingSoon);
+  notice.style.borderLeftColor = endingSoon || summary.avaliacaoVenceHoje === true ? '#C58A2B' : '#0878E8';
+  notice.hidden = false;
+}
 let applyMobileNavigationLayout = () => {};
 let updateMobileDockPresentation = () => {};
 let closeMobileDockMenu = () => {};
@@ -483,6 +568,7 @@ function setView(view) {
     $('overview-view').classList.remove('showing-day-actions', 'showing-agenda-history');
   }
   $('studio-view').classList.toggle('billing-only', Boolean(studioSection));
+  if (view === 'overview' && state.view !== 'overview') resetOverviewTrialSummary();
   state.view = view;
   updateMobileDockPresentation();
   const copy = {
@@ -531,6 +617,7 @@ function render() {
   ['overview', 'agenda', 'reports', 'clients', 'team', 'studio', 'receipts'].forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
   $('workspace').setAttribute('aria-busy', String(state.loading));
   refreshStudioDateContext();
+  renderOverviewTrialNotice();
   if (!state.loaded) {
     ['stat-today', 'stat-upcoming', 'stat-clients'].forEach((id) => { $(id).textContent = '—'; });
     ['today-list', 'agenda-list', 'client-list', 'agenda-count', 'client-count'].forEach((id) => { $(id).textContent = ''; });
