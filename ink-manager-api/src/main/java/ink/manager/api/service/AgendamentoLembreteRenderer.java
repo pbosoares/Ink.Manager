@@ -4,6 +4,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import ink.manager.api.model.StatusMarcacao;
 import ink.manager.api.repository.MarcacaoRepository;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -16,11 +17,14 @@ public class AgendamentoLembreteRenderer implements EmailOutboxRenderer {
     private final ObjectMapper json;
     private final MarcacaoRepository marcacoes;
     private final EmailActionService acoes;
+    private final Clock clock;
 
-    public AgendamentoLembreteRenderer(ObjectMapper json, MarcacaoRepository marcacoes, EmailActionService acoes) {
+    public AgendamentoLembreteRenderer(ObjectMapper json, MarcacaoRepository marcacoes, EmailActionService acoes,
+            Clock clock) {
         this.json = json;
         this.marcacoes = marcacoes;
         this.acoes = acoes;
+        this.clock = clock;
     }
 
     @Override
@@ -34,6 +38,7 @@ public class AgendamentoLembreteRenderer implements EmailOutboxRenderer {
         var marcacao = marcacaoAtual(job);
         if (marcacao == null || (marcacao.getStatus() != StatusMarcacao.AGENDADA
                 && marcacao.getStatus() != StatusMarcacao.CONFIRMADA)) return true;
+        if (PrazoEnvioAgendamento.expirado(job, marcacao, clock, PrazoEnvioAgendamento.ATRASO_MAXIMO_LEMBRETE)) return true;
         String atual = marcacao.getData() + "T" + marcacao.getHorario() + "/" + marcacao.getDuracaoMinutos();
         try {
             JsonNode payload = json.readTree(job.dadosJson());

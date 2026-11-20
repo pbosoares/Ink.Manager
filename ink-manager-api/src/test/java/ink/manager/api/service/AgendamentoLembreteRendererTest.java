@@ -10,7 +10,9 @@ import ink.manager.api.model.Marcacao;
 import ink.manager.api.model.Profissional;
 import ink.manager.api.model.StatusMarcacao;
 import ink.manager.api.repository.MarcacaoRepository;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Optional;
@@ -42,7 +44,16 @@ class AgendamentoLembreteRendererTest {
         String inicio=DATA+"T"+HORA+"/30";
         var job=new EmailOutboxJob(12,TENANT,EMAIL,"LEMBRETE_24H","reminder-key",Instant.parse("2026-10-29T10:00:00Z"),Long.toString(MARCACAO),
                 "{\"marcacaoId\":91,\"inicio\":\""+inicio+"\",\"duracaoMinutos\":30}");
-        return new Fixture(new AgendamentoLembreteRenderer(new ObjectMapper(),repository,acoes),marcacao,repository,acoes,job);
+        return new Fixture(new AgendamentoLembreteRenderer(new ObjectMapper(),repository,acoes,clockEm("2026-10-29T10:05:00Z")),
+                marcacao,repository,acoes,job);
+    }
+
+    private static Clock clockEm(String instante) {
+        return Clock.fixed(Instant.parse(instante),ZoneOffset.UTC);
+    }
+
+    private static AgendamentoLembreteRenderer comRelogio(Fixture f,String instante) {
+        return new AgendamentoLembreteRenderer(new ObjectMapper(),f.repository(),f.acoes(),clockEm(instante));
     }
 
     @Test void renderizaLembreteComDadosAtuaisELinksDeAcao() {
@@ -67,5 +78,22 @@ class AgendamentoLembreteRendererTest {
         assertTrue(f.renderer().obsoleto(staleJob));
         when(f.marcacao().getStatus()).thenReturn(StatusMarcacao.CANCELADA);
         assertTrue(f.renderer().obsoleto(f.job()));
+    }
+
+    @Test void obsoletoDescartaLembreteAtrasadoAcumuladoNaFila() {
+        var f=fixture();
+        // Job ficou disponivel as 10:00Z; ainda vale com 59 minutos de atraso.
+        assertFalse(comRelogio(f,"2026-10-29T10:59:00Z").obsoleto(f.job()));
+        // Com mais de 1 hora de atraso (ex.: fila acumulada com MAIL_ENABLED=false), nao envia.
+        assertTrue(comRelogio(f,"2026-10-29T11:01:00Z").obsoleto(f.job()));
+    }
+
+    @Test void obsoletoDescartaLembreteDeAtendimentoQueJaComecou() {
+        var f=fixture();
+        // Atendimento: 30/10/2026 10:00 em America/Sao_Paulo = 13:00Z.
+        var jobRecente=new EmailOutboxJob(f.job().id(),TENANT,EMAIL,"LEMBRETE_2H",f.job().chaveIdempotencia(),
+                Instant.parse("2026-10-30T12:30:00Z"),Long.toString(MARCACAO),f.job().dadosJson());
+        assertFalse(comRelogio(f,"2026-10-30T12:59:00Z").obsoleto(jobRecente));
+        assertTrue(comRelogio(f,"2026-10-30T13:00:00Z").obsoleto(jobRecente));
     }
 }
