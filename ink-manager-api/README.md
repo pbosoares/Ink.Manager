@@ -86,6 +86,37 @@ Para navegador: gere o JAR, execute `npm ci`, instale o Chromium de teste com
 DB_USERNAME e DB_PASSWORD e execute `npm run test:e2e`. Isso e tooling de
 validacao do desenvolvedor, nao instalacao para clientes.
 
+```powershell
+cd ink-manager-api
+.\mvnw.cmd package
+npm ci
+npx playwright install chromium
+$env:DB_URL = "jdbc:postgresql://127.0.0.1:55446/marcae_validation_local"
+$env:DB_USERNAME = "<usuario>"; $env:DB_PASSWORD = "<senha>"
+npm run test:e2e                              # tudo, menos a lista de espera
+npx playwright test e2e/studio.spec.cjs       # um arquivo
+npm run test:e2e:waitlist-matrix              # lista de espera, 1366px e 390px
+```
+
+Requisitos verificados por `e2e/validation-env.cjs` antes de subir o JAR:
+
+- PostgreSQL local isolado em `127.0.0.1:55446` (ou 55448 com
+  `E2E_VALIDATION_PG_PORT`), banco com prefixo `marcae_validation_` e sem
+  credenciais na URL.
+- Em `npm run test:e2e`, nenhuma variavel `SPRING_*`, `MAIL_*`, `STRIPE_*`,
+  `BILLING_*`, `MP_*`, `JAVA_TOOL_OPTIONS` ou `JAVA_OPTS` no ambiente; o teste
+  define as suas.
+- Banco zerado a cada rodada: o diagnostico de disponibilidade precisa criar o
+  profissional ID 2.
+- O `java` do PATH deve ser o JDK 25 (o teste roda
+  `java -jar target/api-0.0.1-SNAPSHOT.jar`).
+- A matriz da lista de espera exige Mailpit local (SMTP `127.0.0.1:1025`, API
+  `http://127.0.0.1:8025/api/v1/`).
+
+Se o servidor cair com `errno 1455` ou erro de mmap, falta memoria virtual na
+maquina. No celular (390px), os testes abrem Equipe, Relatorios e Meu negocio
+pelo botao Menu com `openView()`.
+
 ## Assinatura por cartao ou Pix (Stripe)
 
 O responsavel acessa Meu estudio para consultar o periodo de avaliacao, valor,
