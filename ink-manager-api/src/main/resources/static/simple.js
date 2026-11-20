@@ -27,7 +27,7 @@
       } else $('service-message').textContent = catalog.reason.message;
       if (link.status === 'fulfilled') {
         const url = new URL(link.value.caminhoCurto || link.value.caminho, location.origin);
-        if (url.origin !== location.origin || !(url.pathname === '/agendar.html' || /^\/a\/[A-Za-z0-9_-]+$/.test(url.pathname))) throw new Error('Link de agendamento inválido.');
+        if (url.origin !== location.origin || !(url.pathname === '/agendar.html' || /^\/a\/[A-Za-z0-9_-]+$/.test(url.pathname))) throw new Error('Não foi possível exibir seu link de reservas. Use Recarregar serviços.');
         $('public-link').value = url.href; $('open-public-link').href = url.href; $('open-public-link').hidden = false; $('copy-public-link').disabled = false;
       } else $('public-link-error').textContent = link.reason.message;
     } catch (error) { if (current(key)) $('service-message').textContent = error.message; }
@@ -66,7 +66,7 @@
   $('copy-public-link').onclick = async () => {
     const input = $('public-link');
     try { await navigator.clipboard.writeText(input.value); $('public-link-error').textContent = 'Link copiado. Compartilhe com seus clientes.'; }
-    catch { input.focus(); input.select(); $('public-link-error').textContent = 'Selecione e copie o link acima.'; }
+    catch { input.focus(); input.select(); $('public-link-error').textContent = 'Não foi possível copiar. Selecione o link e copie manualmente.'; }
   };
   function appointmentDetails(item) {
     return `<small class="appointment-service">${escapeHtml(item.duracaoMinutos)} min${item.precoPrevisto == null ? ' · preço não informado' : ' · ' + money(item.precoPrevisto)}</small>`;
@@ -75,17 +75,17 @@
     if (item.recebimentoConfirmado || knownReceipts.has(item.id)) return '<small class="receipt-recorded">Recebimento confirmado</small>';
     const completed = item.status === 'CONCLUIDA';
     if (!owner() || !item.podeConfirmarRecebimento) return '';
-    return `<button type="button" class="text-button" data-confirm-receipt="${item.id}">${completed ? 'Marcar como recebido' : 'Concluir atendimento e informar valor'}</button>`;
+    return `<button type="button" class="text-button" data-confirm-receipt="${item.id}">${completed ? 'Registrar valor' : 'Confirmar atendimento e valor'}</button>`;
   }
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-confirm-receipt]'); if (!button || !owner() || !state.loaded) return;
     receiptEdit = state.appointments.find(item => String(item.id) === button.dataset.confirmReceipt);
     const completed = receiptEdit?.status === 'CONCLUIDA';
     if (!receiptEdit || receiptEdit.recebimentoConfirmado || !receiptEdit.podeConfirmarRecebimento) return;
-    $('receipt-title').textContent = completed ? 'Marcar como recebido' : 'Confirmar atendimento e recebimento';
-    $('receipt-save').textContent = completed ? 'Marcar como recebido' : 'Confirmar atendimento e recebimento';
+    $('receipt-title').textContent = completed ? 'Registrar valor recebido' : 'Confirmar atendimento e recebimento';
+    $('receipt-save').textContent = completed ? 'Confirmar recebimento' : 'Confirmar atendimento e recebimento';
     $('receipt-completion-note').textContent = completed
-      ? 'Ao confirmar, o valor será incluído no faturamento pela data desta confirmação. Depois, este registro não poderá ser alterado ou excluído.'
+      ? 'Ao confirmar, o valor entrará nos totais pela data desta confirmação. Depois, este registro não poderá ser alterado ou excluído.'
       : 'Ao confirmar, o atendimento será concluído e o valor entrará nos totais pela data desta confirmação. Depois, este registro não poderá ser alterado ou excluído.';
     $('receipt-description').textContent = receiptEdit.cliente.nome + ' · ' + (receiptEdit.servicoNome || receiptEdit.descricao || 'Atendimento') + ' · ' + receiptEdit.data.split('-').reverse().join('/') + ' às ' + receiptEdit.horario.slice(0, 5);
     $('receipt-form').reset(); $('receipt-form').elements.valor.value = receiptEdit.precoPrevisto == null ? '' : Number(receiptEdit.precoPrevisto).toFixed(2);
@@ -119,11 +119,11 @@
       $('receipts-week').textContent = money(result.totalSemana); $('receipts-month').textContent = money(result.totalMes);
       $('receipts-week-period').textContent = period(result.inicioSemana, result.fimSemana);
       $('receipts-month-period').textContent = period(result.inicioMes, result.fimMes);
-      $('receipts-timezone').textContent = 'Valores pela data local do negócio (' + result.fusoHorario + '). A lista reúne o mês e a semana selecionados.';
+      $('receipts-timezone').textContent = 'Totais pela data da confirmação, no fuso ' + result.fusoHorario + '. Semana de segunda a domingo. A lista reúne o mês e a semana selecionados.';
       result.recebimentos.forEach(r => knownReceipts.set(r.marcacaoId, r));
       const professionalOf = id => state.appointments.find(a => a.id === id)?.profissional?.nome || '—';
       $('receipts-count').textContent = result.recebimentos.length + (result.recebimentos.length === 1 ? ' registro' : ' registros');
-      $('receipts-list').innerHTML = result.recebimentos.length ? `<div class="table-scroll"><table class="receipts-table"><thead><tr><th>DATA</th><th>CLIENTE / ATENDIMENTO</th><th>PROFISSIONAL</th><th>VALOR RECEBIDO</th><th>STATUS</th></tr></thead><tbody>${result.recebimentos.map(r => `<tr><td>${escapeHtml(new Date(r.confirmadoEm).toLocaleString('pt-BR', { timeZone: result.fusoHorario, dateStyle: 'short', timeStyle: 'short' }))}</td><td>${escapeHtml(r.cliente)}<small>${escapeHtml(r.servico || 'Atendimento')}</small></td><td>${escapeHtml(professionalOf(r.marcacaoId))}</td><td><strong>${money(r.valor)}</strong></td><td><span class="badge received">Recebido</span></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><strong>Nenhum recebimento para exibir</strong>Os atendimentos confirmados do período aparecem aqui.</div>';
+      $('receipts-list').innerHTML = result.recebimentos.length ? `<div class="table-scroll"><table class="receipts-table"><thead><tr><th>DATA</th><th>CLIENTE / ATENDIMENTO</th><th>PROFISSIONAL</th><th>VALOR RECEBIDO</th><th>STATUS</th></tr></thead><tbody>${result.recebimentos.map(r => `<tr><td>${escapeHtml(new Date(r.confirmadoEm).toLocaleString('pt-BR', { timeZone: result.fusoHorario, dateStyle: 'short', timeStyle: 'short' }))}</td><td>${escapeHtml(r.cliente)}<small>${escapeHtml(r.servico || 'Atendimento')}</small></td><td>${escapeHtml(professionalOf(r.marcacaoId))}</td><td><strong>${money(r.valor)}</strong></td><td><span class="badge received">Recebido</span></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><strong>Nenhum recebimento para exibir</strong>Os valores confirmados no período aparecem aqui.</div>';
       $('receipts-data').hidden = false;
     } catch (error) { if (current(key) && number === receiptsRequest) $('receipts-error').textContent = error.message + ' Use Atualizar para tentar novamente.'; }
     finally { if (current(key) && number === receiptsRequest) { $('receipts-loading').hidden = true; $('receipts-view').setAttribute('aria-busy', 'false'); } }
