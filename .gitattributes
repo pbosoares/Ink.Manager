@@ -1,0 +1,6 @@
+# Normaliza para LF no repositorio; scripts executados na VPS precisam de LF.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.jar binary
+*.png binary

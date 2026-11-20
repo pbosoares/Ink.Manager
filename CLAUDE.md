@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Marcae (nome tecnico: Ink Manager) e um SaaS multi-estudio de agenda, clientes, equipe,
 reservas publicas e recebimentos. Toda a aplicacao ativa fica em `ink-manager-api/`
-(Spring Boot 4.1, Java 25, PostgreSQL 18; H2 nos testes). Os `.java` da raiz, `lib/` e
-`clientes.txt` sao um CLI historico, fora do build: nao altere nem use como referencia.
+(Spring Boot 4.1, Java 25, PostgreSQL 18; H2 nos testes). `legado/cli/` e o CLI
+historico, fora do build: nao altere nem use como referencia.
 
 A marca visivel e "Marcae", mas pacotes (`ink.manager.api`), endpoints e identificadores
 "Ink Manager" sao mantidos por compatibilidade. Nao renomeie. Codigo, nomes de dominio
@@ -38,7 +38,7 @@ e docs estao em portugues (estudio, marcacao, profissional, recebimento, assinat
 
 ## CI/CD
 
-`.github/workflows/ci.yml` roda `./mvnw clean test` em push/PR para `main`. Num push para
+`.github/workflows/ci.yml` roda `./mvnw clean test` em H2 e em PostgreSQL 18 em push/PR para `main`. Num push para
 `main` que altere caminhos implantaveis (`src/`, `pom.xml`, `Dockerfile`, `deploy/`,
 `compose.production.yml`, `.mvn/`, `mvnw`), o workflow **faz deploy automatico em producao
 na VPS** via `deploy/deploy-release.sh`. Mudancas so em docs ou testes nao disparam deploy.
