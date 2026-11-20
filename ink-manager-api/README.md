@@ -86,12 +86,19 @@ Para navegador: gere o JAR, execute `npm ci`, instale o Chromium de teste com
 DB_USERNAME e DB_PASSWORD e execute `npm run test:e2e`. Isso e tooling de
 validacao do desenvolvedor, nao instalacao para clientes.
 
-## Assinatura por cartao ou Pix
+## Assinatura por cartao ou Pix (Stripe)
 
 O responsavel acessa Meu estudio para consultar o periodo de avaliacao, valor,
-periodo pago e formas de pagamento. Cartao usa assinatura recorrente no checkout
-Mercado Pago. Pix usa checkout hospedado para pagar uma mensalidade de cada vez;
-nao e Pix Automatico. Dados de cartao ficam no provedor.
+periodo pago e formas de pagamento. O provedor de pagamento e o Stripe, com
+checkout hospedado (checkout.stripe.com):
+
+- Cartao: Checkout Session em modo subscription, com renovacao mensal automatica.
+  Se ainda houver avaliacao, ela segue como trial da assinatura; sem cartao ao fim
+  do trial, a assinatura e cancelada.
+- Pix: Checkout Session em modo payment para pagar uma mensalidade de cada vez;
+  nao e Pix Automatico.
+
+Dados de cartao ficam no Stripe. Cancelar a recorrencia e feito via API do Stripe.
 
 A configuracao inicial e 14 dias de avaliacao sem cartao no inicio e R$ 29,90/mes, alteraveis pelo operador
 em BILLING_TRIAL_DAYS e BILLING_MONTHLY_AMOUNT antes de disponibilizar a oferta.
@@ -101,29 +108,35 @@ A configuracao de preco e comercial e precisa ser validada antes da primeira ven
 Ao vencer a avaliacao e o periodo pago, novas gravacoes de clientes/agenda ficam
 bloqueadas com 402. Os dados continuam consultaveis e o responsavel pode renovar.
 BILLING_ENFORCE=true e o padrao; desabilitar e destinado somente a desenvolvimento.
-Cancelar recorrencia nao remove o credito ja pago. Estornos e chargebacks recebidos
-pelo webhook retiram o credito correspondente; o historico de negocio e preservado.
+Cancelar recorrencia nao remove o credito ja pago. Reembolsos retiram o credito
+correspondente; o historico de negocio e preservado.
 
-Para habilitar pagamentos, o operador configura uma unica conta recebedora:
+Para habilitar pagamentos, o operador configura uma unica conta Stripe:
 
 - PUBLIC_URL: URL HTTPS publica da plataforma.
-- MP_ACCESS_TOKEN: credencial da conta recebedora.
-- MP_WEBHOOK_SECRET: segredo de assinatura das notificacoes.
-- Webhook publico: POST /assinatura/webhook, com eventos payment, subscription_preapproval e subscription_authorized_payment.
+- BILLING_PROVIDER=stripe (padrao).
+- STRIPE_SECRET_KEY: chave secreta da conta.
+- STRIPE_WEBHOOK_SECRET: segredo de assinatura do endpoint de webhook.
+- Webhook publico: POST /assinatura/stripe-webhook, com os eventos
+  checkout.session.completed, checkout.session.async_payment_succeeded,
+  invoice.paid, invoice.payment_failed, customer.subscription.updated,
+  customer.subscription.deleted e charge.refunded.
 
-A plataforma verifica HMAC, consulta o recurso diretamente na API do Mercado Pago
-e aplica o resultado de forma idempotente. Retornar do checkout nao ativa acesso.
-Cada pagamento tem ID unico e vinculo ao estudio correto. Uma intencao de checkout
-fica salva antes da chamada externa para repetir com a mesma chave de idempotencia.
+A plataforma verifica o cabecalho Stripe-Signature, consulta o recurso diretamente
+na API do Stripe e aplica o resultado de forma idempotente. Retornar do checkout
+nao ativa acesso. Cada pagamento tem ID unico e vinculo ao estudio correto. Uma
+intencao de checkout fica salva antes da chamada externa para repetir com a mesma
+chave de idempotencia.
 
-A conciliacao automatica executa em lotes a cada 10 minutos, alem do webhook. O
+A conciliacao automatica executa em lotes a cada 10 minutos, alem do webhook,
+incluindo faturas pagas e reembolsos recentes (eventos charge.refunded). O
 responsavel pode usar Ja paguei para consultar o provedor. Sem as credenciais ou
 URL HTTPS, os botoes de pagamento ficam desabilitados e a API retorna indisponibilidade.
 Nenhuma integracao simulada e oferecida como pagamento real.
 
-A ativacao comercial ainda exige homologacao com contas de teste do provedor,
-seguida de configuracao de producao. Hospedagem, dominio e contas externas nao
-foram provisionados neste repositorio.
+A integracao com Mercado Pago (MercadoPagoGateway, POST /assinatura/webhook,
+MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET) permanece no codigo como legado e so e usada
+com BILLING_PROVIDER diferente de stripe.
 
 ## Marcae simples: servicos, link publico e recebimentos
 
@@ -167,5 +180,5 @@ Todos os servicos ativos podem ser reservados com qualquer profissional ativo do
 mesmo negocio. Janela publica: hoje ate 365 dias, inicio em passos de 15 minutos.
 Limites publicos padrao por instancia/IP: 10 reservas e 120 consultas por minuto.
 
-Resultados executados, comandos e limitacoes estao em docs/MARCAE-VALIDACAO.md.
-Homologacao local nao representa publicacao ou cobranca real.
+Indice da documentacao em [docs/README.md](docs/README.md); relatorios de validacao
+datados ficam em [docs/historico/](docs/historico/).

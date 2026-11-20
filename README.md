@@ -13,15 +13,14 @@ publico para clientes reservarem sem conta.
 - Recuperacao de senha por e-mail e revogacao imediata de sessoes.
 
 Aplicacao em [ink-manager-api](ink-manager-api/README.md).
-O assinante nao instala Java, banco ou Docker. A plataforma precisa ser publicada
-online pelo operador; hospedagem e dominio ainda nao foram provisionados.
+O assinante nao instala Java, banco ou Docker: a plataforma roda em producao numa
+VPS (Docker Compose + Caddy), com deploy automatico pelo GitHub Actions.
 Mensalidade inicial de R$ 29,90 por estudio, com 14 dias de avaliacao sem cartao no inicio.
-Assinatura por cartao recorrente ou Pix mensal, com confirmacao pelo provedor.
-Pagamentos reais dependem da configuracao e homologacao do Mercado Pago.
+Assinatura por cartao recorrente ou Pix mensal via Stripe, com confirmacao pelo provedor.
+Pagamentos reais dependem da configuracao e homologacao da conta Stripe.
 
 Os Java da raiz, `lib/` e `clientes.txt` sao o CLI historico, fora do build atual.
 
 A marca visual e Marcae; pastas, endpoints existentes e identificadores tecnicos
-do Ink Manager permanecem para preservar compatibilidade. Veja
-[validacao da entrega](ink-manager-api/docs/MARCAE-VALIDACAO.md) para resultados
-e cenarios pendentes.
+do Ink Manager permanecem para preservar compatibilidade. Veja o
+[indice da documentacao](ink-manager-api/docs/README.md).

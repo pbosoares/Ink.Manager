@@ -252,11 +252,25 @@ jobs:
             echo "O upload não retornou um identificador válido de artifact." >&2
             exit 1
           fi
-          metadata="$(curl --fail --silent --show-error \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
+          # The artifact API can answer 404 for a few seconds right after the upload
+          # (eventual consistency), so retry before declaring the backup unverified.
+          metadata=""
+          for attempt in 1 2 3 4 5 6; do
+            if metadata="$(curl --fail --silent --show-error \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"; then
+              break
+            fi
+            metadata=""
+            echo "Metadados do artifact ainda indisponíveis (tentativa $attempt/6); aguardando." >&2
+            sleep $((attempt * 5))
+          done
+          if [[ -z "$metadata" ]]; then
+            echo "Não foi possível consultar os metadados do artifact após 6 tentativas." >&2
+            exit 1
+          fi
           created_at="$(jq -er '.created_at' <<< "$metadata")"
           expires_at="$(jq -er '.expires_at' <<< "$metadata")"
           created_epoch="$(date -u -d "$created_at" +%s)"
