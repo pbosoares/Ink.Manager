@@ -776,8 +776,16 @@ class StudioIntegrationTest {
     }
     @Test void publicoNaoContornaAssinaturaExpirada() throws Exception {
         var p=publico("Assinatura expirada");
+        entrarNaLista(p,"11:00","antes-de-vencer@example.com");
         jdbc.update("UPDATE estudios SET criado_em=?,pago_ate=NULL WHERE id=?",java.sql.Timestamp.valueOf(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")).minusDays(40)),p.conta().estudio());
         assertEquals(409,reservar(p,pedido(p,"10:00")).statusCode());
+        // The public waitlist creates bookings too, so it must not bypass an expired subscription.
+        var inicio=p.dia().atTime(LocalTime.parse("14:00")).atZone(ZoneId.of("America/Sao_Paulo")).toOffsetDateTime();
+        var espera=new HashMap<String,Object>();espera.put("chaveIdempotencia",UUID.randomUUID());espera.put("servicoId",p.servico());
+        espera.put("profissionalId",p.profissional());espera.put("inicio",inicio.toString());espera.put("fim",inicio.plusMinutes(30).toString());
+        espera.put("nome","Depois de vencer");espera.put("email","depois-de-vencer@example.com");espera.put("telefone","21999997777");espera.put("avisoPrivacidadeLido",true);
+        assertEquals(409,request("POST","/publico/"+p.link()+"/lista-espera",stringify(espera),null).statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM lista_espera WHERE estudio_id=?",Integer.class,p.conta().estudio()));
         assertEquals(0,json(request("GET","/clientes",null,p.conta().token())).size());
         assertEquals(0,json(request("GET","/marcacoes",null,p.conta().token())).size());
     }
