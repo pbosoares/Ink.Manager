@@ -3183,3 +3183,62 @@ body:has(#workspace:not([hidden])) #login { display:none; }
   .cro-testimonials { grid-template-columns:minmax(0,1fr); gap:14px; }
   .cro-testimonial { padding:22px 18px 18px; }
 }
+
+/* Landing V3 "Foco em conversão" (Paper, 20/11/2026): hero, reserva online e recursos. */
+.lp-hero-grid { display:grid; grid-template-columns:510px minmax(0,1fr); align-items:center; gap:64px; min-height:650px; padding-top:68px; padding-bottom:72px; }
+.lp-hero-copy { display:flex; flex-direction:column; align-items:flex-start; gap:22px; min-width:0; }
+.lp-pill { display:inline-flex; align-items:center; gap:9px; padding:8px 12px; border:1px solid #DCE5FA; border-radius:999px; background:#fff; color:var(--cro-blue); font-size:12px; font-weight:700; letter-spacing:.08em; line-height:16px; text-transform:uppercase; }
+.lp-pill i { width:7px; height:7px; flex-shrink:0; border-radius:50%; background:var(--cro-blue); }
+#public-landing .lp-hero-copy h1 { margin:0; color:var(--cro-ink); font:750 58px/1.08 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.025em; }
+.lp-hero-copy>p { max-width:500px; margin:0; color:#626977; font-size:18px; line-height:1.65; }
+#public-landing .lp-hero-cta { min-height:56px; margin-top:4px; padding:0 25px; border-radius:14px; font-size:16px; box-shadow:0 8px 18px #2456D833; }
+#public-landing .lp-hero-copy .cro-guarantees { margin:0; gap:8px; }
+.lp-hero-preview { min-width:0; margin:0; padding:14px; border:1px solid #DEE4F0; border-radius:26px; background:#fff; box-shadow:0 28px 70px #171B2A1C; }
+.lp-hero-preview figcaption { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:4px 6px 13px; color:#424B5D; font-size:12px; font-weight:700; letter-spacing:.08em; line-height:16px; }
+.lp-hero-preview figcaption span:last-child { display:inline-flex; align-items:center; gap:7px; color:#475266; font-weight:400; letter-spacing:0; }
+.lp-hero-preview figcaption i { width:7px; height:7px; border-radius:50%; background:#35A879; }
+.lp-hero-frame { overflow:hidden; border:1px solid #DDE4EE; border-radius:12px; background:#F5F4EF; }
+.lp-hero-frame img { display:block; width:100%; height:auto; }
+.lp-booking { background:#fff; }
+.lp-booking-grid { display:grid; grid-template-columns:minmax(0,500px) minmax(0,760px); align-items:center; justify-content:space-between; gap:48px; }
+.lp-booking-copy { display:flex; flex-direction:column; gap:16px; }
+.lp-booking-copy h2 { margin:0; color:var(--cro-ink); font:760 40px/1.1 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.03em; }
+.lp-booking-copy>p { margin:0; color:var(--cro-muted); font-size:16px; line-height:1.5; }
+.lp-steps { display:grid; gap:10px; margin:0; padding:8px 0 0; list-style:none; }
+.lp-steps li { display:flex; align-items:center; gap:12px; color:var(--cro-ink); font-size:15px; font-weight:600; line-height:22px; }
+.lp-steps span { display:grid; place-items:center; width:28px; height:28px; flex-shrink:0; border-radius:14px; background:#E7F1FF; color:var(--cro-blue); font-size:13px; font-weight:700; }
+.lp-booking-media { display:flex; flex-direction:column; gap:14px; min-width:0; margin:0; }
+.lp-booking-frame { padding:16px; border:1px solid #E1E7F0; border-radius:18px; background:#F2F7FF; box-shadow:0 0 0 8px #F2F7FF,0 14px 36px #171D2B14; }
+.lp-booking-frame img { display:block; width:100%; height:auto; }
+.lp-booking-media figcaption { display:flex; align-items:center; flex-wrap:wrap; gap:4px 12px; padding:6px 0; color:var(--cro-muted); font-size:15px; font-weight:500; line-height:22px; }
+.lp-booking-media figcaption strong { color:var(--cro-blue); font:760 26px/32px 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.02em; }
+#public-landing .lp-wide-heading { max-width:none; }
+.lp-feature-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.lp-feature { display:flex; flex-direction:column; gap:10px; min-height:220px; padding:24px; border:1px solid var(--cro-line); border-radius:18px; background:#fff; }
+.lp-feature span { display:grid; place-items:center; width:36px; height:36px; margin-bottom:12px; border-radius:10px; background:#EEF3FD; color:var(--cro-blue); font-size:13px; font-weight:700; }
+.lp-feature h3 { margin:0; color:var(--cro-ink); font:700 18px/1.3 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.01em; }
+.lp-feature p { margin:0; color:#626977; font-size:15px; line-height:1.55; }
+/* Fundos como no Paper: depoimentos em tom claro, preço em branco, FAQ em tom claro. */
+#public-landing .cro-testimonials-section { background:var(--cro-tint); }
+#public-landing .cro-testimonial { background:#fff; }
+#public-landing .cro-pricing-section { background:#fff; }
+#public-landing .cro-pricing-card { background:#F8FAFD; }
+#public-landing .cro-faq-section { background:var(--cro-tint); }
+@media(max-width:1180px) {
+  .lp-hero-grid { grid-template-columns:minmax(0,1fr); gap:40px; min-height:0; padding-top:52px; padding-bottom:58px; }
+  .lp-hero-preview { max-width:720px; }
+  .lp-booking-grid { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:900px) { .lp-feature-grid { grid-template-columns:minmax(0,1fr); } .lp-feature { min-height:0; } }
+@media(max-width:600px) {
+  .lp-hero-grid { gap:28px; padding-top:36px; padding-bottom:44px; }
+  .lp-hero-copy { gap:18px; }
+  .lp-pill { font-size:11px; }
+  #public-landing .lp-hero-copy h1 { font-size:clamp(34px,9vw,44px); }
+  .lp-hero-copy>p { font-size:16px; }
+  #public-landing .lp-hero-cta { width:100%; }
+  .lp-hero-preview { padding:9px; border-radius:16px; }
+  .lp-booking-copy h2 { font-size:30px; }
+  .lp-booking-frame { padding:8px; box-shadow:0 0 0 4px #F2F7FF,0 10px 24px #171D2B14; }
+  .lp-booking-media figcaption strong { font-size:22px; }
+}
