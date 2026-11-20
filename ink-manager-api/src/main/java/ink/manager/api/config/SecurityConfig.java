@@ -64,7 +64,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, SessionJwtConverter sessions,
             ink.manager.api.service.AssinaturaService assinatura, RetentionOperatorFilter retentionOperatorFilter,
-            ManifestoRestauracaoGateFilter manifestoRestauracaoGateFilter)
+            ManifestoRestauracaoGateFilter manifestoRestauracaoGateFilter,
+            org.springframework.beans.factory.ListableBeanFactory beans,
+            org.springframework.core.io.ResourceLoader resourceLoader,
+            org.springframework.boot.autoconfigure.web.WebProperties webProperties)
             throws Exception {
 
         http
@@ -77,6 +80,9 @@ public class SecurityConfig {
             )
 
             .authorizeHttpRequests(auth -> auth
+                // Despacho interno para /error (404, 405...): sem isso, URL inexistente virava 401.
+                // O corpo do erro nao traz mensagem nem stack (server.error.include-*=never).
+                .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                 .requestMatchers("/", "/index.html", "/app.js", "/overview.js", "/team.js", "/billing.js", "/simple.js", "/analytics.js", "/agendar.html", "/agendar.js", "/waitlist.js", "/acao-email.html", "/acao-email.js", "/oferta.html", "/oferta.js", "/styles.css", "/favicon.svg").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/landing/*.png").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/landing/*.svg").permitAll()
@@ -87,7 +93,8 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/robots.txt", "/sitemap.xml").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/assinatura/webhook", "/assinatura/stripe-webhook").permitAll()
                 .requestMatchers("/internal/retencoes-financeiras/**").permitAll()
-                .anyRequest().authenticated()
+                // Exige autenticacao; so libera (para responder 404) quando nenhum handler atende a URL.
+                .anyRequest().access(new RotaInexistenteAuthorizationManager(beans, resourceLoader, webProperties))
             )
 
             .oauth2ResourceServer(oauth2 ->

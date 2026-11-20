@@ -90,6 +90,61 @@ class StudioIntegrationTest {
     }
     boolean contem(JsonNode values,String value){for(var item:values)if(item.asText().equals(value))return true;return false;}
 
+    String cacheControl(HttpResponse<?> response){return response.headers().firstValue("Cache-Control").orElse("");}
+    @Test void cacheDoEstaticoPublicoENoStoreNaApi()throws Exception{
+        for(var path:List.of("/styles.css","/app.js","/agendar.js")){
+            var asset=request("GET",path,null,null);
+            assertEquals(200,asset.statusCode(),path);
+            assertEquals("no-cache, public",cacheControl(asset),path);
+            String etag=asset.headers().firstValue("ETag").orElse("");
+            assertFalse(etag.isEmpty(),path);
+            var revalidado=client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).header("If-None-Match",etag).GET().build(),HttpResponse.BodyHandlers.ofString());
+            assertEquals(304,revalidado.statusCode(),path);
+            assertEquals("",revalidado.body(),path);
+        }
+        for(var path:List.of("/landing/agenda.png","/landing/login-agenda.svg","/favicon.svg","/robots.txt","/sitemap.xml")){
+            var midia=request("GET",path,null,null);
+            assertEquals(200,midia.statusCode(),path);
+            assertEquals("max-age=3600, must-revalidate, public",cacheControl(midia),path);
+        }
+        for(var path:List.of("/","/index.html","/agendar.html","/acao-email.html","/a/QUALQUERCODIGO")){
+            var html=request("GET",path,null,null);
+            assertEquals(200,html.statusCode(),path);
+            assertTrue(cacheControl(html).contains("no-store"),path+" "+cacheControl(html));
+            assertFalse(cacheControl(html).contains("public"),path);
+        }
+        var conta=conta("Estudio Cache");
+        for(var path:List.of("/auth/me","/clientes","/profissionais")){
+            var api=request("GET",path,null,conta.token());
+            assertEquals(200,api.statusCode(),path);
+            assertTrue(cacheControl(api).contains("no-store"),path+" "+cacheControl(api));
+            assertFalse(cacheControl(api).contains("public"),path);
+        }
+        var publico=request("GET","/auth/config",null,null);
+        assertTrue(cacheControl(publico).contains("no-store"),cacheControl(publico));
+    }
+    @Test void rotaInexistenteResponde404SemVazarDetalhes()throws Exception{
+        for(var path:List.of("/naoexiste","/favicon.ico","/oferta.html","/oferta.js","/landing/naoexiste.png","/pasta/naoexiste")){
+            var missing=request("GET",path,null,null);
+            assertEquals(404,missing.statusCode(),path);
+            assertTrue(cacheControl(missing).contains("no-store"),path+" "+cacheControl(missing));
+            assertFalse(missing.body().contains("Exception"),missing.body());
+            assertFalse(missing.body().contains("at ink."),missing.body());
+            var html=client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).header("Accept","text/html").GET().build(),HttpResponse.BodyHandlers.ofString());
+            assertEquals(404,html.statusCode(),path);
+            assertFalse(html.body().contains("Exception"),html.body());
+        }
+        for(var path:List.of("/clientes","/clientes/1","/auth/me","/profissionais","/profissionais/1/disponibilidade","/actuator/info")){
+            assertEquals(401,request("GET",path,null,null).statusCode(),path);
+        }
+        assertEquals(401,request("DELETE","/clientes",null,null).statusCode());
+        assertEquals(401,request("GET","/naoexiste",null,"token-invalido").statusCode());
+        var conta=conta("Estudio 404");
+        var autenticado=request("GET","/rota-que-nao-existe",null,conta.token());
+        assertEquals(404,autenticado.statusCode(),autenticado.body());
+        assertTrue(cacheControl(autenticado).contains("no-store"));
+        assertFalse(autenticado.body().contains("Exception"),autenticado.body());
+    }
     @Test void cadastroAutonomoEArquivosPublicos()throws Exception{
         for(var path:List.of("/","/app.js","/team.js","/styles.css","/favicon.svg","/actuator/health"))assertEquals(200,request("GET",path,null,null).statusCode(),path);
         for(var path:List.of("/landing/visao-geral.png","/landing/agenda.png","/landing/reserva.png")){
