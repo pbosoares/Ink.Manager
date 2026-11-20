@@ -6,6 +6,6 @@
     "test:e2e:waitlist-matrix": "node e2e/run-waitlist-matrix.cjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.0"
+    "@playwright/test": "^1.65.1"
   }
 }
