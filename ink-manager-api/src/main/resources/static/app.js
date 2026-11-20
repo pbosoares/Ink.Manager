@@ -90,6 +90,7 @@ function logout(message = '') {
   window.inkTeam?.close();
   window.inkSimple?.close();
   window.inkAnalytics?.close();
+  window.inkOverview?.close();
   $('auth-form').reset();
   $('auth-error').textContent = message;
 }
@@ -248,19 +249,13 @@ function render() {
   ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts'].forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
   $('workspace').setAttribute('aria-busy', String(state.loading));
   if (!state.loaded) {
-    ['stat-today', 'stat-upcoming', 'stat-clients'].forEach((id) => { $(id).textContent = '—'; });
+    ['stat-today', 'stat-upcoming', 'stat-done'].forEach((id) => { $(id).textContent = '—'; });
+    $('next-up').textContent = '';
+    $('first-steps').hidden = true;
     ['today-list', 'agenda-list', 'client-list', 'agenda-count', 'client-count'].forEach((id) => { $(id).textContent = ''; });
     return;
   }
-  const today = localDate();
-  const appointments = sortedAppointments();
-  const todays = appointments.filter((item) => item.data === today && item.status !== 'CANCELADA');
-  $('stat-today').textContent = String(todays.length).padStart(2, '0');
-  const now = new Date();
-  const currentTime = `${today}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
-  $('stat-upcoming').textContent = String(appointments.filter((item) => `${item.data}T${item.horario}` >= currentTime && ['AGENDADA', 'CONFIRMADA'].includes(item.status)).length).padStart(2, '0');
-  $('stat-clients').textContent = String(state.clients.length).padStart(2, '0');
-  $('today-list').innerHTML = todays.length ? todays.map((item) => `<div class="session"><span class="session-time">${escapeHtml(item.horario?.slice(0, 5))}</span><div class="session-info"><div class="session-name">${escapeHtml(item.cliente?.nome)}</div><div class="session-description">${escapeHtml(item.servicoNome || item.descricao || 'Atendimento')}${window.inkSimple?.appointmentDetails(item) || ''}</div>${window.inkAnalytics?.attendanceAction(item) || ''}</div>${badge(item.status)}${window.inkSimple?.receiptAction(item) || ''}${whatsappAction(item)}<button class="text-button" ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-edit-appointment="${item.id}" aria-label="Editar marcação de ${escapeHtml(item.cliente?.nome)}">Editar</button></div>`).join('') : empty('Um respiro na agenda.', 'Nenhum atendimento marcado para hoje.', 'appointment');
+  window.inkOverview?.render();
   renderAgenda();
   renderClients();
   window.inkTeam?.render();
@@ -407,7 +402,6 @@ document.addEventListener('click', (event) => {
 });
 $('logout').onclick = async () => { try { await api('/auth/logout', { method: 'POST' }); } catch {} finally { logout(); } };
 $('main-action').onclick = () => openEditor(state.view === 'clients' ? 'client' : 'appointment');
-$('see-agenda').onclick = () => setView('agenda');
 $('close-editor').onclick = $('cancel-editor').onclick = () => $('editor').close();
 $('cancel-delete').onclick = () => $('confirmation').close();
 $('editor').addEventListener('cancel', (event) => { if ($('save-editor').disabled) event.preventDefault(); });

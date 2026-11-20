@@ -35,6 +35,7 @@
   }
   </script>
   <script src="/app.js" defer></script>
+  <script src="/overview.js" defer></script>
   <script src="/team.js" defer></script>
   <script src="/billing.js" defer></script>
   <script src="/simple.js" defer></script>
@@ -279,8 +280,10 @@
         <p id="page-error" class="form-error" role="alert"></p>
         <div id="loading" class="loading" role="status" hidden>Buscando os dados do negócio…</div>
         <section id="overview-view">
-          <div class="stats"><article><span>NA AGENDA DE HOJE</span><strong id="stat-today">—</strong><small>Atendimentos não cancelados</small></article><article><span>PRÓXIMOS ATENDIMENTOS</span><strong id="stat-upcoming">—</strong><small>Agendadas ou confirmadas</small></article><article><span>COMPARTILHE SEU LINK</span><strong id="stat-clients">—</strong><small>Histórias que passam por aqui</small></article></div>
-          <div class="overview-grid"><section class="panel"><div class="section-title"><h2>Hoje no negócio</h2><button id="see-agenda" class="text-button">Ver agenda ↗</button></div><div id="today-list"></div></section><aside class="quote-card"><span class="eyebrow">LEMBRETE DA CASA</span><span class="quote-star" aria-hidden="true">✦</span><h2>Seu tempo importa.<br>O cuidado<br><em>também.</em></h2><p>Uma agenda em dia abre espaço para o que importa: atender bem.</p><span class="quote-sign">Marcaê &nbsp; / &nbsp; FEITO PARA QUEM ATENDE</span></aside></div>
+          <div class="stats"><article><span>HOJE</span><strong id="stat-today">—</strong><small>Atendimentos do dia</small></article><article><span>A SEGUIR HOJE</span><strong id="stat-upcoming">—</strong><small>Agendados ou confirmados</small></article><article><span>CONCLUÍDOS HOJE</span><strong id="stat-done">—</strong><small id="stat-done-note">Atendimentos concluídos hoje</small></article></div>
+          <section id="first-steps" class="panel first-steps" aria-label="Primeiros passos" hidden></section>
+          <section class="panel team-day" aria-label="Agenda da equipe"><div id="today-list"></div></section>
+          <div id="next-up" class="next-up" role="status" aria-live="polite"></div>
           <section id="monthly-report" class="settings-section owner-only" hidden aria-labelledby="report-title">
             <div class="section-title"><div><span class="eyebrow accent">CADERNO DO MÊS</span><h2 id="report-title">Agenda e comparecimento</h2></div><div class="toolbar"><label>Mês<input id="report-month" type="month"></label><button id="report-reload" type="button" class="secondary">Atualizar</button></div></div>
             <p id="report-loading" role="status" hidden>Consultando o relatório…</p><p id="report-error" class="form-error" role="alert"></p>
@@ -291,7 +294,7 @@
               <section class="report-ranking"><h3>Serviços mais agendados</h3><div id="report-services"></div></section><section class="report-ranking"><h3>Histórico recente de faltas</h3><div id="absence-history"></div></section>
             </div>
           </section>
-          <section class="panel onboarding-card"><span class="eyebrow">PRIMEIROS PASSOS</span><h2>Organize a casa</h2><p>Cadastre os serviços e seus preços, ajuste os horários da equipe e compartilhe o link fixo de reservas.</p><button class="text-button" data-view="studio">Configurar serviços e link →</button></section>        </section>
+                  </section>
         <section id="agenda-view" hidden>
           <section class="panel availability-panel" aria-label="Disponibilidade da equipe">
             <h2>Dias e horários livres</h2>

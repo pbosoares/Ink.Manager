@@ -3242,3 +3242,93 @@ body:has(#workspace:not([hidden])) #login { display:none; }
   .lp-booking-frame { padding:8px; box-shadow:0 0 0 4px #F2F7FF,0 10px 24px #171D2B14; }
   .lp-booking-media figcaption strong { font-size:22px; }
 }
+
+/* Visão geral (20/11/2026): agenda do dia por profissional, a seguir e primeiros passos. */
+.nav-arrow { display:none; }
+.stats small.stat-alert { color:#C2410C; font-weight:600; }
+.team-day { padding:20px; }
+.day-head { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
+.day-head h2 { margin:0; color:#171B2A; font:700 20px/1.3 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.01em; }
+.day-head p { margin:2px 0 0; color:#626977; font-size:14px; }
+.day-nav { display:flex; align-items:center; gap:6px; }
+.day-nav strong { display:inline-block; min-width:220px; color:#171B2A; font-size:14px; font-weight:600; text-align:center; }
+.day-nav strong::first-letter { text-transform:uppercase; }
+.day-nav-step,.day-nav-today { min-width:38px; min-height:38px; padding:0 10px; border:1px solid #E1E7F0; border-radius:10px; background:#fff; color:#171B2A; font:600 14px/1 'Inter',system-ui,sans-serif; cursor:pointer; }
+.day-nav-step:hover,.day-nav-today:hover:not(:disabled) { border-color:#B8C4D6; }
+.day-nav-today:disabled { opacity:.5; cursor:default; }
+.day-empty { margin:0 0 10px; color:#626977; font-size:14px; }
+.day-board { display:grid; grid-template-columns:52px minmax(0,1fr); }
+.day-times { position:relative; margin-top:56px; }
+.day-times span { position:absolute; left:0; color:#8A94A6; font-size:12px; font-variant-numeric:tabular-nums; transform:translateY(-50%); }
+.day-cols { display:grid; grid-template-columns:repeat(var(--day-cols),minmax(220px,1fr)); overflow-x:auto; }
+.day-board.is-compact .day-cols { grid-template-columns:repeat(var(--day-cols),minmax(180px,1fr)); }
+.day-col { min-width:0; border-left:1px solid #EDF0F5; }
+.day-col-head { display:flex; align-items:center; gap:10px; height:56px; padding:0 12px; border-bottom:1px solid #EDF0F5; }
+.day-col-head>span:last-child { min-width:0; }
+.day-col-head strong { display:block; overflow:hidden; color:#171B2A; font-size:14px; text-overflow:ellipsis; white-space:nowrap; }
+.day-col-head small { color:#8A94A6; font-size:12px; }
+.day-avatar { display:grid; place-items:center; width:34px; height:34px; flex-shrink:0; border:1.5px solid #2456D8; border-radius:50%; color:#2456D8; font-size:12px; font-weight:700; }
+.day-track { position:relative; background:repeating-linear-gradient(to bottom,#EDF0F5 0 1px,transparent 1px 66px); }
+.day-now { position:absolute; z-index:0; left:0; right:0; height:2px; background:#2456D8; pointer-events:none; }
+.day-now::before { position:absolute; top:-3px; left:-4px; width:8px; height:8px; border-radius:50%; background:#2456D8; content:""; }
+.day-card { position:absolute; z-index:1; left:6px; right:6px; display:flex; flex-direction:column; gap:2px; padding:6px 10px; overflow:hidden; border:1px solid #D6E6FB; border-left:4px solid #1684F5; border-radius:10px; background:#EAF4FF; }
+.day-board.is-compact .day-card { padding-inline:8px; }
+.day-card-head { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+.day-card-time { color:#171B2A; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.day-card-status { color:#1060B8; font-size:12px; font-weight:600; white-space:nowrap; }
+.day-card-who { display:block; width:100%; min-width:0; padding:0; overflow:hidden; border:0; background:none; color:#3A4254; font:400 13px/1.4 'Inter',system-ui,sans-serif; text-align:left; text-overflow:ellipsis; white-space:nowrap; }
+button.day-card-who { cursor:pointer; }
+button.day-card-who:hover strong { text-decoration:underline; }
+.day-card-who strong { color:#171B2A; font-weight:700; }
+.day-card-action { flex-shrink:0; padding:3px 9px; border:0; border-radius:6px; background:#2456D8; color:#fff; font:600 12px/1.3 'Inter',system-ui,sans-serif; cursor:pointer; }
+.day-card-action:hover { background:#1D46B4; }
+.day-card.is-short { flex-direction:row; align-items:center; gap:8px; padding-block:2px; }
+.day-card.is-short .day-card-head { display:contents; }
+.day-card.is-short .day-card-time { order:1; }
+.day-card.is-short .day-card-who { order:2; flex:1; }
+.day-card.is-short .day-card-action,.day-card.is-short .day-card-status { order:3; }
+.day-card.is-scheduled { border-color:#F3DFA3; border-left-color:#E8AD29; background:#FFF1CC; }
+.day-card.is-scheduled .day-card-status { color:#7A5200; }
+.day-card.is-done { border-color:#E5E8EF; border-left-color:#9CC7AE; background:#F5F7FA; }
+.day-card.is-done .day-card-time,.day-card.is-done .day-card-who,.day-card.is-done .day-card-who strong { color:#667085; }
+.day-card.is-done .day-card-status { color:#23784B; }
+.day-card.is-pending { border-color:#F5D0B5; border-left-color:#C2410C; background:#fff; box-shadow:0 4px 12px -6px rgba(194,65,12,.3); }
+.day-card.is-ended { border-color:#F5D0B5; border-left-color:#C2410C; background:#FFF7ED; }
+.day-card.is-ended .day-card-status { color:#9A3412; }
+.day-card.is-live { box-shadow:0 0 0 2px rgba(36,86,216,.3),0 6px 16px -6px rgba(36,86,216,.35); }
+.day-card.is-live .day-card-status { color:#2456D8; }
+.next-up { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; padding:14px 18px; border:1px solid #E1E7F0; border-radius:14px; background:#fff; }
+.next-up:empty { display:none; }
+.next-up>div { display:grid; gap:2px; min-width:0; }
+.next-up strong { color:#171B2A; font-size:14px; }
+.next-up span { overflow:hidden; color:#626977; font-size:13px; text-overflow:ellipsis; white-space:nowrap; }
+.first-steps { margin-bottom:16px; padding:28px; }
+.first-steps-head h2 { margin:8px 0 14px; color:#171B2A; font:700 24px/1.25 'Inter Tight','Inter',system-ui,sans-serif; letter-spacing:-.02em; }
+.first-steps-progress { display:flex; align-items:center; gap:12px; }
+.first-steps-progress span { display:block; width:200px; height:8px; overflow:hidden; border-radius:999px; background:#E7F1FF; }
+.first-steps-progress i { display:block; height:100%; border-radius:999px; background:#2456D8; }
+.first-steps-progress small { color:#3A4254; font-size:13px; font-weight:600; }
+.first-steps-list { margin:18px 0 0; padding:0; border-top:1px solid #E5E8EF; list-style:none; }
+.first-steps-list li { display:flex; align-items:flex-start; gap:14px; padding:16px 0; border-bottom:1px solid #E5E8EF; }
+.first-steps-list li:last-child { border-bottom:0; padding-bottom:0; }
+.first-steps-list li>div { flex:1; min-width:0; }
+.first-steps-list li>button { flex-shrink:0; align-self:center; }
+.first-steps-list strong { color:#171B2A; font-size:15px; }
+.first-steps-list p { margin:2px 0 0; color:#626977; font-size:14px; line-height:1.5; }
+.first-steps-mark { display:grid; place-items:center; width:30px; height:30px; flex-shrink:0; border:1.5px solid #B8C4D6; border-radius:50%; color:#3A4254; font-size:13px; font-weight:700; }
+.first-steps-list li.is-done .first-steps-mark { border-color:transparent; background:#E8F5EC; color:#23784B; }
+.first-steps-list li.is-done strong { color:#667085; }
+.first-steps-link { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.first-steps-link input { flex:1 1 240px; min-height:40px; padding:0 12px; border:1px solid #E1E7F0; border-radius:10px; background:#F4F6FB; color:#3A4254; font-size:14px; }
+.first-steps-whatsapp { display:inline-flex; align-items:center; min-height:40px; padding:0 14px; border:1px solid #BFE3CC; border-radius:10px; background:#E8F5EC; color:#23784B; font-size:14px; font-weight:600; text-decoration:none; }
+@media(max-width:700px) {
+  .team-day { padding:14px; }
+  .day-head { flex-direction:column; align-items:stretch; }
+  .day-nav strong { flex:1; min-width:0; }
+  .day-cols,.day-board.is-compact .day-cols { grid-template-columns:repeat(var(--day-cols),minmax(240px,82vw)); scroll-snap-type:x mandatory; }
+  .day-col { scroll-snap-align:start; }
+  .first-steps { padding:20px; }
+  .first-steps-list li { flex-wrap:wrap; }
+  .first-steps-list li>button { width:100%; }
+  .next-up { flex-direction:column; align-items:stretch; }
+}
