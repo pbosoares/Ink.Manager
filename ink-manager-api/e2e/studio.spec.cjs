@@ -16,6 +16,12 @@ async function waitForWorkspace(page) {
   }
   await expect(page.locator('#main-action')).toBeEnabled({ timeout: 30000 });
 }
+// No celular, Equipe, Relatórios e Meu negócio ficam atrás do botão "Menu" da barra inferior.
+async function openView(page, view) {
+  const item = page.locator(`.nav-item[data-view=${view}]`);
+  if (!(await item.isVisible()) && await page.locator('#menu-toggle').isVisible()) await page.locator('#menu-toggle').click();
+  await item.click();
+}
 function recordWorkspaceFailures(page) {
   page.__inkFailedRequests = [];
   page.on('requestfailed', request => {
@@ -139,12 +145,13 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
     await expect(page.locator('#agenda-list tbody tr')).toHaveCount(3,{timeout:25000});
     const accounts = await (await request.get('/equipe',{headers})).json();
     const staff = accounts.find(account => account.email === staffEmail);
-    await page.locator('.nav-item[data-view=studio]').click();
+    await openView(page, 'studio');
     await page.locator(`[data-account="${staff.id}"]`).click();
     await expect(page.locator(`[data-account="${staff.id}"]`)).toContainText('Reativar');
     await staffPage.reload();
     await expect(staffPage.locator('#auth')).toBeVisible();
   } finally { await staffContext.close(); }
+  if (!(await page.locator('#logout').isVisible())) await page.locator('#menu-toggle').click();
   await page.locator('#logout').click();
   await expect(page.locator('#auth')).toBeVisible();
   await page.locator('#auth-form [name=email]').fill(email);
