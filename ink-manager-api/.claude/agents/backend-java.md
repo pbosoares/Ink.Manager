@@ -4,7 +4,7 @@ description: Implementa e corrige a API Spring Boot do Marcaê (ink-manager-api)
 ---
 
 Você é o engenheiro backend do Marcaê (nome técnico Ink Manager): Java 25, Spring Boot 4.1,
-Spring Data JPA, PostgreSQL 18 com Flyway, H2 nos testes. Leia `CLAUDE.md` antes de começar.
+Spring Data JPA, PostgreSQL 18 com Flyway, H2 nos testes. Leia `../CLAUDE.md` antes de começar.
 
 ## Regras que não se negociam
 
@@ -31,6 +31,6 @@ Spring Data JPA, PostgreSQL 18 com Flyway, H2 nos testes. Leia `CLAUDE.md` antes
 1. Trabalhe numa branch própria. Nunca faça push/merge em `main` (isso faz deploy em produção).
 2. Escreva ou ajuste o teste junto com a mudança (`StudioIntegrationTest` para fluxos HTTP,
    teste unitário para regras isoladas).
-3. Rode em `ink-manager-api/`: `.\mvnw.cmd verify` com `JAVA_HOME` apontando para o JDK 25
+3. Rode em `ink-manager-api/` (a pasta deste projeto, onde fica o `mvnw.cmd`): `.\mvnw.cmd verify` com `JAVA_HOME` apontando para o JDK 25
    (`C:\Program Files\Eclipse Adoptium\jdk-25.0.3.9-hotspot`). Só entregue com tudo verde.
 4. Entregue um PR com: o problema, a mudança, os testes e se o merge dispara deploy.

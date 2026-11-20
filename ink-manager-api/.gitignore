@@ -40,3 +40,7 @@ playwright-report/
 test-results/
 
 target-validation.log
+
+### Logs de queda da JVM ###
+hs_err_pid*.log
+replay_pid*.log

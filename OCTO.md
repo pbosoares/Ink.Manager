@@ -41,7 +41,7 @@ Responda **não** (deny) e devolva a decisão ao usuário quando um agente pedir
 
 ## Agentes do projeto
 
-Definidos em `.claude/agents/` (Claude Code):
+Definidos em `ink-manager-api/.claude/agents/` (Claude Code; carregados ao abrir a sessão em `ink-manager-api/`):
 
 | Agente | Para quê |
 |---|---|
@@ -50,6 +50,10 @@ Definidos em `.claude/agents/` (Claude Code):
 | `revisor-seguranca` | Revisão somente leitura: isolamento entre estúdios, auth, cobrança |
 | `testes-qa` | Testes JUnit (H2/PostgreSQL) e Playwright; não altera código de produção |
 | `seo` | SEO do site público: técnico, conteúdo, dados estruturados e Search Console |
+| `design-paper` | Telas no Paper (MCP) com os tokens do Marcaê e implementação fiel no frontend |
+| `devops-deploy` | Docker, compose, Caddy, GitHub Actions e deploy; investiga e propõe em PR, nunca faz deploy |
+| `docs` | Mantém CLAUDE.md, README, docs/ e .env.example alinhados com o código; só edita documentação |
+| `copy-marketing` | Textos da landing, painel, reserva e e-mails seguindo o MARCAE-COPY.md, sem promessas falsas |
 
 Para trabalho em paralelo, cada agente usa a própria worktree e branch; o resultado
 volta como PR, revisado pelo `revisor-seguranca` antes do merge pelo usuário.
