@@ -19,7 +19,9 @@ e docs estao em portugues (estudio, marcacao, profissional, recebimento, assinat
 - Testes (H2): `.\mvnw.cmd verify` (o CI usa `./mvnw clean test`).
 - Um teste: `.\mvnw.cmd test -Dtest=StudioIntegrationTest#nomeDoMetodo`.
 - Testes em PostgreSQL: definir `INK_TEST_DB_URL`, `INK_TEST_DB_DRIVER=org.postgresql.Driver`, `INK_TEST_DB_USER`, `INK_TEST_DB_PASSWORD`. Use sempre um banco exclusivo: os testes apagam os dados de negocio. `MigrationUpgradeTest` so roda em PostgreSQL.
-- E2E (Playwright): gerar o JAR (`.\mvnw.cmd package`), `npm ci`, `npx playwright install chromium`, apontar `DB_URL`/`DB_USERNAME`/`DB_PASSWORD` para outro banco exclusivo e rodar `npm run test:e2e` (um arquivo: `npx playwright test e2e/studio.spec.cjs`). A matriz da lista de espera roda com `npm run test:e2e:waitlist-matrix`.
+- E2E (Playwright): gerar o JAR (`.\mvnw.cmd package`), `npm ci`, `npx playwright install chromium`, apontar `DB_URL`/`DB_USERNAME`/`DB_PASSWORD` para outro banco exclusivo e rodar `npm run test:e2e` (um arquivo: `npx playwright test e2e/studio.spec.cjs`). A matriz da lista de espera roda com `npm run test:e2e:waitlist-matrix` (exige Mailpit local, SMTP em `127.0.0.1:1025`).
+  - O guard de `e2e/validation-env.cjs` exige `DB_URL=jdbc:postgresql://127.0.0.1:55446/marcae_validation_<nome>` (porta 55448 com `E2E_VALIDATION_PG_PORT`), sem credenciais na URL, e recusa variaveis `SPRING_*`, `MAIL_*`, `STRIPE_*`, `BILLING_*`, `MP_*` e `JAVA_TOOL_OPTIONS`/`JAVA_OPTS` no ambiente.
+  - Use um banco `marcae_validation_*` zerado a cada rodada: o diagnostico de disponibilidade precisa criar o profissional ID 2. O `java` do PATH (que sobe o JAR) deve ser o JDK 25. Queda do servidor com `errno 1455`/mmap indica falta de memoria virtual na maquina.
 - Nao rode suites H2, PostgreSQL e Playwright em paralelo; rode em serie.
 
 ## Arquitetura
@@ -34,7 +36,8 @@ e docs estao em portugues (estudio, marcacao, profissional, recebimento, assinat
 - **Cobranca:** o provedor em uso e o **Stripe** (`StripeGateway`, `billing.provider=stripe`, `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`, webhook `POST /assinatura/stripe-webhook` verificado por `StripeWebhookSignature`). `MercadoPagoGateway` e codigo legado; as secoes do README sobre Mercado Pago estao desatualizadas. O webhook consulta o provedor e aplica o resultado de forma idempotente. A conciliacao roda em lote a cada 10 minutos. O retorno do checkout nunca ativa o acesso.
 - **E-mail:** padrao outbox (`EmailOutboxService`/`Worker`/`Job`) via SMTP. Sem SMTP configurado, as funcoes de e-mail ficam indisponiveis e o resto do sistema segue funcionando. Nao existe envio simulado. Links usam `PUBLIC_URL`, nunca o host enviado na requisicao.
 - **Workers agendados:** expiracao de ofertas da lista de espera, expurgo de estudios encerrados (retencao), outbox e lembretes.
-- **Frontend:** HTML/JS puro, sem build, em `src/main/resources/static` (`index.html` + `app.js` do painel, `agendar.*` da reserva publica, `landing/`). Arquivo estatico novo tambem precisa entrar no `permitAll` do `SecurityConfig`.
+- **Frontend:** HTML/JS puro, sem build, em `src/main/resources/static` (`index.html` + `app.js` do painel, `overview.js` da Visao geral, `team.js`, `billing.js`, `simple.js`, `waitlist.js`, `analytics.js`, `agendar.*` da reserva publica, `acao-email.*`, `landing/`). Arquivo estatico novo tambem precisa entrar no `permitAll` do `SecurityConfig`.
+- **Navegacao do painel:** um unico `[data-view=X]` por tela (o E2E usa modo estrito); atalhos internos usam `data-go`/`data-scroll`. No celular a barra lateral vira barra de abas e Equipe, Relatorios, Assinatura, Meu negocio e Sair ficam atras do botao Menu (`#menu-toggle`); nos testes, abra telas com `openView()`.
 
 ## CI/CD
 
@@ -50,3 +53,5 @@ Producao usa `compose.production.yml` com Caddy (`deploy/Caddyfile`).
 `OPERACAO.md` (producao, deploy, backup) e o runbook de backup/restauracao.
 `docs/historico/` guarda relatorios datados anteriores a producao; nao os trate como
 estado atual. `src/test/MARCAE-TESTES.md` descreve a cobertura dos testes.
+
+Os agentes do Claude Code ficam em `ink-manager-api/.claude/agents/` (lista em `OCTO.md`).

@@ -49,3 +49,17 @@ Execucao pendente do Engenheiro: apos o Lead terminar a compilacao/integracao V1
 ### Cadastro e avaliacao sem checkout (cenario escrito)
 
 StudioIntegrationTest.cadastroNovoIniciaAvaliacaoSemPagamentoOuChamadaAoGateway cobre POST /auth/estudios sem dados de pagamento, login e GET /assinatura; verifica AVALIACAO, mensalidade 29.90 BRL, avaliacaoAte em torno de 14 dias apos criado_em, tabelas assinatura_checkouts/assinatura_pagamentos vazias e zero interacoes com MercadoPagoGateway. Engenheiro: executar este teste com os cenarios V11 junto a suite H2 e PostgreSQL, em serie. Sem Maven nesta sessao.
+
+## Testes E2E (Playwright, `e2e/`)
+
+Como rodar e requisitos: secao Testes do [README da aplicacao](../../README.md).
+`npm run test:e2e` usa `playwright.config.cjs` (todos os specs, menos a lista de espera);
+a lista de espera usa `playwright.waitlist.config.cjs` via `npm run test:e2e:waitlist-matrix`.
+
+- `studio.spec.cjs`: cadastro do estudio, cliente recorrente, edicao da marcacao, persistencia apos recarregar, painel em 390px sem rolagem horizontal, funcionario em outra sessao (sem Meu negocio, agendando para a equipe), desativacao do acesso revogando a sessao do funcionario, sair e nova sessao.
+- `marcae-browser.spec.cjs` (1366px e 390px): carga inicial do painel, Relatorios (mes e semana), Meu negocio (configuracao de agendamento, servico, link curto), reserva anonima em `agendar.html` com repeticao idempotente, snapshot na agenda e recebimento.
+- `marcae-contract.spec.cjs`: so API; catalogo publico, reserva idempotente, conflito e snapshot na agenda.
+- `marcae-availability-diagnostics.spec.cjs`: primeira consulta de disponibilidade e repeticao; espera criar o profissional ID 2, por isso exige banco zerado.
+- `marcae-waitlist.spec.cjs` (1366px e 390px, um app por largura): lista de espera e oferta real sem duplicidade, com e-mail entregue ao Mailpit local.
+
+No celular, Equipe, Relatorios, Assinatura, Meu negocio e Sair ficam atras do botao Menu (`#menu-toggle`). Os specs `studio` e `marcae-browser` abrem essas telas com `openView()`. O painel tem um unico `[data-view=X]` por tela, e os seletores dependem disso (modo estrito).
