@@ -1,0 +1,30 @@
+# Atualizacoes semanais agrupadas. Atencao: merge em main de mudanca em
+# ink-manager-api/pom.xml dispara deploy em producao (veja ci.yml).
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /ink-manager-api
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      maven-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /ink-manager-api
+    schedule:
+      interval: monthly
+    groups:
+      e2e-tooling:
+        patterns: ["*"]

@@ -1,5 +1,9 @@
-*.class 
-marcacoes.txt 
-clientes.txt 
+# Saidas e dados locais do CLI legado (legado/cli)
+*.class
+legado/cli/clientes.txt
+legado/cli/marcacoes.txt
 
 /deploy-artifacts/
+
+# Workspace pessoal do editor
+*.code-workspace
