@@ -38,22 +38,25 @@ public class ListaEsperaService {
     private final AgendaGuard guard; private final AcessoAtual acesso; private final Clock clock;
     private final AgendamentoEmailService agendamentoEmail;
     private final EmailOutboxService outbox;
+    private final AssinaturaService assinatura;
 
     public ListaEsperaService(EstudioRepository estudios,ListaEsperaRepository entradas,OfertaListaEsperaRepository ofertas,
             ServicoRepository servicos,ProfissionalRepository profissionais,MarcacaoRepository marcacoes,
             ClienteRepository clientes,DisponibilidadeService disponibilidade,AgendaGuard guard,AcessoAtual acesso,
-            Clock clock,EmailOutboxService outbox,AgendamentoEmailService agendamentoEmail){
+            Clock clock,EmailOutboxService outbox,AgendamentoEmailService agendamentoEmail,AssinaturaService assinatura){
         this.estudios=estudios;this.entradas=entradas;this.ofertas=ofertas;this.servicos=servicos;this.profissionais=profissionais;
         this.marcacoes=marcacoes;this.clientes=clientes;this.disponibilidade=disponibilidade;this.guard=guard;
-        this.acesso=acesso;this.clock=clock;this.outbox=outbox;this.agendamentoEmail=agendamentoEmail;
+        this.acesso=acesso;this.clock=clock;this.outbox=outbox;this.agendamentoEmail=agendamentoEmail;this.assinatura=assinatura;
     }
 
+    /** Public waitlist actions create bookings, so they follow the same subscription rule as public booking. */
+    private void exigirAssinatura(Estudio e){if(!assinatura.podeGravar(e.getId()))throw new ApiException(HttpStatus.CONFLICT,"Agendamento temporariamente indisponivel. Fale com o estabelecimento.");}
     private Estudio porLink(String link){String id=PublicLinkCode.decode(link).orElse(link);return estudios.findByLinkPublicoAndEncerradoEmIsNull(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Link de agendamento nao encontrado."));}
     private ListaEspera entrada(long estudio,long id){return entradas.findByIdAndEstudioId(id,estudio).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Entrada da lista nao encontrada."));}
     private Servico servico(long estudio,long id){return servicos.findByIdAndEstudioId(id,estudio).filter(Servico::isAtivo).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Servico indisponivel."));}
 
     @Transactional public EntradaCriada inscrever(String link,Pedido pedido){
-        Estudio estudio=porLink(link); guard.bloquear(estudio.getId());
+        Estudio estudio=porLink(link); exigirAssinatura(estudio); guard.bloquear(estudio.getId());
         ListaEspera existente=entradas.findByEstudioIdAndChaveIdempotencia(estudio.getId(),pedido.chaveIdempotencia()).orElse(null);
         if(existente!=null){if(!mesmoPedido(existente,pedido))throw new ApiException(HttpStatus.CONFLICT,"Chave de pedido ja utilizada.");return new EntradaCriada(true,"Voce esta na lista de espera.");}
         Instant agora=clock.instant(); ZoneId zona=ZoneId.of(estudio.getFusoHorario());
@@ -170,7 +173,7 @@ public class ListaEsperaService {
         ListaEspera l=o.getEntrada();if(!cabeNaJanela(l,o.getData(),o.getHorario(),l.getServico().getDuracaoMinutos()))throw new ApiException(HttpStatus.GONE,"Oferta indisponivel.");
         return new OfertaPublica(l.getServico().getNome(),o.getMarcacaoCancelada().getProfissional().getNome(),o.getData(),o.getHorario(),e.getFusoHorario(),l.getServico().getPreco(),l.getServico().getDuracaoMinutos(),o.getTokenPrazo());}
 
-    @Transactional public ReservaAceita aceitarOferta(String link,String raw){Estudio e=porLink(link);guard.bloquear(e.getId());OfertaListaEspera o=ofertaPorToken(e.getId(),raw);
+    @Transactional public ReservaAceita aceitarOferta(String link,String raw){Estudio e=porLink(link);exigirAssinatura(e);guard.bloquear(e.getId());OfertaListaEspera o=ofertaPorToken(e.getId(),raw);
         if(o.getEstado()==EstadoOfertaListaEspera.ACEITA&&o.getReserva()!=null)return resposta(o.getReserva(),e);
         validarOfertaAberta(o);ListaEspera l=o.getEntrada();if(l.getEstado()!=EstadoListaEspera.OFERTADA)throw new ApiException(HttpStatus.CONFLICT,"Oferta ja utilizada.");
         Servico s=servico(e.getId(),l.getServico().getId());Profissional p=disponibilidade.profissional(e.getId(),o.getMarcacaoCancelada().getProfissional().getId());
