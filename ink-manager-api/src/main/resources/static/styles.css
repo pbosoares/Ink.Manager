@@ -3148,3 +3148,38 @@ body:has(#workspace:not([hidden])) #login { display:none; }
     grid-column:1;
   }
 }
+
+/* Landing V3 (20/11/2026): legibilidade, garantias no hero e depoimentos. */
+#public-landing .cro-hero-copy h1 { letter-spacing:-.03em; line-height:1.06; }
+#public-landing .cro-section-heading h2 { letter-spacing:-.03em; }
+#public-landing .cro-kicker { font-size:12px; }
+.cro-guarantees { display:grid; gap:9px; margin:18px 0 0; padding:0; list-style:none; }
+.cro-guarantees li { display:flex; align-items:center; gap:9px; color:#343B4B; font-size:15px; font-weight:500; line-height:1.4; }
+.cro-guarantees li::before { content:''; width:16px; height:16px; flex-shrink:0; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' stroke='%2323784B' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center/16px; }
+#public-landing .marketing-header-cta { white-space:nowrap; }
+#public-landing .cro-feature p { font-size:14px; }
+#public-landing .cro-payment-options article strong { font-size:14px; }
+#public-landing .cro-payment-options article span { font-size:13px; }
+#public-landing .cro-faq-list summary { font-size:15px; }
+#public-landing .cro-faq-list details p { font-size:14px; }
+/* Alternância de fundos com a seção de depoimentos (branca) antes do preço. */
+#public-landing .cro-pricing-section { background:var(--cro-tint); }
+#public-landing .cro-pricing-card { background:#fff; }
+#public-landing .cro-faq-section { background:#fff; }
+.cro-testimonials { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; margin:0; padding:0; list-style:none; }
+.cro-testimonial { display:flex; flex-direction:column; justify-content:space-between; gap:24px; padding:26px 22px 22px; border:1px solid var(--cro-line); border-radius:18px; background:#F8FAFD; }
+.cro-testimonial blockquote { margin:0; }
+.cro-testimonial blockquote::before { content:'\201C'; display:block; height:30px; color:var(--cro-blue); opacity:.3; font:700 48px/1 'Inter Tight','Inter',system-ui,sans-serif; }
+.cro-testimonial blockquote p { margin:0; color:#343B4B; font-size:15px; line-height:1.6; }
+.cro-testimonial-author { display:flex; align-items:center; gap:12px; }
+.cro-testimonial-author span { display:grid; place-items:center; width:40px; height:40px; flex-shrink:0; border-radius:50%; background:#E7F1FF; color:var(--cro-blue); font-size:13px; font-weight:700; }
+.cro-testimonial-author p { display:grid; gap:2px; margin:0; }
+.cro-testimonial-author strong { color:var(--cro-ink); font-size:14px; }
+.cro-testimonial-author small { color:var(--cro-muted); font-size:13px; line-height:1.4; }
+@media(max-width:1100px) { .cro-testimonials { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) {
+  #public-landing .cro-kicker { font-size:11px; }
+  .cro-guarantees li { font-size:14px; }
+  .cro-testimonials { grid-template-columns:minmax(0,1fr); gap:14px; }
+  .cro-testimonial { padding:22px 18px 18px; }
+}
