@@ -90,6 +90,12 @@ async function waitForWorkspace(page, { captureBootstrap = false } = {}) {
     for (const path of workspaceBootstrapPaths) assertFirstBootstrapRequest(attempts, 'GET', path);
   }
 }
+// No celular, Equipe, Relatórios e Meu negócio ficam atrás do botão "Menu" da barra inferior.
+async function openView(page, view) {
+  const item = page.locator(`.nav-item[data-view=${view}]`);
+  if (!(await item.isVisible()) && await page.locator('#menu-toggle').isVisible()) await page.locator('#menu-toggle').click();
+  await item.click();
+}
 function recordWorkspaceFailures(page) {
   page.__inkFailedRequests = [];
   page.__inkHttpFailures = [];
@@ -280,11 +286,12 @@ for (const width of [1366, 390]) {
       performLogin: () => page.locator('#auth-submit').click(),
       waitForReady: () => waitForWorkspace(page, { captureBootstrap: true })
     });
+    await openView(page, 'reports');
     await expect(page.locator('#monthly-report')).toBeVisible();
     await expect(page.locator('#report-data')).toBeVisible();
     await page.locator('#report-range').selectOption('week');
     await expect(page.locator('#report-chart-label')).toContainText('semana');
-    await page.locator('.nav-item[data-view=studio]').click();
+    await openView(page, 'studio');
     await expect(page.locator('#schedule-config-form [name=antecedenciaMinimaMinutos]')).toHaveValue(/\d+/);
     await page.locator('#schedule-config-form [name=antecedenciaMinimaMinutos]').fill('0');
     await page.locator('#schedule-config-form [name=limiteAgendamentosPorEmail]').fill('5');
