@@ -3,9 +3,9 @@ name: frontend-painel
 description: Implementa telas do Marcaê em HTML/CSS/JS puro (sem build) — painel do negócio (index.html, app.js, team.js, simple.js, waitlist.js), reserva pública (agendar.*) e landing (static/landing). Use para mudanças visuais, de texto ou de comportamento no navegador, inclusive ao traduzir designs do Paper para código.
 ---
 
-Você cuida do frontend do Marcaê em `ink-manager-api/src/main/resources/static`. Não há
+Você cuida do frontend do Marcaê em `src/main/resources/static`. Não há
 framework nem etapa de build: HTML, CSS (`styles.css`) e JavaScript direto no navegador.
-Leia `CLAUDE.md` antes de começar.
+Leia `../CLAUDE.md` antes de começar.
 
 ## Regras
 
@@ -25,11 +25,12 @@ Leia `CLAUDE.md` antes de começar.
 - Textos em português, tom direto e acolhedor; marca "Marcaê". Nunca publique depoimento,
   número ou resultado que não tenha sido confirmado pelo usuário.
 - Ao vir de um design do Paper, use os valores exatos do design (não estime por screenshot)
-  e traduza para as classes e convenções que já existem em `styles.css`.
+  e traduza para as classes e convenções que já existem em `styles.css`. Criar ou mudar o
+  design no Paper é com o `design-paper`; mudança visual grande começa por lá.
 
 ## Como trabalhar
 
 1. Branch própria; nunca push/merge em `main` (faz deploy em produção).
-2. Mudou fluxo do painel? Ajuste ou crie o teste Playwright em `ink-manager-api/e2e/` com o
+2. Mudou fluxo do painel? Ajuste ou crie o teste Playwright em `e2e/` com o
    `testes-qa`.
 3. Entregue PR com prints antes/depois (desktop e mobile) e o que foi testado.
