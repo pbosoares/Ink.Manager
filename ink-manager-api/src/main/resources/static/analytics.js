@@ -105,7 +105,7 @@
     try{await api(`/marcacoes/${id}/presenca`,{method:'PUT',body:{presenca:value}});await window.inkApp.reload();if(state.reportKey)await loadReport();}
     catch(e){actions.querySelectorAll('button').forEach(x=>x.disabled=false);window.inkApp.notify(e.message);}
   }
-  function render(){if(!owner())return;renderReport();if(window.inkApp.view()==='overview'&&state.reportKey!==($('report-month').value||monthNow()))loadReport();if(window.inkApp.view()==='agenda'||window.inkApp.view()==='studio')loadConfig();}
+  function render(){if(!owner())return;renderReport();if(window.inkApp.view()==='reports'&&state.reportKey!==($('report-month').value||monthNow()))loadReport();if(window.inkApp.view()==='agenda'||window.inkApp.view()==='studio')loadConfig();}
   $('report-reload').addEventListener('click',loadReport);$('report-month').value=monthNow();$('report-range').addEventListener('change',renderReport);
   $('schedule-config-form').addEventListener('submit',saveConfig);
   document.addEventListener('click',event=>{const button=event.target.closest('[data-presence]');if(button)setPresence(button);});

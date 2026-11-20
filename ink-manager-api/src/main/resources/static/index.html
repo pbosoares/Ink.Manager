@@ -35,6 +35,7 @@
   }
   </script>
   <script src="/app.js" defer></script>
+  <script src="/overview.js" defer></script>
   <script src="/team.js" defer></script>
   <script src="/billing.js" defer></script>
   <script src="/simple.js" defer></script>
@@ -257,44 +258,58 @@
     </section>
   </div>
 
-  <div id="workspace" class="workspace" hidden>
-    <aside class="sidebar">
-      <a href="/" class="wordmark">Marca<span>ê</span><span class="brand-sub">SEU NEGÓCIO, SUA AGENDA.</span></a>
+  <div id="workspace" class="workspace" data-screen="overview" hidden>
+    <aside class="sidebar" id="sidebar">
+      <a href="/" class="panel-brand" aria-label="Marcaê, página inicial"><svg viewBox="0 0 35 32" aria-hidden="true"><path d="M3 27L10.7 7.8Q11.5 5.7 13 7.6L18.4 18.8Q19.4 20.7 21.1 18.8L28 7Q29 5.3 30.1 7.2L33 27"/></svg><span><strong>Marcaê</strong><small>AGENDA DO NEGÓCIO</small></span></a>
       <span class="nav-label">O NEGÓCIO</span>
-      <nav aria-label="Navegação principal">
-        <button data-view="overview" class="nav-item active"><span aria-hidden="true">◈</span> Visão geral <span class="nav-arrow">↗</span></button>
-        <button data-view="agenda" class="nav-item"><span aria-hidden="true">▦</span> Agenda <span class="nav-arrow">↗</span></button>
-        <button data-view="clients" class="nav-item"><span aria-hidden="true">♧</span> Clientes <span class="nav-arrow">↗</span></button>
-        <button data-view="team" class="nav-item">Equipe e horários</button>
-        <button data-view="receipts" class="nav-item owner-only" hidden>Recebimentos</button>
-        <button data-view="studio" class="nav-item owner-only">Meu negócio</button>
+      <nav aria-label="Navegação principal" class="nav-main">
+        <button type="button" data-view="overview" class="nav-item nav-tab active"><svg class="nav-ico nav-ico-desk" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.7 14.3 8 8 14.3 1.7 8 8 1.7Z"/><circle cx="8" cy="8" r="1.4"/></svg><svg class="nav-ico nav-ico-tab" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 7 8 2l6 5M3.7 6.3V13.5h8.6V6.3M6.2 13.5v-4h3.6v4"/></svg><span class="nav-text">Visão geral</span></button>
+        <button type="button" data-view="agenda" class="nav-item nav-tab"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.3" y="3.5" width="11.4" height="10" rx="2"/><path d="M5 2v3M11 2v3M2.5 6.4h11"/></svg><span class="nav-text">Agenda</span></button>
+        <button type="button" data-view="clients" class="nav-item nav-tab"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5"/><path d="M3 13.5c.3-2.4 2.2-3.8 5-3.8s4.7 1.4 5 3.8"/></svg><span class="nav-text">Clientes</span></button>
+        <button type="button" data-view="team" class="nav-item nav-extra"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="11.3" cy="6" r="1.6"/><path d="M1.8 13c.2-2.2 1.7-3.5 4.2-3.5s4 1.3 4.2 3.5M9.4 10c2.8-.5 4.4.5 4.8 2.7"/></svg><span class="nav-text">Equipe e horários</span></button>
+        <button type="button" data-view="receipts" class="nav-item nav-tab owner-only"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="3" width="12.4" height="10" rx="2"/><path d="M2 6.2h12M5 10h2"/></svg><span class="nav-text">Recebimentos</span></button>
+        <button type="button" data-view="reports" class="nav-item nav-extra owner-only"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.3 13.5V8.5M6 13.5V4M9.8 13.5V6M13.5 13.5V2.5"/></svg><span class="nav-text">Relatórios</span></button>
+        <button type="button" data-go="studio" data-scroll="billing-settings" class="nav-item nav-extra owner-only"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="3" width="12.4" height="10" rx="2"/><path d="M2 6.2h12M5 10h2"/></svg><span class="nav-text">Assinatura</span></button>
       </nav>
-      <div class="sidebar-stamp" aria-hidden="true"><span>BOA ROTINA</span><strong>✦</strong><span>BOM ATENDIMENTO</span></div>
-      <div class="sidebar-bottom"><span id="account-name">Seu negócio</span><button id="logout" class="text-button">Sair da conta ↗</button></div>
+      <span class="nav-divider owner-only" aria-hidden="true"></span>
+      <span class="nav-label nav-label-config owner-only">CONFIGURAÇÕES</span>
+        <button type="button" data-view="studio" class="nav-item nav-extra owner-only"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2 13.8 8 8 13.8 2.2 8 8 2.2Z"/></svg><span class="nav-text">Meu negócio</span></button>
+        <button type="button" id="menu-toggle" class="nav-item nav-menu" aria-expanded="false" aria-controls="sidebar"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg><span class="nav-text">Menu</span></button>
+      <div class="sidebar-bottom"><span class="account-avatar" id="account-initial" aria-hidden="true">S</span><span class="account-copy"><strong id="account-name">Seu negócio</strong><small>Conta atual</small></span><button type="button" id="logout" class="account-logout">Sair</button></div>
     </aside>
     <main>
-      <header class="topbar"><span>PAINEL DO NEGÓCIO</span><span id="today-label"></span></header>
+      <header class="topbar"><span class="topbar-label">PAINEL DO NEGÓCIO</span><div class="user-chip"><span class="user-avatar" id="user-initials" aria-hidden="true"></span><span class="user-copy"><strong id="user-name"></strong><small id="user-role"></small></span></div></header>
       <div class="page-content">
-        <section class="page-heading"><div><span class="eyebrow accent" id="page-kicker">A CASA ESTÁ ABERTA</span><h1 id="page-title">Cada dia, uma nova história.</h1><p class="muted" id="page-description">Sua rotina organizada. Seus atendimentos em primeiro lugar.</p></div><button class="primary" id="main-action">+ Nova marcação</button></section>
+        <section class="page-heading">
+          <div class="heading-main"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="15" height="13" rx="3"/><path d="M6 2.5v3M14 2.5v3M3 7.5h14M6.5 11h2M11.5 11h2M6.5 14h2"/></svg></span><div class="heading-copy"><span class="eyebrow accent" id="page-kicker"></span><h1 id="page-title"></h1><p class="muted" id="page-description"></p></div></div>
+          <div class="heading-actions">
+            <div class="day-picker" id="day-picker" role="group" aria-label="Escolher dia">
+              <button type="button" class="day-picker-step" data-day-shift="-1" aria-label="Dia anterior">‹</button>
+              <button type="button" class="day-picker-label" id="day-picker-label" aria-label="Escolher data"><span id="day-label"></span><span class="day-picker-caret" aria-hidden="true">⌄</span></button>
+              <input type="date" id="day-input" class="day-picker-input" tabindex="-1" aria-hidden="true">
+              <button type="button" class="day-picker-today" data-day-today>Hoje</button>
+              <button type="button" class="day-picker-step" data-day-shift="1" aria-label="Próximo dia">›</button>
+            </div>
+            <div class="heading-tools owner-only" id="receipts-tools"><label class="period-field"><span class="sr-only">Período de referência</span><input id="receipts-date" type="date" aria-label="Data de referência dos recebimentos"></label><button id="reload-receipts" type="button" class="secondary">Atualizar</button></div>
+            <button class="primary" id="main-action">+ Nova marcação</button>
+          </div>
+        </section>
         <p id="page-error" class="form-error" role="alert"></p>
         <div id="loading" class="loading" role="status" hidden>Buscando os dados do negócio…</div>
         <section id="overview-view">
-          <div class="stats"><article><span>NA AGENDA DE HOJE</span><strong id="stat-today">—</strong><small>Atendimentos não cancelados</small></article><article><span>PRÓXIMOS ATENDIMENTOS</span><strong id="stat-upcoming">—</strong><small>Agendadas ou confirmadas</small></article><article><span>COMPARTILHE SEU LINK</span><strong id="stat-clients">—</strong><small>Histórias que passam por aqui</small></article></div>
-          <div class="overview-grid"><section class="panel"><div class="section-title"><h2>Hoje no negócio</h2><button id="see-agenda" class="text-button">Ver agenda ↗</button></div><div id="today-list"></div></section><aside class="quote-card"><span class="eyebrow">LEMBRETE DA CASA</span><span class="quote-star" aria-hidden="true">✦</span><h2>Seu tempo importa.<br>O cuidado<br><em>também.</em></h2><p>Uma agenda em dia abre espaço para o que importa: atender bem.</p><span class="quote-sign">Marcaê &nbsp; / &nbsp; FEITO PARA QUEM ATENDE</span></aside></div>
-          <section id="monthly-report" class="settings-section owner-only" hidden aria-labelledby="report-title">
-            <div class="section-title"><div><span class="eyebrow accent">CADERNO DO MÊS</span><h2 id="report-title">Agenda e comparecimento</h2></div><div class="toolbar"><label>Mês<input id="report-month" type="month"></label><button id="report-reload" type="button" class="secondary">Atualizar</button></div></div>
-            <p id="report-loading" role="status" hidden>Consultando o relatório…</p><p id="report-error" class="form-error" role="alert"></p>
-            <div id="report-data" hidden><p id="report-timezone" class="muted"></p><p id="report-comparison-note" class="muted"></p>
-              <div id="report-kpis" class="report-kpis"></div>
-              <div class="report-summary-grid"><article><span>TAXA DE COMPARECIMENTO</span><strong id="report-rate"></strong><small id="report-denominator"></small><small id="report-rate-variation"></small></article><article><span>RECEBIDO E CONFIRMADO</span><strong id="report-received"></strong><small id="report-received-change"></small></article><article><span>VALOR POTENCIAL DE FALTAS</span><strong id="report-absence-potential"></strong><small>Estimativa pelos preços previstos; não recebida e sem comprovação de perda.</small><small id="report-absence-change"></small></article></div>
-              <section class="report-chart-wrap"><div class="section-title"><h3 id="report-chart-label">Agendamentos por dia</h3><label>Visualizar<select id="report-range"><option value="day">Dia</option><option value="week">Semana</option></select></label></div><div id="report-chart" class="report-chart" role="img" aria-label="Agendamentos por dia"></div></section>
-              <section class="report-ranking"><h3>Serviços mais agendados</h3><div id="report-services"></div></section><section class="report-ranking"><h3>Histórico recente de faltas</h3><div id="absence-history"></div></section>
-            </div>
-          </section>
-          <section class="panel onboarding-card"><span class="eyebrow">PRIMEIROS PASSOS</span><h2>Organize a casa</h2><p>Cadastre os serviços e seus preços, ajuste os horários da equipe e compartilhe o link fixo de reservas.</p><button class="text-button" data-view="studio">Configurar serviços e link →</button></section>        </section>
+          <div class="stats" id="overview-stats">
+            <article><span class="stat-icon" aria-hidden="true">▦</span><div><strong class="stat-title">Atendimentos</strong><small>Nesta data</small></div><b id="stat-today">—</b></article>
+            <article><span class="stat-icon" aria-hidden="true">✓</span><div><strong class="stat-title">A confirmar</strong><small>Agendadas</small></div><b id="stat-upcoming">—</b></article>
+            <article><span class="stat-icon" aria-hidden="true">✓</span><div><strong class="stat-title">Concluídos</strong><small id="stat-done-note">Nesta data</small></div><b id="stat-done">—</b></article>
+            <article class="stat-received owner-only" hidden><span class="stat-icon" aria-hidden="true">▤</span><div><strong class="stat-title">Recebido hoje</strong><small>Pagamentos confirmados</small></div><b id="stat-received">—</b></article>
+          </div>
+          <section id="first-steps" class="panel first-steps" aria-label="Primeiros passos" hidden></section>
+          <section class="panel team-day" aria-label="Agenda por profissional"><div id="today-list"></div></section>
+          <div id="next-up" class="next-up" role="status" aria-live="polite"></div>
+        </section>
         <section id="agenda-view" hidden>
-          <section class="panel availability-panel" aria-label="Disponibilidade da equipe">
-            <h2>Dias e horários livres</h2>
+          <section class="panel availability-panel" aria-labelledby="availability-title">
+            <div class="panel-head"><div><h2 id="availability-title">Dias e horários livres</h2><p>Consulte a disponibilidade antes de confirmar uma reserva.</p></div><span class="panel-badge">Atualiza a cada 20 segundos</span></div>
             <div class="toolbar availability-controls">
               <label>Profissional<select id="availability-professional"></select></label>
               <label>Mês<input id="availability-month" type="month"></label>
@@ -304,21 +319,26 @@
             <p id="availability-error" role="alert"></p>
             <div id="availability-days" class="availability-days"></div>
             <div id="availability-slots" class="availability-slots" aria-live="polite"></div>
-            <small>Atualiza a cada 20 segundos. A reserva é confirmada ao salvar.</small>
+            <small class="panel-note">A reserva é confirmada ao salvar.</small>
           </section>
-          <div class="toolbar agenda-filters" role="group" aria-label="Filtros da agenda">
-            <label class="search">Buscar marcação<input id="agenda-search" type="search" placeholder="Nome do cliente ou descrição"></label>
-            <label>Data<input id="agenda-date" type="date"></label>
-            <label>Profissional<select id="agenda-professional"><option value="">Todos</option></select></label>
-            <label>Status / recebimento<select id="agenda-status"><option value="">Todos</option><option value="AGENDADA">Agendada</option><option value="CONFIRMADA">Confirmada</option><option value="CONCLUIDA">Concluída</option><option value="CANCELADA">Cancelada</option><option value="PENDENTE_RECEBIMENTO">Pendente de recebimento</option></select></label>
-            <button id="clear-filters" class="secondary">Limpar</button>
-          </div>
-          <section class="panel agenda-list-panel">
-            <div class="section-title"><h2>Livro de marcações</h2><span id="agenda-count" class="muted"></span></div>
-            <div id="agenda-list"></div>
+          <section class="panel agenda-list-panel list-panel" aria-labelledby="agenda-book-title">
+            <div class="section-title"><div><h2 id="agenda-book-title">Livro de marcações</h2><p>Histórico, filtros e ações existentes <span id="agenda-count"></span></p></div><button type="button" id="agenda-collapse" class="collapse-toggle" aria-expanded="true" aria-controls="agenda-book-body" aria-label="Recolher livro de marcações">−</button></div>
+            <div id="agenda-book-body">
+              <div class="toolbar agenda-filters" role="group" aria-label="Filtros da agenda">
+                <label class="search">Buscar marcação<input id="agenda-search" type="search" placeholder="Nome do cliente ou descrição"></label>
+                <label>Data do livro<input id="agenda-date" type="date"></label>
+                <label>Profissional<select id="agenda-professional"><option value="">Todos</option></select></label>
+                <label>Status / recebimento<select id="agenda-status"><option value="">Todos</option><option value="AGENDADA">Agendada</option><option value="CONFIRMADA">Confirmada</option><option value="CONCLUIDA">Concluída</option><option value="CANCELADA">Cancelada</option><option value="PENDENTE_RECEBIMENTO">Pendente de recebimento</option></select></label>
+                <button id="clear-filters" type="button" class="secondary">Limpar</button>
+              </div>
+              <div id="agenda-list"></div>
+            </div>
           </section>
         </section>
-        <section id="clients-view" hidden><div class="toolbar"><label class="search">Buscar cliente<input id="client-search" type="search" placeholder="Nome, telefone ou Instagram"></label></div><section class="panel"><div class="section-title"><h2>Quem faz parte da casa</h2><span id="client-count" class="muted"></span></div><div id="client-list"></div></section></section>
+        <section id="clients-view" hidden>
+          <label class="search-bar"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span class="sr-only">Buscar cliente</span><input id="client-search" type="search" placeholder="Buscar cliente por nome, telefone ou Instagram"></label>
+          <section class="panel list-panel" aria-labelledby="clients-title"><div class="section-title"><div><h2 id="clients-title">Clientes</h2><p>Sua base de contatos e histórico de atendimentos</p></div><span id="client-count" class="list-count"></span></div><div id="client-list"></div></section>
+        </section>
 <section id="team-view" hidden><div class="section-title"><h2>Profissionais</h2><button id="new-professional" class="primary owner-only">+ Novo profissional</button></div><p>Configure os expedientes e bloqueie folgas sem perder o histórico.</p><div id="professional-list"></div></section>
 <section id="studio-view" hidden>
 <section id="simple-services" class="settings-section owner-only">
@@ -358,18 +378,25 @@
   <p id="waitlist-management-loading" role="status" hidden>Consultando a lista...</p><p id="waitlist-management-error" class="form-error" role="alert"></p>
   <div id="waitlist-management-list" aria-live="polite"></div>
 </section><div id="studio-settings"></div></section>
-
-<section id="receipts-view" hidden aria-labelledby="receipts-title">
-  <h2 id="receipts-title">Recebimentos confirmados</h2>
-  <p>Somente valores confirmados. Semana de segunda a domingo e mês calendário, pela data da confirmação.</p>
-  <div class="toolbar"><label>Data de referência<input id="receipts-date" type="date"></label><button id="reload-receipts" type="button" class="secondary">Atualizar</button></div>
+<section id="reports-view" hidden>
+          <section id="monthly-report" class="settings-section owner-only" hidden aria-labelledby="report-title">
+            <div class="section-title"><div><span class="eyebrow accent">CADERNO DO MÊS</span><h2 id="report-title">Agenda e comparecimento</h2></div><div class="toolbar"><label>Mês<input id="report-month" type="month"></label><button id="report-reload" type="button" class="secondary">Atualizar</button></div></div>
+            <p id="report-loading" role="status" hidden>Consultando o relatório…</p><p id="report-error" class="form-error" role="alert"></p>
+            <div id="report-data" hidden><p id="report-timezone" class="muted"></p><p id="report-comparison-note" class="muted"></p>
+              <div id="report-kpis" class="report-kpis"></div>
+              <div class="report-summary-grid"><article><span>TAXA DE COMPARECIMENTO</span><strong id="report-rate"></strong><small id="report-denominator"></small><small id="report-rate-variation"></small></article><article><span>RECEBIDO E CONFIRMADO</span><strong id="report-received"></strong><small id="report-received-change"></small></article><article><span>VALOR POTENCIAL DE FALTAS</span><strong id="report-absence-potential"></strong><small>Estimativa pelos preços previstos; não recebida e sem comprovação de perda.</small><small id="report-absence-change"></small></article></div>
+              <section class="report-chart-wrap"><div class="section-title"><h3 id="report-chart-label">Agendamentos por dia</h3><label>Visualizar<select id="report-range"><option value="day">Dia</option><option value="week">Semana</option></select></label></div><div id="report-chart" class="report-chart" role="img" aria-label="Agendamentos por dia"></div></section>
+              <section class="report-ranking"><h3>Serviços mais agendados</h3><div id="report-services"></div></section><section class="report-ranking"><h3>Histórico recente de faltas</h3><div id="absence-history"></div></section>
+            </div>
+          </section>
+</section>
+<section id="receipts-view" hidden aria-label="Recebimentos confirmados">
   <p id="receipts-error" class="form-error" role="alert"></p><p id="receipts-loading" role="status" hidden>Consultando recebimentos…</p>
   <div id="receipts-data" hidden>
-    <div class="receipt-totals"><article><span>RECEBIDO NA SEMANA</span><strong id="receipts-week">—</strong><small id="receipts-week-period"></small></article><article><span>RECEBIDO NO MÊS</span><strong id="receipts-month">—</strong><small id="receipts-month-period"></small></article></div>
-    <p id="receipts-timezone" class="muted"></p><div id="receipts-list"></div>
+    <div class="receipt-totals"><article><div><strong>Recebido nesta semana</strong><small>Atendimentos confirmados · <span id="receipts-week-period"></span></small></div><b id="receipts-week">—</b></article><article><div><strong>Recebido neste mês</strong><small>Somente valores confirmados · <span id="receipts-month-period"></span></small></div><b id="receipts-month">—</b></article><aside class="receipt-zone"><span>FUSO DO ESTÚDIO</span><p id="receipts-timezone"></p></aside></div>
+    <section class="panel list-panel" aria-labelledby="receipts-list-title"><div class="section-title"><div><h2 id="receipts-list-title">Atendimentos recebidos</h2><p>Valores informados e confirmados no período</p></div><span id="receipts-count" class="list-count is-accent"></span></div><div id="receipts-list"></div></section>
   </div>
 </section>
-        <footer class="page-footer"><span>SUA AGENDA. SEUS CLIENTES. SEU NEGÓCIO.</span><span>Marcaê <b>✦</b></span></footer>
       </div>
     </main>
   </div>

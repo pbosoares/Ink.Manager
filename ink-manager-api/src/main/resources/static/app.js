@@ -82,7 +82,8 @@ function logout(message = '') {
   state.clients = [];
   state.appointments = [];
   state.professionals = []; state.user = null; state.studio = null; state.edit = null; state.deletion = null;
-  ['today-list','agenda-list','client-list','account-name'].forEach(id => { $(id).textContent = ''; });
+  ['today-list','agenda-list','client-list','account-name','user-name','user-role','user-initials'].forEach(id => { $(id).textContent = ''; });
+  setMenu(false);
   $('workspace').hidden = true;
   $('auth').hidden = false;
   $('editor').close();
@@ -90,6 +91,7 @@ function logout(message = '') {
   window.inkTeam?.close();
   window.inkSimple?.close();
   window.inkAnalytics?.close();
+  window.inkOverview?.close();
   $('auth-form').reset();
   $('auth-error').textContent = message;
 }
@@ -132,7 +134,7 @@ async function loadData() {
     state.professionals = professionals;
     state.user = session.usuario;
     state.studio = session.estudio;
-    $('account-name').textContent = state.studio.nome;
+    showAccount();
     render();
   } catch (error) {
     if (generation === state.generation && request === state.loadRequest) {
@@ -158,7 +160,7 @@ function openWorkspace() {
   $('auth').hidden = true;
   $('workspace').hidden = false;
   $('account-name').textContent = 'Seu negócio';
-  $('today-label').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('account-initial').textContent = 'S';
   setView('overview');
   loadData();
 }
@@ -213,27 +215,50 @@ $('auth-form').addEventListener('submit', async (event) => {
   }
 });
 
+const VIEWS = ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts', 'reports'];
+const OWNER_VIEWS = ['receipts', 'reports'];
+const ROLE_LABELS = { PROPRIETARIO: 'Proprietário', FUNCIONARIO: 'Funcionário' };
+const initialsOf = (name) => String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+
+function showAccount() {
+  $('account-name').textContent = state.studio?.nome || 'Seu negócio';
+  $('account-initial').textContent = initialsOf(state.studio?.nome).slice(0, 1) || 'S';
+  $('user-name').textContent = state.user?.nome || '';
+  $('user-role').textContent = ROLE_LABELS[state.user?.perfil] || '';
+  $('user-initials').textContent = initialsOf(state.user?.nome);
+}
+
+// On phones the sidebar is the bottom tab bar; "Menu" opens it as a full panel.
+function setMenu(open) {
+  $('sidebar').classList.toggle('is-open', open);
+  $('menu-toggle').setAttribute('aria-expanded', String(open));
+  $('menu-toggle').querySelector('.nav-text').textContent = open ? 'Fechar' : 'Menu';
+}
+
 function setView(view) {
-  if (view === 'receipts' && state.user?.perfil !== 'PROPRIETARIO') view = 'overview';
+  if (OWNER_VIEWS.includes(view) && state.user?.perfil !== 'PROPRIETARIO') view = 'overview';
   state.view = view;
   const copy = {
-    overview: ['A CASA ESTÁ ABERTA', 'Cada dia, uma nova história.', 'Sua rotina organizada. Seus atendimentos em primeiro lugar.'],
+    overview: ['VISÃO GERAL', 'Agenda da <span>equipe</span>', 'Atendimentos, confirmações e horários do dia.'],
     agenda: ['TEMPO PARA ATENDER BEM', 'Sua agenda, no lugar.', 'Cada atendimento tem seu espaço. Cuide dos próximos encontros.'],
     team: ['A EQUIPE', 'Cada profissional, sua agenda.', 'Expedientes e folgas compartilhados com a equipe.'],
-    studio: ['SEU ESPACO', 'Seu negócio tem a sua cara.', 'Serviços, link de reservas, acessos e assinatura no mesmo lugar.'],
-    receipts: ['VALORES CONFIRMADOS', 'Recebimentos, sem complicação.', 'Confirme o atendimento e o valor recebido para acompanhar a semana e o mês.'],
+    studio: ['SEU ESPAÇO', 'Seu negócio tem a sua cara.', 'Serviços, link de reservas, acessos e assinatura no mesmo lugar.'],
+    receipts: ['VALORES CONFIRMADOS · SOMENTE PROPRIETÁRIO', 'Recebimentos, sem complicação.', 'Confirme o atendimento e o valor recebido para acompanhar a semana e o mês.'],
+    reports: ['CADERNO DO MÊS', 'Relatórios do negócio.', 'Agenda, comparecimento e recebimentos de cada mês.'],
     clients: ['QUEM CONFIA NO SEU TRABALHO', 'Seus clientes, sempre por perto.', 'Contatos e histórias para manter sempre por perto.']
   }[view];
-  ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts'].forEach((key) => { $(`${key}-view`).hidden = key !== view; });
+  VIEWS.forEach((key) => { $(`${key}-view`).hidden = key !== view; });
   document.querySelectorAll('[data-view]').forEach((button) => {
     button.classList.toggle('active', button.dataset.view === view);
     if (button.dataset.view === view) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   });
+  $('workspace').dataset.screen = view;
   $('page-kicker').textContent = copy[0];
-  $('page-title').textContent = copy[1];
+  $('page-title').innerHTML = copy[1];
   $('page-description').textContent = copy[2];
   $('main-action').textContent = view === 'clients' ? '+ Novo cliente' : '+ Nova marcação';
+  setMenu(false);
   render();
 }
 
@@ -243,24 +268,18 @@ function empty(title, description, action) {
 
 function render() {
   $('main-action').disabled = !state.loaded;
-  $('main-action').hidden = ['team', 'studio', 'receipts'].includes(state.view);
+  $('main-action').hidden = ['team', 'studio', 'receipts', 'reports'].includes(state.view);
   document.querySelectorAll('.owner-only').forEach((element) => { element.hidden = state.user?.perfil !== 'PROPRIETARIO'; });
-  ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts'].forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
+  VIEWS.forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
   $('workspace').setAttribute('aria-busy', String(state.loading));
   if (!state.loaded) {
-    ['stat-today', 'stat-upcoming', 'stat-clients'].forEach((id) => { $(id).textContent = '—'; });
+    ['stat-today', 'stat-upcoming', 'stat-done', 'stat-received'].forEach((id) => { $(id).textContent = '—'; });
+    $('next-up').textContent = '';
+    $('first-steps').hidden = true;
     ['today-list', 'agenda-list', 'client-list', 'agenda-count', 'client-count'].forEach((id) => { $(id).textContent = ''; });
     return;
   }
-  const today = localDate();
-  const appointments = sortedAppointments();
-  const todays = appointments.filter((item) => item.data === today && item.status !== 'CANCELADA');
-  $('stat-today').textContent = String(todays.length).padStart(2, '0');
-  const now = new Date();
-  const currentTime = `${today}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
-  $('stat-upcoming').textContent = String(appointments.filter((item) => `${item.data}T${item.horario}` >= currentTime && ['AGENDADA', 'CONFIRMADA'].includes(item.status)).length).padStart(2, '0');
-  $('stat-clients').textContent = String(state.clients.length).padStart(2, '0');
-  $('today-list').innerHTML = todays.length ? todays.map((item) => `<div class="session"><span class="session-time">${escapeHtml(item.horario?.slice(0, 5))}</span><div class="session-info"><div class="session-name">${escapeHtml(item.cliente?.nome)}</div><div class="session-description">${escapeHtml(item.servicoNome || item.descricao || 'Atendimento')}${window.inkSimple?.appointmentDetails(item) || ''}</div>${window.inkAnalytics?.attendanceAction(item) || ''}</div>${badge(item.status)}${window.inkSimple?.receiptAction(item) || ''}${whatsappAction(item)}<button class="text-button" ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-edit-appointment="${item.id}" aria-label="Editar marcação de ${escapeHtml(item.cliente?.nome)}">Editar</button></div>`).join('') : empty('Um respiro na agenda.', 'Nenhum atendimento marcado para hoje.', 'appointment');
+  window.inkOverview?.render();
   renderAgenda();
   renderClients();
   window.inkTeam?.render();
@@ -276,7 +295,7 @@ function renderAgenda() {
   const professional = $('agenda-professional').value;
   const pendingReceipt = status === 'PENDENTE_RECEBIMENTO';
   const items = sortedAppointments().filter((item) => (!professional || String(item.profissional?.id) === professional) && (!date || item.data === date) && (pendingReceipt ? item.status === 'CONCLUIDA' && !item.recebimentoConfirmado && item.podeConfirmarRecebimento : !status || item.status === status) && `${item.cliente?.nome || ''} ${item.servicoNome || ''} ${item.descricao || ''}`.toLocaleLowerCase('pt-BR').includes(query));
-  $('agenda-count').textContent = `${items.length} registro(s)`;
+  $('agenda-count').textContent = `· ${items.length} registro(s)`;
   $('agenda-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>DATA / HORA</th><th>CLIENTE / ATENDIMENTO</th><th>STATUS</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(formatDate(item.data))}<small>${escapeHtml(item.data?.slice(0, 4))} · ${escapeHtml(item.horario?.slice(0, 5))}</small></td><td>${escapeHtml(item.cliente?.nome)}<small>${escapeHtml(item.profissional?.nome)} / ${escapeHtml(item.servicoNome || item.descricao || 'Sem descrição')}</small>${window.inkSimple?.appointmentDetails(item) || ''}${window.inkAnalytics?.attendanceAction(item) || ''}</td><td>${badge(item.status)}</td><td><div class="row-actions">${window.inkSimple?.receiptAction(item) || ''}${whatsappAction(item)}<button class="text-button" ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-edit-appointment="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} ${item.recebimentoConfirmado ? 'disabled title="Recebimento confirmado"' : ''} data-delete-appointment="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Nenhuma marcação por aqui.', query || date || status ? 'Experimente mudar os filtros.' : 'Reserve um horário para o próximo atendimento.', query || date || status ? '' : 'appointment');
 }
 
@@ -302,8 +321,9 @@ function renderClients() {
       if (!aNext && bNext) return 1;
       return Number(a.id) - Number(b.id);
     });
-  $('client-count').textContent = `${items.length} cliente(s)`;
-  $('client-list').innerHTML = items.length ? `<div class="table-scroll"><table><thead><tr><th>NOME</th><th>CONTATO</th><th>IDADE</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => `<tr><td>${escapeHtml(item.nome)}<small>CLIENTE #${item.id}</small></td><td>${escapeHtml(item.telefone)}<small>${escapeHtml(item.instagram || 'Sem Instagram')}</small></td><td>${item.idade == null ? '—' : escapeHtml(item.idade)}</td><td><div class="row-actions"><button class="text-button" data-edit-client="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} data-delete-client="${item.id}">Excluir</button></div></td></tr>`).join('')}</tbody></table></div>` : empty('Toda história começa com alguém.', query ? 'Nenhum cliente encontrado nessa busca.' : 'Cadastre seu primeiro cliente para começar.', query ? '' : 'client');
+  $('client-count').textContent = `${items.length} ${items.length === 1 ? 'cliente' : 'clientes'}`;
+  const nextLabel = (value) => value ? `${formatDate(value.slice(0, 10))} · ${value.slice(11, 16)}` : '';
+  $('client-list').innerHTML = items.length ? `<div class="table-scroll"><table class="clients-table"><thead><tr><th>CLIENTE</th><th>CONTATO</th><th>PRÓXIMO ATENDIMENTO</th><th>AÇÕES</th></tr></thead><tbody>${items.map((item) => { const next = nextAppointmentByClient.get(String(item.id)); return `<tr><td>${escapeHtml(item.nome)}<small>${item.idade == null ? `Cliente #${item.id}` : `${escapeHtml(item.idade)} anos`}</small></td><td>${escapeHtml(item.telefone)}<small>${escapeHtml(item.instagram || 'Sem Instagram')}</small></td><td>${next ? escapeHtml(nextLabel(next)) : '<span class="muted">Sem horário marcado</span>'}</td><td><div class="row-actions"><button class="text-button" data-edit-client="${item.id}">Editar</button><button class="text-button delete" ${state.user?.perfil === 'PROPRIETARIO' ? '' : 'hidden'} data-delete-client="${item.id}">Excluir</button></div></td></tr>`; }).join('')}</tbody></table></div>` : empty('Toda história começa com alguém.', query ? 'Nenhum cliente encontrado nessa busca.' : 'Cadastre seu primeiro cliente para começar a acompanhar contatos e atendimentos.', query ? '' : 'client');
 }
 
 
@@ -398,7 +418,13 @@ $('confirm-delete').addEventListener('click', async () => {
 document.addEventListener('click', (event) => {
   const button = event.target.closest('button');
   if (!button) return;
-  if (button.dataset.view) setView(button.dataset.view);
+  // data-view marks the single navigation button of each screen; data-go is every other shortcut.
+  const target = button.dataset.view || button.dataset.go;
+  if (target) {
+    setView(target);
+    const section = button.dataset.scroll && $(button.dataset.scroll);
+    if (section) requestAnimationFrame(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
   if (button.dataset.create) openEditor(button.dataset.create);
   for (const type of ['Client', 'Appointment']) {
     if (button.dataset[`edit${type}`]) openEditor(type.toLowerCase(), Number(button.dataset[`edit${type}`]));
@@ -407,7 +433,15 @@ document.addEventListener('click', (event) => {
 });
 $('logout').onclick = async () => { try { await api('/auth/logout', { method: 'POST' }); } catch {} finally { logout(); } };
 $('main-action').onclick = () => openEditor(state.view === 'clients' ? 'client' : 'appointment');
-$('see-agenda').onclick = () => setView('agenda');
+$('menu-toggle').onclick = () => setMenu(!$('sidebar').classList.contains('is-open'));
+document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && $('sidebar').classList.contains('is-open')) setMenu(false); });
+$('agenda-collapse').onclick = () => {
+  const open = $('agenda-collapse').getAttribute('aria-expanded') !== 'true';
+  $('agenda-collapse').setAttribute('aria-expanded', String(open));
+  $('agenda-collapse').setAttribute('aria-label', open ? 'Recolher livro de marcações' : 'Abrir livro de marcações');
+  $('agenda-collapse').textContent = open ? '−' : '+';
+  $('agenda-book-body').hidden = !open;
+};
 $('close-editor').onclick = $('cancel-editor').onclick = () => $('editor').close();
 $('cancel-delete').onclick = () => $('confirmation').close();
 $('editor').addEventListener('cancel', (event) => { if ($('save-editor').disabled) event.preventDefault(); });

@@ -119,9 +119,11 @@
       $('receipts-week').textContent = money(result.totalSemana); $('receipts-month').textContent = money(result.totalMes);
       $('receipts-week-period').textContent = period(result.inicioSemana, result.fimSemana);
       $('receipts-month-period').textContent = period(result.inicioMes, result.fimMes);
-      $('receipts-timezone').textContent = 'Totais pela data de confirmação, no fuso ' + result.fusoHorario + '. A lista reúne o mês e a semana selecionados.';
+      $('receipts-timezone').textContent = 'Valores pela data local do negócio (' + result.fusoHorario + '). A lista reúne o mês e a semana selecionados.';
       result.recebimentos.forEach(r => knownReceipts.set(r.marcacaoId, r));
-      $('receipts-list').innerHTML = result.recebimentos.length ? `<div class="table-scroll"><table><thead><tr><th>CONFIRMADO EM</th><th>CLIENTE / SERVIÇO</th><th>VALOR</th></tr></thead><tbody>${result.recebimentos.map(r => `<tr><td>${escapeHtml(new Date(r.confirmadoEm).toLocaleString('pt-BR', { timeZone: result.fusoHorario, dateStyle: 'short', timeStyle: 'short' }))}</td><td>${escapeHtml(r.cliente)}<small>${escapeHtml(r.servico || 'Atendimento')}</small></td><td>${money(r.valor)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">Nenhum recebimento confirmado neste período.</p>';
+      const professionalOf = id => state.appointments.find(a => a.id === id)?.profissional?.nome || '—';
+      $('receipts-count').textContent = result.recebimentos.length + (result.recebimentos.length === 1 ? ' registro' : ' registros');
+      $('receipts-list').innerHTML = result.recebimentos.length ? `<div class="table-scroll"><table class="receipts-table"><thead><tr><th>DATA</th><th>CLIENTE / ATENDIMENTO</th><th>PROFISSIONAL</th><th>VALOR RECEBIDO</th><th>STATUS</th></tr></thead><tbody>${result.recebimentos.map(r => `<tr><td>${escapeHtml(new Date(r.confirmadoEm).toLocaleString('pt-BR', { timeZone: result.fusoHorario, dateStyle: 'short', timeStyle: 'short' }))}</td><td>${escapeHtml(r.cliente)}<small>${escapeHtml(r.servico || 'Atendimento')}</small></td><td>${escapeHtml(professionalOf(r.marcacaoId))}</td><td><strong>${money(r.valor)}</strong></td><td><span class="badge received">Recebido</span></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><strong>Nenhum recebimento para exibir</strong>Os atendimentos confirmados do período aparecem aqui.</div>';
       $('receipts-data').hidden = false;
     } catch (error) { if (current(key) && number === receiptsRequest) $('receipts-error').textContent = error.message + ' Use Atualizar para tentar novamente.'; }
     finally { if (current(key) && number === receiptsRequest) { $('receipts-loading').hidden = true; $('receipts-view').setAttribute('aria-busy', 'false'); } }
@@ -132,7 +134,7 @@
     activeContext = ''; catalogLoaded = false; catalogBusy = false; services = []; serviceEdit = null; receiptEdit = null; receiptBusy = false; window.inkWaitlist?.close();
     receiptsKey = ''; ++receiptsRequest; knownReceipts.clear(); $('receipt-dialog').close();
     $('service-list').replaceChildren(); $('receipts-list').replaceChildren(); $('receipts-data').hidden = true;
-    ['receipts-week','receipts-month','receipts-week-period','receipts-month-period','receipts-timezone','receipt-description'].forEach(id => { $(id).textContent = ''; });
+    ['receipts-week','receipts-month','receipts-week-period','receipts-month-period','receipts-timezone','receipts-count','receipt-description'].forEach(id => { $(id).textContent = ''; });
     $('receipt-form').reset(); $('receipts-date').value = '';
     $('public-link').value = ''; $('open-public-link').removeAttribute('href'); $('open-public-link').hidden = true; $('copy-public-link').disabled = true;
     $('service-fields').disabled = false; $('receipt-fields').disabled = false; $('receipt-close').disabled = false;
