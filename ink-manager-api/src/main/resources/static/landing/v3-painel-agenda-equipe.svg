@@ -39,7 +39,7 @@
   <rect x="102" width="10" height="430" fill="#13213B"/>
   <path d="M17.5 29 25 13l6.5 11 6.5-11.5L43.5 29" fill="none" stroke="url(#logoBlue)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
   <text x="48" y="26" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="750" fill="#FFF">Marcaê</text>
-  <text x="48" y="36" font-family="Inter,system-ui,sans-serif" font-size="5.5" font-weight="650" letter-spacing=".7" fill="#AEB8CE">AGENDA DO NEGÓCIO</text>
+  <text x="48" y="36" font-family="Inter,system-ui,sans-serif" font-size="5" font-weight="650" letter-spacing=".3" fill="#AEB8CE" textLength="58" lengthAdjust="spacingAndGlyphs">AGENDA DO NEGÓCIO</text>
   <text x="12" y="45" font-family="Inter,system-ui,sans-serif" font-size="6.5" font-weight="700" letter-spacing=".8" fill="#98A4BD">O NEGÓCIO</text>
   <rect x="8" y="52" width="96" height="22" rx="6" fill="#0877F9"/>
   <path d="M15 62l4-4 4 4v6h-8z" fill="none" stroke="#FFF" stroke-width="1.1" stroke-linejoin="round"/>
