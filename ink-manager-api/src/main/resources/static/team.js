@@ -7,44 +7,44 @@
   let selectedDate = '';
   let settingsUser = null;
   let polling = false, refreshTimer = null, focusTimer = null, queuedRefresh = false;
-  const days = ['Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado', 'Domingo'];
+  const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   const owner = () => state.user?.perfil === 'PROPRIETARIO';
   document.body.insertAdjacentHTML('beforeend', `
     <dialog id="professional-dialog" aria-labelledby="professional-title">
       <form id="professional-form"><h2 id="professional-title">Profissional e expediente</h2>
         <label>Nome<input name="nome" required maxlength="100"></label>
-        <label><input name="ativo" type="checkbox" checked> Disponivel para novas reservas</label>
-        <p>Adicione dois turnos no mesmo dia para reservar um intervalo de almoco.</p>
+        <label><input name="ativo" type="checkbox" checked> Disponível para novas reservas</label>
+        <p>Para criar um intervalo, como o almoço, adicione dois turnos no mesmo dia.</p>
         <div id="shift-list"></div><button type="button" id="add-shift" class="secondary">+ Turno</button>
         <p id="professional-error" class="form-error" role="alert"></p>
         <div class="dialog-actions"><button type="button" id="close-professional" class="secondary">Fechar</button><button id="save-professional" class="primary">Salvar horários</button></div>
       </form>
-      <section id="block-section" hidden><h3>Folgas e ausencias</h3>
-        <form id="block-form"><div class="form-row"><label>Inicio<input name="inicio" type="datetime-local" required></label><label>Fim<input name="fim" type="datetime-local" required></label></div><label>Motivo (opcional)<input name="motivo" maxlength="255"></label><button class="secondary">Bloquear periodo</button><p id="block-error" role="alert"></p></form><div id="block-list"></div>
+      <section id="block-section" hidden><h3>Folgas e ausências</h3>
+        <form id="block-form"><div class="form-row"><label>Início<input name="inicio" type="datetime-local" required></label><label>Fim<input name="fim" type="datetime-local" required></label></div><label>Motivo (opcional)<input name="motivo" maxlength="255"></label><button class="secondary">Bloquear período</button><p id="block-error" role="alert"></p></form><div id="block-list"></div>
       </section>
     </dialog>
     <dialog id="password-dialog" aria-labelledby="password-title"><form id="password-form">
       <h2 id="password-title">Recuperar acesso</h2><label id="recovery-email">E-mail da conta<input name="email" type="email" required maxlength="255"></label>
       <fieldset id="reset-fields" hidden disabled><label>Nova senha<input name="senha" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></label><label>Repita a nova senha<input name="confirmacao" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></label></fieldset>
-      <p id="password-message" role="status"></p><div class="dialog-actions"><button type="button" id="close-password" class="secondary">Fechar</button><button id="save-password" class="primary">Enviar instrucoes</button></div>
+      <p id="password-message" role="status"></p><div class="dialog-actions"><button type="button" id="close-password" class="secondary">Fechar</button><button id="save-password" class="primary">Enviar instruções</button></div>
     </form></dialog>`);
 
   function options(select, all = false) {
     const previous = select.value;
-    select.innerHTML = `${all ? '<option value="">Todos</option>' : ''}${state.professionals.filter(p => all || p.ativo).map(p => `<option value="${p.id}">${escapeHtml(p.nome)}${p.ativo ? '' : ' (inativo)'}</option>`).join('')}`;
+    select.innerHTML = `${all ? '<option value="">Todos</option>' : ''}${state.professionals.filter(p => all || p.ativo).map(p => `<option value="${p.id}">${escapeHtml(p.nome)}${p.ativo ? '' : ' (fora da agenda)'}</option>`).join('')}`;
     if ([...select.options].some(option => option.value === previous)) select.value = previous;
   }
   function renderTeam() {
     options($('agenda-professional'), true);
     options($('availability-professional'));
     if (!$('availability-month').value) $('availability-month').value = localDate().slice(0, 7);
-    $('professional-list').innerHTML = state.professionals.map(p => `<article class="team-card"><strong>${escapeHtml(p.nome)}</strong><p>${p.ativo ? 'Ativo' : 'Inativo'} / ${p.horarios.length} turno(s) por semana</p>${owner() ? `<button class="secondary" data-professional="${p.id}">Expediente e folgas</button>` : ''}</article>`).join('');
+    $('professional-list').innerHTML = state.professionals.map(p => `<article class="team-card"><strong>${escapeHtml(p.nome)}</strong><p>${p.ativo ? 'Disponível para reservas' : 'Fora da agenda'} · ${p.horarios.length} turno(s) por semana</p>${owner() ? `<button class="secondary" data-professional="${p.id}">Expediente e folgas</button>` : ''}</article>`).join('');
     if (owner()) renderSettings();
     if (state.view === 'agenda') loadCalendar(false);
   }
   function shiftRow(shift = { diaSemana: 1, inicio: '09:00', fim: '18:00' }) {
     const row = document.createElement('div'); row.className = 'shift-row';
-    row.innerHTML = `<label>Dia<select name="diaSemana">${days.map((day, index) => `<option value="${index + 1}">${day}</option>`).join('')}</select></label><label>Inicio<input name="inicio" type="time" step="1" required></label><label>Fim<input name="fim" type="time" step="1" required></label><button type="button" class="text-button">Remover</button>`;
+    row.innerHTML = `<label>Dia<select name="diaSemana">${days.map((day, index) => `<option value="${index + 1}">${day}</option>`).join('')}</select></label><label>Início<input name="inicio" type="time" step="1" required></label><label>Fim<input name="fim" type="time" step="1" required></label><button type="button" class="text-button">Remover</button>`;
     row.querySelector('[name=diaSemana]').value = shift.diaSemana;
     row.querySelector('[name=inicio]').value = shift.inicio;
     row.querySelector('[name=fim]').value = shift.fim;
@@ -69,7 +69,7 @@
     try {
       const blocks = await api(`/profissionais/${id}/bloqueios`);
       if (professionalEdit?.id !== id || !$('professional-dialog').open) return;
-      $('block-list').innerHTML = blocks.map(b => `<p>${escapeHtml(b.inicio.replace('T', ' '))} ate ${escapeHtml(b.fim.replace('T', ' '))}<br>${escapeHtml(b.motivo || 'Indisponivel')} <button type="button" class="text-button" data-remove-block="${b.id}">Remover bloqueio</button></p>`).join('') || '<p>Nenhum bloqueio.</p>';
+      $('block-list').innerHTML = blocks.map(b => `<p>${escapeHtml(b.inicio.replace('T', ' '))} até ${escapeHtml(b.fim.replace('T', ' '))}<br>${escapeHtml(b.motivo || 'Indisponível')} <button type="button" class="text-button" data-remove-block="${b.id}">Remover bloqueio</button></p>`).join('') || '<p>Nenhuma folga ou ausência cadastrada.</p>';
     } catch (error) { $('block-error').textContent = error.message; }
   }
   $('new-professional').onclick = () => openProfessional();
@@ -109,8 +109,8 @@
     const select = form.elements.horario; const desired = preferred || select.value;
     const request = ++editorRequest;
     $('save-editor').disabled = true;
-    select.innerHTML = '<option value="">Consultando horarios...</option>';
-    if (!id || !date || !Number.isInteger(duration) || duration < 1 || duration > 720) { select.innerHTML = '<option value="">Preencha profissional, data e duracao</option>'; return; }
+    select.innerHTML = '<option value="">Consultando horários…</option>';
+    if (!id || !date || !Number.isInteger(duration) || duration < 1 || duration > 720) { select.innerHTML = '<option value="">Escolha profissional, data e duração</option>'; return; }
     const ignored = edit.id && String(edit.original.profissional.id) === id ? `&ignorarMarcacaoId=${edit.id}` : '';
     try {
       const result = await api(`/profissionais/${id}/disponibilidade?data=${date}&duracaoMinutos=${duration}${ignored}`);
@@ -120,11 +120,11 @@
       const unchanged = edit.id && String(original.profissional.id) === id && original.data === date && original.duracaoMinutos === duration;
       if (unchanged && !times.includes(original.horario.slice(0, 5))) times.push(original.horario.slice(0, 5));
       times.sort();
-      select.innerHTML = `<option value="">${times.length ? 'Selecione o horario' : 'Sem horarios livres neste dia'}</option>${times.map(time => `<option value="${time}">${time}</option>`).join('')}`;
+      select.innerHTML = `<option value="">${times.length ? 'Selecione o horário' : 'Sem horários livres neste dia'}</option>${times.map(time => `<option value="${time}">${time}</option>`).join('')}`;
       if (times.includes(desired)) select.value = desired;
       $('save-editor').disabled = !times.length;
       $('editor-error').textContent = times.length ? '' : 'Escolha outro dia ou profissional.';
-    } catch (error) { if (request === editorRequest && $('editor').open) { $('editor-error').textContent = error.message; select.innerHTML = '<option value="">Consulta indisponivel</option>'; } }
+    } catch (error) { if (request === editorRequest && $('editor').open) { $('editor-error').textContent = error.message; select.innerHTML = '<option value="">Não foi possível consultar</option>'; } }
   }
   async function loadCalendar(force) {
     if (!state.loaded || state.view !== 'agenda') return;
@@ -134,24 +134,24 @@
     calendarKey = key; const request = ++calendarRequest;
     $('availability-error').textContent = '';
     $('availability-days').replaceChildren(); $('availability-slots').replaceChildren();
-    if (!id || !/^\d{4}-\d{2}$/.test(month) || duration < 1 || duration > 720 || !Number.isInteger(duration)) { $('availability-error').textContent = 'Selecione profissional, mes e duracao valida.'; return; }
+    if (!id || !/^\d{4}-\d{2}$/.test(month) || duration < 1 || duration > 720 || !Number.isInteger(duration)) { $('availability-error').textContent = 'Escolha profissional, mês e uma duração entre 1 e 720 minutos.'; return; }
     const [year, number] = month.split('-').map(Number); const count = new Date(year, number, 0).getDate();
     try {
       const result = await api(`/profissionais/${id}/dias-disponiveis?inicio=${month}-01&dias=${count}&duracaoMinutos=${duration}`);
       if (request !== calendarRequest || !state.token) return;
       const offset = (new Date(`${month}-01T12:00:00`).getDay() + 6) % 7;
-      $('availability-days').innerHTML = days.map(day => `<small>${day.slice(0,3)}</small>`).join('') + '<span></span>'.repeat(offset) + result.map(day => `<button type="button" data-free-date="${day.data}" ${day.quantidadeHorarios ? '' : 'disabled'}><strong>${Number(day.data.slice(8))}</strong><small>${day.quantidadeHorarios ? `${day.quantidadeHorarios} horarios` : 'Sem vagas'}</small></button>`).join('');
+      $('availability-days').innerHTML = days.map(day => `<small>${day.slice(0,3)}</small>`).join('') + '<span></span>'.repeat(offset) + result.map(day => `<button type="button" data-free-date="${day.data}" ${day.quantidadeHorarios ? '' : 'disabled'}><strong>${Number(day.data.slice(8))}</strong><small>${day.quantidadeHorarios ? `${day.quantidadeHorarios} horários` : 'Sem vagas'}</small></button>`).join('');
       if (selectedDate.startsWith(month)) showSlots(selectedDate);
     } catch (error) { if (request === calendarRequest) { calendarKey = ''; $('availability-error').textContent = error.message; } }
   }
   async function showSlots(date) {
     selectedDate = date; const key = calendarKey;
     const id = $('availability-professional').value, duration = Number($('availability-duration').value);
-    $('availability-slots').textContent = 'Consultando...';
+    $('availability-slots').textContent = 'Consultando horários…';
     try {
       const result = await api(`/profissionais/${id}/disponibilidade?data=${date}&duracaoMinutos=${duration}`);
       if (selectedDate !== date || key !== calendarKey || !state.token) return;
-      $('availability-slots').innerHTML = `<p>${escapeHtml(new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR'))} / ${escapeHtml(result.fusoHorario)}</p>` + (result.horarios.length ? result.horarios.map(time => `<button type="button" class="secondary" data-free-time="${time.slice(0,5)}">${time.slice(0,5)}</button>`).join('') : '<p>Nenhum horario livre para esta duracao.</p>');
+      $('availability-slots').innerHTML = `<p>${escapeHtml(new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR'))} / ${escapeHtml(result.fusoHorario)}</p>` + (result.horarios.length ? result.horarios.map(time => `<button type="button" class="secondary" data-free-time="${time.slice(0,5)}">${time.slice(0,5)}</button>`).join('') : '<p>Nenhum horário livre para esta duração neste dia.</p>');
     } catch (error) { if (selectedDate === date) $('availability-slots').textContent = error.message; }
   }
   $('availability-load').onclick = () => loadCalendar(true);
@@ -168,11 +168,11 @@
   function renderSettings() {
     if (settingsUser === state.user.id) return;
     settingsUser = state.user.id;
-    $('studio-settings').innerHTML = `<section class="settings-section"><h2>Nome do negócio</h2><form id="studio-name-form"><label>Como seu negócio aparece para a equipe<input name="nome" required maxlength="100"></label><button class="primary">Salvar nome</button><p id="studio-name-message" role="status"></p></form></section><section class="settings-section"><h2>Acessos da equipe</h2><p>A equipe consulta a agenda e marca atendimentos. O responsável configura o negócio, controla acessos e exclui registros.</p><div id="account-list"></div><h3>Novo funcionario</h3><form id="account-form"><label>Nome<input name="nome" required maxlength="100"></label><label>E-mail<input name="email" type="email" required maxlength="255"></label><label>Senha inicial<input name="senha" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></label><button class="primary">Criar acesso</button><p id="account-message" role="status"></p></form></section><section class="settings-section" id="billing-settings"><h2>Assinatura</h2><div id="billing-content">Carregando opcoes...</div></section>`;
+    $('studio-settings').innerHTML = `<section class="settings-section"><h2>Nome do negócio</h2><form id="studio-name-form"><label>Nome exibido no painel e na página de reservas<input name="nome" required maxlength="100"></label><button class="primary">Salvar nome</button><p id="studio-name-message" role="status"></p></form></section><section class="settings-section"><h2>Acessos da equipe</h2><p>A equipe consulta a agenda e marca atendimentos. O responsável configura o negócio, controla acessos e exclui registros.</p><div id="account-list"></div><h3>Novo acesso para a equipe</h3><form id="account-form"><label>Nome<input name="nome" required maxlength="100"></label><label>E-mail<input name="email" type="email" required maxlength="255"></label><label>Senha inicial<input name="senha" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></label><button class="primary">Criar acesso</button><p id="account-message" role="status"></p></form></section><section class="settings-section" id="billing-settings"><h2>Assinatura</h2><div id="billing-content">Carregando assinatura…</div></section>`;
     $('studio-name-form').elements.nome.value = state.studio.nome;
     $('studio-name-form').onsubmit = async event => {
       event.preventDefault(); const button = event.currentTarget.querySelector('button'); button.disabled = true;
-      try { state.studio = await api('/estudio',{method:'PUT',body:{nome:event.currentTarget.elements.nome.value.trim(),version:state.studio.version}}); $('account-name').textContent = state.studio.nome; $('studio-name-message').textContent = 'Nome atualizado para a equipe.'; }
+      try { state.studio = await api('/estudio',{method:'PUT',body:{nome:event.currentTarget.elements.nome.value.trim(),version:state.studio.version}}); $('account-name').textContent = state.studio.nome; $('studio-name-message').textContent = 'Nome do negócio atualizado.'; }
       catch (error) { $('studio-name-message').textContent = error.message; }
       finally { button.disabled = false; }
     };
@@ -194,7 +194,7 @@
     const generation = state.generation, userId = state.user?.id;
     try {
       const accounts = await api('/equipe'); if (!owner() || generation !== state.generation || userId !== state.user?.id) return;
-      $('account-list').innerHTML = accounts.map(account => `<article class="team-card"><strong>${escapeHtml(account.nome)}</strong><p>${escapeHtml(account.email)} / ${account.perfil === 'PROPRIETARIO' ? 'Responsavel' : 'Funcionario'} / ${account.ativo ? 'Ativo' : 'Desativado'}</p>${account.id === state.user.id ? '' : `<button type="button" class="secondary" data-account="${account.id}" data-version="${account.version}" data-active="${!account.ativo}">${account.ativo ? 'Desativar e encerrar sessoes' : 'Reativar acesso'}</button>`}</article>`).join('');
+      $('account-list').innerHTML = accounts.map(account => `<article class="team-card"><strong>${escapeHtml(account.nome)}</strong><p>${escapeHtml(account.email)} / ${account.perfil === 'PROPRIETARIO' ? 'Responsável' : 'Equipe'} · ${account.ativo ? 'Acesso ativo' : 'Acesso desativado'}</p>${account.id === state.user.id ? '' : `<button type="button" class="secondary" data-account="${account.id}" data-version="${account.version}" data-active="${!account.ativo}">${account.ativo ? 'Desativar e encerrar sessões' : 'Reativar acesso'}</button>`}</article>`).join('');
     } catch (error) { if ($('account-message')) $('account-message').textContent = error.message; }
   }
 
@@ -204,7 +204,7 @@
     $('recovery-email').hidden = reset; $('recovery-email').querySelector('input').disabled = reset;
     $('reset-fields').hidden = !reset; $('reset-fields').disabled = !reset;
     $('password-title').textContent = reset ? 'Definir nova senha' : 'Recuperar acesso';
-    $('save-password').textContent = reset ? 'Redefinir senha' : 'Enviar instrucoes';
+    $('save-password').textContent = reset ? 'Redefinir senha' : 'Enviar instruções';
     $('password-dialog').showModal();
   }
   $('forgot-password').onclick = () => { resetToken = null; passwordDialog(false); };

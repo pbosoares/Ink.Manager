@@ -36,7 +36,7 @@
     const canRecord = owner() && item.podeConfirmarRecebimento && !item.recebimentoConfirmado;
     if (item.recebimentoConfirmado) return { key: 'done', label: 'Concluída' };
     if (item.status === 'CONCLUIDA') return canRecord ? { key: 'pending', label: 'Concluída' } : { key: 'done', label: 'Concluída' };
-    if (end <= now) return canRecord ? { key: 'pending', label: 'Horário encerrado' } : { key: 'ended', label: 'Horário encerrado' };
+    if (end <= now) return canRecord ? { key: 'pending', label: 'Passou sem registro' } : { key: 'ended', label: 'Passou sem registro' };
     if (start <= now) return { key: 'live', label: 'Em atendimento' };
     return item.status === 'CONFIRMADA' ? { key: 'confirmed', label: 'Confirmada' } : { key: 'scheduled', label: 'Agendada' };
   }
@@ -231,7 +231,7 @@
     const lead = remaining === 1 ? 'Falta um passo rápido.' : `Faltam ${remaining === 2 ? 'dois' : 'três'} passos rápidos.`;
     const nextIndex = steps.findIndex((step) => !step.done);
     const share = setup.link
-      ? `<div class="first-steps-link"><input readonly value="${escapeHtml(setup.link.replace(/^https?:\/\//, ''))}" aria-label="Seu link de reservas"><button type="button" class="secondary" data-copy-booking-link>Copiar link</button><a class="first-steps-whatsapp" href="https://wa.me/?text=${encodeURIComponent(`Agora você pode marcar seu horário comigo por aqui: ${setup.link}`)}" target="_blank" rel="noopener noreferrer"><span class="first-steps-wa-extra">Enviar no </span>WhatsApp</a></div>`
+      ? `<div class="first-steps-link"><input readonly value="${escapeHtml(setup.link.replace(/^https?:\/\//, ''))}" aria-label="Seu link de reservas"><button type="button" class="secondary" data-copy-booking-link>Copiar link</button><a class="first-steps-whatsapp" href="https://wa.me/?text=${encodeURIComponent(`Agora você pode reservar seu horário por este link: ${setup.link}`)}" target="_blank" rel="noopener noreferrer"><span class="first-steps-wa-extra">Enviar no </span>WhatsApp</a></div>`
       : '<div class="first-steps-link"><button type="button" class="secondary" data-go="studio">Ver meu link</button></div>';
     const actionFor = (step, index) => {
       if (step.link) return '';
@@ -245,8 +245,8 @@
     target.innerHTML = `<div class="first-steps-body"><div class="first-steps-head"><span class="eyebrow accent">PRIMEIROS PASSOS</span><h2>Sua agenda está quase pronta para receber reservas.</h2><p>${lead} Depois disso, seus clientes já podem marcar sozinhos.</p></div>
       <div class="first-steps-progress"><span><i style="width:${Math.round(completed / steps.length * 100)}%"></i></span><small>${completed} de ${steps.length} concluído${completed === 1 ? '' : 's'}</small></div>
       <ol class="first-steps-list">${steps.map((step, index) => `<li class="${step.done ? 'is-done' : ''}">${mark(step, index)}<div><strong>${step.title}</strong><p>${escapeHtml(step.text)}</p>${!step.done && step.link ? share : ''}</div>${actionFor(step, index)}</li>`).join('')}</ol>
-      <p class="first-steps-self">Prefere começar você mesmo? <button type="button" class="text-button" data-create="appointment">Nova marcação</button></p></div>
-      <aside class="first-steps-preview"><div><strong>É assim que seu cliente reserva</strong><p>Pelo celular, sem baixar app nem criar conta.</p></div><img src="/landing/reserva-preview-mobile.svg" alt="Página de reserva do Marcaê no celular: o cliente escolhe serviço, profissional e horário" width="262" height="342" loading="lazy"><p>Prefere começar você mesmo?<button type="button" class="text-button" data-create="appointment">Criar a primeira marcação</button></p></aside>`;
+      <p class="first-steps-self">Prefere marcar por conta própria? <button type="button" class="text-button" data-create="appointment">Nova marcação</button></p></div>
+      <aside class="first-steps-preview"><div><strong>É assim que seu cliente reserva</strong><p>Pelo celular, sem baixar app nem criar conta.</p></div><img src="/landing/reserva-preview-mobile.svg" alt="Página de reserva do Marcaê no celular: o cliente escolhe serviço, profissional e horário" width="262" height="342" loading="lazy"><p>Prefere marcar por conta própria?<button type="button" class="text-button" data-create="appointment">Criar a primeira marcação</button></p></aside>`;
   }
 
   function renderPicker() {
@@ -284,7 +284,7 @@
     }
     if (button.hasAttribute('data-copy-booking-link') && setup.link) {
       try { await navigator.clipboard.writeText(setup.link); notify('Link copiado.'); }
-      catch { notify('Não foi possível copiar. Selecione o link e copie.'); }
+      catch { notify('Não foi possível copiar. Selecione o link e copie manualmente.'); }
     }
   });
   $('day-input').addEventListener('change', (event) => { if (event.target.value) goTo(event.target.value); });

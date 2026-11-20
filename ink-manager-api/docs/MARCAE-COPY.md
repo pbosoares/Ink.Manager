@@ -139,3 +139,46 @@ Suposição registrada: os 14 dias foram adotados do intervalo autorizado pelo u
 - Preferir a copy verificável: **Acompanhe o que foi recebido e confirmado.** Não anunciar prevenção de faltas ou ganho financeiro causal.
 
 Entrega desta revisão: somente copy comercial e distinção de valores neste arquivo; sem alterações de frontend, contratos, campanhas ou execução de cobrança.
+
+## Painel do negócio — revisão de 20/11/2026 (branch `copy/painel-azul`, aceita em 20/11/2026)
+
+Textos do painel azul (PR #10). Os textos do design aprovado no Paper ficam como estão: Agenda da equipe · Atendimentos, confirmações e horários do dia. · Agenda por profissional · A seguir · Registrar valor · Recebido hoje · A confirmar · Agendadas · Concluídos · Nesta data · PRIMEIROS PASSOS · Sua agenda está quase pronta para receber reservas. · Sua agenda, no lugar. · Seus clientes, sempre por perto. · Recebimentos, sem complicação. · Toda história começa com alguém. · Nenhum recebimento para exibir · Dias e horários livres · Livro de marcações.
+
+Regras do painel:
+
+- Papéis: **Responsável** (dono da conta) e **Equipe** (demais acessos). Não usar "Proprietário" nem "Funcionário" na interface.
+- Profissional desativado: **Fora da agenda**; ativo: **Disponível para reservas**. Não usar "Ativo/Inativo" para pessoas (evita gênero).
+- Acesso de usuário: **Acesso ativo / Acesso desativado**.
+- Evitar "você mesmo" e outras formas com gênero: **Prefere marcar por conta própria?**
+- Totais de recebimento nunca são "faturamento": **o valor entrará nos totais pela data desta confirmação**.
+- Reticências com o caractere "…" e "e-mail" com hífen.
+
+| Contexto | Texto |
+| --- | --- |
+| Descrição da Agenda | Consulte os horários livres e acompanhe todas as marcações. |
+| Descrição de Clientes | Contatos e próximos horários de cada cliente. |
+| Kicker de Recebimentos | VALORES CONFIRMADOS · SÓ PARA O RESPONSÁVEL |
+| Nota da disponibilidade | O horário só fica reservado depois que você salva a marcação. |
+| Apoio do livro de marcações | Todas as marcações, com busca e filtros |
+| Busca da agenda | Cliente, serviço ou descrição |
+| Apoio da lista de clientes | Contatos e próximo atendimento de cada cliente |
+| Limpar formulário de serviço | Limpar formulário |
+| Lista de espera (apoio) | Clientes aguardando vaga e a situação de cada pedido. |
+| Totais da semana / mês (apoio) | Somente valores confirmados · {período} |
+| Fuso dos recebimentos | FUSO DO NEGÓCIO · Totais pela data da confirmação, no fuso {fuso}. Semana de segunda a domingo. A lista reúne o mês e a semana selecionados. |
+| Lista de recebimentos | Recebimentos confirmados |
+| Lista de recebimentos vazia | Nenhum recebimento para exibir — Os valores confirmados no período aparecem aqui. |
+| Aviso no diálogo de recebimento | O Marcaê não processa pagamentos. Aqui você só registra o valor recebido. |
+| Ação na tabela (atendimento já concluído) | Registrar valor → diálogo **Registrar valor recebido** / botão **Confirmar recebimento** |
+| Ação na tabela (atendimento não concluído) | Confirmar atendimento e valor |
+| Mensagem pronta do WhatsApp (primeiros passos) | Agora você pode reservar seu horário por este link: {link} |
+| Falha ao copiar link | Não foi possível copiar. Selecione o link e copie manualmente. |
+| Sem conexão | Não foi possível conectar ao Marcaê. Confira sua internet e tente novamente. |
+| Nome do negócio (rótulo) | Nome exibido no painel e na página de reservas |
+| Nome salvo | Nome do negócio atualizado. |
+| Novo acesso (título) | Novo acesso para a equipe |
+| Folgas sem registro | Nenhuma folga ou ausência cadastrada. |
+| Intervalo no expediente | Para criar um intervalo, como o almoço, adicione dois turnos no mesmo dia. |
+| Disponibilidade sem dados | Escolha profissional, mês e uma duração entre 1 e 720 minutos. |
+
+Decisões do dono em 20/11/2026: apoio de "Recebido hoje" = "Valores confirmados hoje" (evita sugerir que o Marcaê processa pagamento); título de Meu negócio = "Tudo do seu negócio em um lugar."; selo de atendimento que passou do horário sem conclusão = "Passou sem registro". Mantidos: kicker "TEMPO PARA ATENDER BEM" e o tom informal ("quem já te chama no WhatsApp").

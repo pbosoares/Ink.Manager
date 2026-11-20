@@ -301,7 +301,7 @@
             <article><span class="stat-icon" aria-hidden="true">▦</span><div><strong class="stat-title">Atendimentos</strong><small>Nesta data</small></div><b id="stat-today">—</b></article>
             <article><span class="stat-icon" aria-hidden="true">✓</span><div><strong class="stat-title">A confirmar</strong><small>Agendadas</small></div><b id="stat-upcoming">—</b></article>
             <article><span class="stat-icon" aria-hidden="true">✓</span><div><strong class="stat-title">Concluídos</strong><small id="stat-done-note">Nesta data</small></div><b id="stat-done">—</b></article>
-            <article class="stat-received owner-only" hidden><span class="stat-icon" aria-hidden="true">▤</span><div><strong class="stat-title">Recebido hoje</strong><small>Pagamentos confirmados</small></div><b id="stat-received">—</b></article>
+            <article class="stat-received owner-only" hidden><span class="stat-icon" aria-hidden="true">▤</span><div><strong class="stat-title">Recebido hoje</strong><small>Valores confirmados hoje</small></div><b id="stat-received">—</b></article>
           </div>
           <section id="first-steps" class="panel first-steps" aria-label="Primeiros passos" hidden></section>
           <section class="panel team-day" aria-label="Agenda por profissional"><div id="today-list"></div></section>
@@ -319,14 +319,14 @@
             <p id="availability-error" role="alert"></p>
             <div id="availability-days" class="availability-days"></div>
             <div id="availability-slots" class="availability-slots" aria-live="polite"></div>
-            <small class="panel-note">A reserva é confirmada ao salvar.</small>
+            <small class="panel-note">O horário só fica reservado depois que você salva a marcação.</small>
           </section>
           <section class="panel agenda-list-panel list-panel" aria-labelledby="agenda-book-title">
-            <div class="section-title"><div><h2 id="agenda-book-title">Livro de marcações</h2><p>Histórico, filtros e ações existentes <span id="agenda-count"></span></p></div><button type="button" id="agenda-collapse" class="collapse-toggle" aria-expanded="true" aria-controls="agenda-book-body" aria-label="Recolher livro de marcações">−</button></div>
+            <div class="section-title"><div><h2 id="agenda-book-title">Livro de marcações</h2><p>Todas as marcações, com busca e filtros <span id="agenda-count"></span></p></div><button type="button" id="agenda-collapse" class="collapse-toggle" aria-expanded="true" aria-controls="agenda-book-body" aria-label="Recolher livro de marcações">−</button></div>
             <div id="agenda-book-body">
               <div class="toolbar agenda-filters" role="group" aria-label="Filtros da agenda">
-                <label class="search">Buscar marcação<input id="agenda-search" type="search" placeholder="Nome do cliente ou descrição"></label>
-                <label>Data do livro<input id="agenda-date" type="date"></label>
+                <label class="search">Buscar marcação<input id="agenda-search" type="search" placeholder="Cliente, serviço ou descrição"></label>
+                <label>Data<input id="agenda-date" type="date"></label>
                 <label>Profissional<select id="agenda-professional"><option value="">Todos</option></select></label>
                 <label>Status / recebimento<select id="agenda-status"><option value="">Todos</option><option value="AGENDADA">Agendada</option><option value="CONFIRMADA">Confirmada</option><option value="CONCLUIDA">Concluída</option><option value="CANCELADA">Cancelada</option><option value="PENDENTE_RECEBIMENTO">Pendente de recebimento</option></select></label>
                 <button id="clear-filters" type="button" class="secondary">Limpar</button>
@@ -337,7 +337,7 @@
         </section>
         <section id="clients-view" hidden>
           <label class="search-bar"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span class="sr-only">Buscar cliente</span><input id="client-search" type="search" placeholder="Buscar cliente por nome, telefone ou Instagram"></label>
-          <section class="panel list-panel" aria-labelledby="clients-title"><div class="section-title"><div><h2 id="clients-title">Clientes</h2><p>Sua base de contatos e histórico de atendimentos</p></div><span id="client-count" class="list-count"></span></div><div id="client-list"></div></section>
+          <section class="panel list-panel" aria-labelledby="clients-title"><div class="section-title"><div><h2 id="clients-title">Clientes</h2><p>Contatos e próximo atendimento de cada cliente</p></div><span id="client-count" class="list-count"></span></div><div id="client-list"></div></section>
         </section>
 <section id="team-view" hidden><div class="section-title"><h2>Profissionais</h2><button id="new-professional" class="primary owner-only">+ Novo profissional</button></div><p>Configure os expedientes e bloqueie folgas sem perder o histórico.</p><div id="professional-list"></div></section>
 <section id="studio-view" hidden>
@@ -352,7 +352,7 @@
         <div class="form-row"><label>Preço (R$)<input name="preco" type="number" inputmode="decimal" min="0" max="9999999999.99" step="0.01" required></label><label>Duração (minutos)<input name="duracaoMinutos" type="number" min="1" max="720" step="1" required></label></div>
         <label class="checkbox-label"><input name="ativo" type="checkbox" checked> Disponível para novas reservas</label>
         <p class="muted">Desmarque para arquivar. O serviço deixará de aparecer no link; atendimentos anteriores são preservados.</p>
-        <div class="service-controls"><button id="service-save" class="primary">Salvar serviço</button><button id="service-reset" type="button" class="secondary">Novo / limpar</button></div>
+        <div class="service-controls"><button id="service-save" class="primary">Salvar serviço</button><button id="service-reset" type="button" class="secondary">Limpar formulário</button></div>
       </fieldset>
       <p id="service-message" class="form-error" role="status"></p>
     </form>
@@ -373,9 +373,9 @@
     </div>
   </section>
 </section>
-<section id="schedule-config" class="settings-section owner-only" aria-labelledby="schedule-config-title"><h2 id="schedule-config-title">Regras de agendamento</h2><p>Defina a antecedência mínima e o limite de reservas abertas por email.</p><form id="schedule-config-form"><div class="form-row"><label>Antecedência mínima (minutos)<input name="antecedenciaMinimaMinutos" type="number" min="0" max="43200" step="1" required></label><label>Reservas abertas por email<input name="limiteAgendamentosPorEmail" type="number" min="1" max="50" step="1" required></label></div><p>Fuso horário do estabelecimento: <strong id="schedule-timezone">Consultando…</strong></p><button type="submit" class="primary">Salvar regras</button><p id="schedule-config-message" role="status"></p></form></section><section id="waitlist-management" class="settings-section owner-only" hidden aria-labelledby="waitlist-management-title">
-  <div class="section-title"><div><h2 id="waitlist-management-title">Lista de espera</h2><p class="muted">Entradas do seu estabelecimento e estado atual.</p></div><button id="waitlist-reload" type="button" class="secondary">Atualizar lista</button></div>
-  <p id="waitlist-management-loading" role="status" hidden>Consultando a lista...</p><p id="waitlist-management-error" class="form-error" role="alert"></p>
+<section id="schedule-config" class="settings-section owner-only" aria-labelledby="schedule-config-title"><h2 id="schedule-config-title">Regras de agendamento</h2><p>Defina a antecedência mínima e o limite de reservas abertas por e-mail.</p><form id="schedule-config-form"><div class="form-row"><label>Antecedência mínima (minutos)<input name="antecedenciaMinimaMinutos" type="number" min="0" max="43200" step="1" required></label><label>Reservas abertas por e-mail<input name="limiteAgendamentosPorEmail" type="number" min="1" max="50" step="1" required></label></div><p>Fuso horário do negócio: <strong id="schedule-timezone">Consultando…</strong></p><button type="submit" class="primary">Salvar regras</button><p id="schedule-config-message" role="status"></p></form></section><section id="waitlist-management" class="settings-section owner-only" hidden aria-labelledby="waitlist-management-title">
+  <div class="section-title"><div><h2 id="waitlist-management-title">Lista de espera</h2><p class="muted">Clientes aguardando vaga e a situação de cada pedido.</p></div><button id="waitlist-reload" type="button" class="secondary">Atualizar lista</button></div>
+  <p id="waitlist-management-loading" role="status" hidden>Consultando a lista…</p><p id="waitlist-management-error" class="form-error" role="alert"></p>
   <div id="waitlist-management-list" aria-live="polite"></div>
 </section><div id="studio-settings"></div></section>
 <section id="reports-view" hidden>
@@ -393,8 +393,8 @@
 <section id="receipts-view" hidden aria-label="Recebimentos confirmados">
   <p id="receipts-error" class="form-error" role="alert"></p><p id="receipts-loading" role="status" hidden>Consultando recebimentos…</p>
   <div id="receipts-data" hidden>
-    <div class="receipt-totals"><article><div><strong>Recebido nesta semana</strong><small>Atendimentos confirmados · <span id="receipts-week-period"></span></small></div><b id="receipts-week">—</b></article><article><div><strong>Recebido neste mês</strong><small>Somente valores confirmados · <span id="receipts-month-period"></span></small></div><b id="receipts-month">—</b></article><aside class="receipt-zone"><span>FUSO DO ESTÚDIO</span><p id="receipts-timezone"></p></aside></div>
-    <section class="panel list-panel" aria-labelledby="receipts-list-title"><div class="section-title"><div><h2 id="receipts-list-title">Atendimentos recebidos</h2><p>Valores informados e confirmados no período</p></div><span id="receipts-count" class="list-count is-accent"></span></div><div id="receipts-list"></div></section>
+    <div class="receipt-totals"><article><div><strong>Recebido nesta semana</strong><small>Somente valores confirmados · <span id="receipts-week-period"></span></small></div><b id="receipts-week">—</b></article><article><div><strong>Recebido neste mês</strong><small>Somente valores confirmados · <span id="receipts-month-period"></span></small></div><b id="receipts-month">—</b></article><aside class="receipt-zone"><span>FUSO DO NEGÓCIO</span><p id="receipts-timezone"></p></aside></div>
+    <section class="panel list-panel" aria-labelledby="receipts-list-title"><div class="section-title"><div><h2 id="receipts-list-title">Recebimentos confirmados</h2><p>Valores informados e confirmados no período</p></div><span id="receipts-count" class="list-count is-accent"></span></div><div id="receipts-list"></div></section>
   </div>
 </section>
       </div>
@@ -410,7 +410,7 @@
       <label>Valor recebido (R$)<input name="valor" type="number" inputmode="decimal" min="0" max="9999999999.99" step="0.01" required></label>
       <p>Informe o valor efetivamente recebido, mesmo que seja diferente do preço previsto.</p>
       <p id="receipt-completion-note">Ao confirmar, o atendimento será concluído e o valor entrará nos totais pela data desta confirmação. Depois, este registro não poderá ser alterado ou excluído.</p>
-      <p>Este registro não processa pagamentos.</p>
+      <p>O Marcaê não processa pagamentos. Aqui você só registra o valor recebido.</p>
       <button id="receipt-save" class="primary">Confirmar atendimento e recebimento</button>
     </fieldset>
     <p id="receipt-error" class="form-error" role="alert"></p>

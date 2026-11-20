@@ -105,7 +105,7 @@ async function api(path, { method = 'GET', body, publicRequest = false } = {}) {
   try {
     response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(20000) });
   } catch {
-    throw new Error('Não foi possível conectar ao negócio. Confira a conexão e tente novamente.');
+    throw new Error('Não foi possível conectar ao Marcaê. Confira sua internet e tente novamente.');
   }
   const data = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
@@ -127,7 +127,7 @@ async function loadData() {
   try {
     const [clients, appointments, professionals, session] = await Promise.all([api('/clientes'), api('/marcacoes'), api('/profissionais'), api('/auth/me')]);
     if (generation !== state.generation || request !== state.loadRequest) return;
-    if (!Array.isArray(clients) || !Array.isArray(appointments)) throw new Error('Resposta inválida do servidor.');
+    if (!Array.isArray(clients) || !Array.isArray(appointments)) throw new Error('Não foi possível carregar os dados do negócio.');
     state.loaded = true;
     state.clients = clients;
     state.appointments = appointments;
@@ -217,7 +217,7 @@ $('auth-form').addEventListener('submit', async (event) => {
 
 const VIEWS = ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts', 'reports'];
 const OWNER_VIEWS = ['receipts', 'reports'];
-const ROLE_LABELS = { PROPRIETARIO: 'Proprietário', FUNCIONARIO: 'Funcionário' };
+const ROLE_LABELS = { PROPRIETARIO: 'Responsável', FUNCIONARIO: 'Equipe' };
 const initialsOf = (name) => String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 
 function showAccount() {
@@ -240,12 +240,12 @@ function setView(view) {
   state.view = view;
   const copy = {
     overview: ['VISÃO GERAL', 'Agenda da <span>equipe</span>', 'Atendimentos, confirmações e horários do dia.'],
-    agenda: ['TEMPO PARA ATENDER BEM', 'Sua agenda, no lugar.', 'Cada atendimento tem seu espaço. Cuide dos próximos encontros.'],
+    agenda: ['TEMPO PARA ATENDER BEM', 'Sua agenda, no lugar.', 'Consulte os horários livres e acompanhe todas as marcações.'],
     team: ['A EQUIPE', 'Cada profissional, sua agenda.', 'Expedientes e folgas compartilhados com a equipe.'],
-    studio: ['SEU ESPAÇO', 'Seu negócio tem a sua cara.', 'Serviços, link de reservas, acessos e assinatura no mesmo lugar.'],
-    receipts: ['VALORES CONFIRMADOS · SOMENTE PROPRIETÁRIO', 'Recebimentos, sem complicação.', 'Confirme o atendimento e o valor recebido para acompanhar a semana e o mês.'],
+    studio: ['SEU ESPAÇO', 'Tudo do seu negócio em um lugar.', 'Serviços, link de reservas, acessos e assinatura no mesmo lugar.'],
+    receipts: ['VALORES CONFIRMADOS · SÓ PARA O RESPONSÁVEL', 'Recebimentos, sem complicação.', 'Confirme o atendimento e o valor recebido para acompanhar a semana e o mês.'],
     reports: ['CADERNO DO MÊS', 'Relatórios do negócio.', 'Agenda, comparecimento e recebimentos de cada mês.'],
-    clients: ['QUEM CONFIA NO SEU TRABALHO', 'Seus clientes, sempre por perto.', 'Contatos e histórias para manter sempre por perto.']
+    clients: ['QUEM CONFIA NO SEU TRABALHO', 'Seus clientes, sempre por perto.', 'Contatos e próximos horários de cada cliente.']
   }[view];
   VIEWS.forEach((key) => { $(`${key}-view`).hidden = key !== view; });
   document.querySelectorAll('[data-view]').forEach((button) => {
@@ -263,7 +263,7 @@ function setView(view) {
 }
 
 function empty(title, description, action) {
-  return `<div class="empty"><strong>${title}</strong>${description}${action ? `<button class="text-button" data-create="${action}">${action === 'client' ? 'Cadastrar primeiro cliente' : 'Criar uma marcação'} ↗</button>` : ''}</div>`;
+  return `<div class="empty"><strong>${title}</strong>${description}${action ? `<button class="text-button" data-create="${action}">${action === 'client' ? 'Cadastrar o primeiro cliente' : 'Criar uma marcação'} ↗</button>` : ''}</div>`;
 }
 
 function render() {
@@ -332,7 +332,7 @@ function openEditor(type, id = null) {
   const item = (type === 'client' ? state.clients : state.appointments).find((entry) => entry.id === id) || {};
   if (type === 'appointment' && item.recebimentoConfirmado) { notify('Atendimento com recebimento confirmado não pode ser alterado.'); return; }
   state.edit = { type, id, clientId: item.cliente?.id, version: item.version, original: item };
-  $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcacao'}`;
+  $('editor-title').textContent = `${id ? 'Editar' : type === 'client' ? 'Novo' : 'Nova'} ${type === 'client' ? 'cliente' : 'marcação'}`;
   $('editor-error').textContent = '';
   const customerFields = `<label>Nome completo<input name="nome" required maxlength="255" autocomplete="name"></label><div class="form-row"><label>Celular com DDD<input name="telefone" type="tel" required maxlength="30" autocomplete="tel" placeholder="(11) 99999-9999"></label><label>Idade<input name="idade" type="number" min="0" max="150" step="1"></label></div><label>Instagram (opcional)<input name="instagram" maxlength="100" placeholder="@cliente"></label>`;
   if (type === 'client') {
@@ -340,8 +340,8 @@ function openEditor(type, id = null) {
   } else {
     const customer = id
       ? `<p>Cliente: <strong>${escapeHtml(item.cliente?.nome)}</strong></p>`
-      : `<label>Cliente<select name="clientMode" id="client-mode"><option value="existing">Cliente existente</option><option value="new">Novo cliente</option></select></label><fieldset id="existing-client"><legend>Cliente existente</legend><label>Selecione o cliente<select name="clienteId" required><option value="">Selecione...</option>${[...state.clients].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((c) => `<option value="${c.id}">${escapeHtml(c.nome)} - ${escapeHtml(c.telefone)}</option>`).join('')}</select></label></fieldset><fieldset id="new-client" hidden disabled><legend>Novo cliente</legend>${customerFields}</fieldset>`;
-    $('editor-fields').innerHTML = `${customer}<label>Profissional<select name="profissionalId" required>${state.professionals.filter((p) => p.ativo || p.id === item.profissional?.id).map((p) => `<option value="${p.id}">${escapeHtml(p.nome)}${p.ativo ? '' : ' (inativo)'}</option>`).join('')}</select></label><div class="form-row"><label>Data<input name="data" type="date" required></label><label>Horario<select name="horario" required><option value="">Consultando...</option></select></label></div><label>Descricao<textarea name="descricao" maxlength="255"></textarea></label><label>Duracao (minutos)<input name="duracaoMinutos" type="number" min="1" max="720" required></label><label>Status<select name="status">${Object.entries(statuses).map(([v,label]) => `<option value="${v}">${label}</option>`).join('')}</select></label>`;
+      : `<label>Cliente<select name="clientMode" id="client-mode"><option value="existing">Cliente existente</option><option value="new">Novo cliente</option></select></label><fieldset id="existing-client"><legend>Cliente existente</legend><label>Selecione o cliente<select name="clienteId" required><option value="">Selecione…</option>${[...state.clients].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR')).map((c) => `<option value="${c.id}">${escapeHtml(c.nome)} - ${escapeHtml(c.telefone)}</option>`).join('')}</select></label></fieldset><fieldset id="new-client" hidden disabled><legend>Novo cliente</legend>${customerFields}</fieldset>`;
+    $('editor-fields').innerHTML = `${customer}<label>Profissional<select name="profissionalId" required>${state.professionals.filter((p) => p.ativo || p.id === item.profissional?.id).map((p) => `<option value="${p.id}">${escapeHtml(p.nome)}${p.ativo ? '' : ' (fora da agenda)'}</option>`).join('')}</select></label><div class="form-row"><label>Data<input name="data" type="date" required></label><label>Horário<select name="horario" required><option value="">Consultando…</option></select></label></div><label>Descrição<textarea name="descricao" maxlength="255"></textarea></label><label>Duração (minutos)<input name="duracaoMinutos" type="number" min="1" max="720" required></label><label>Status<select name="status">${Object.entries(statuses).map(([v,label]) => `<option value="${v}">${label}</option>`).join('')}</select></label>`;
   }
   const values = type === 'client' ? item : { ...item, data: item.data || localDate(), horario: item.horario?.slice(0,5), status: item.status || 'AGENDADA', duracaoMinutos: item.duracaoMinutos || 60, profissionalId: item.profissional?.id || state.professionals.find((p) => p.ativo)?.id };
   for (const field of $('editor-fields').querySelectorAll('[name]')) field.value = values[field.name] ?? '';
@@ -357,7 +357,7 @@ function openEditor(type, id = null) {
     };
     mode.onchange();
   }
-  $('save-editor').textContent = type === 'client' ? 'Salvar cliente' : 'Salvar marcacao';
+  $('save-editor').textContent = type === 'client' ? 'Salvar cliente' : 'Salvar marcação';
   $('editor').showModal();
   if (type === 'appointment') window.inkTeam?.editorAvailability(item.horario?.slice(0, 5));
 }
@@ -395,7 +395,7 @@ $('editor-form').addEventListener('submit', async (event) => {
 function askDelete(type, id) {
   state.deletion = { type, id };
   const item = (type === 'client' ? state.clients : state.appointments).find((entry) => entry.id === id);
-  $('confirmation-description').textContent = type === 'client' ? `Excluir ${item.nome}? Clientes com marcações vinculadas não podem ser excluídos. Esta ação não pode ser desfeita.` : `Excluir a marcação de ${item.cliente?.nome} em ${formatDate(item.data)}? Você também pode editar o status para Cancelada e manter o histórico. Esta exclusão não pode ser desfeita.`;
+  $('confirmation-description').textContent = type === 'client' ? `Excluir ${item.nome}? Clientes com marcações vinculadas não podem ser excluídos. Esta ação não pode ser desfeita.` : `Excluir a marcação de ${item.cliente?.nome} em ${formatDate(item.data)}? Para manter o histórico, edite o status para Cancelada. A exclusão não pode ser desfeita.`;
   $('delete-error').textContent = '';
   $('confirmation').showModal();
 }
