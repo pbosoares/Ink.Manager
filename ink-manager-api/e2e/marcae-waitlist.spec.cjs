@@ -305,7 +305,7 @@ async function exerciseAuthenticationUi(page, baseURL, testInfo, apiPreflight) {
   try {
     const appOrigin = new URL(baseURL).origin;
     const browserConfigPromise = waitForBrowserAuthConfigOutcome(page, appOrigin, diagnostics);
-    const navigationPromise = page.goto(`${baseURL}/#login`).then(() => ({ ok: true }), error => ({
+    const navigationPromise = page.goto(`${baseURL}/app#login`).then(() => ({ ok: true }), error => ({
       ok: false, failure: sanitizeDiagnosticText(error.message || String(error))
     }));
     const navigationFailurePromise = navigationPromise.then(navigation =>

@@ -269,7 +269,7 @@ for (const width of [1366, 390]) {
     expect(login.ok()).toBeTruthy();
     const { token } = await login.json();
     const headers = { Authorization: `Bearer ${token}` };
-    await page.goto('/#login');
+    await page.goto('/app#login');
     await page.locator('#auth-form [name=email]').fill(email);
     await page.locator('#auth-form [name=senha]').fill('SenhaTeste123');
     const bootstrapDiagnostics = effectiveDiagnosticsMetadata(test.info());

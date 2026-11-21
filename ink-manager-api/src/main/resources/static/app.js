@@ -470,13 +470,13 @@ async function loadAuthConfig() {
     $('toggle-auth').disabled = false;
   }
 }
+// "Começar 14 dias grátis" na landing leva a /app#cadastro: abre já em criação de conta.
 const startLandingTrial = () => {
-  if (!state.registrationEnabled || state.register) return;
+  if (location.hash !== '#cadastro' || state.token || !state.registrationEnabled || state.register) return;
   $('toggle-auth').click();
   $('auth-form').elements.nomeEstudio.focus();
 };
-$('landing-trial').addEventListener('click', startLandingTrial);
-document.querySelectorAll('[data-start-trial]').forEach(link => link.addEventListener('click', startLandingTrial));
+window.addEventListener('hashchange', startLandingTrial);
 window.inkApp = { api, user: () => state.user, appointments: () => state.appointments, view: () => state.view, reload: loadData, render, notify };
-loadAuthConfig();
+loadAuthConfig().then(startLandingTrial);
 if (state.token) openWorkspace();
