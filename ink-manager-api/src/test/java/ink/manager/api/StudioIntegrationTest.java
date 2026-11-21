@@ -223,7 +223,7 @@ class StudioIntegrationTest {
         assertTrue(divergencias.isEmpty(),String.join("\n",divergencias));
     }
     @Test void cadastroAutonomoEArquivosPublicos()throws Exception{
-        for(var path:List.of("/","/app.js","/team.js","/styles.css","/favicon.svg","/actuator/health"))assertEquals(200,request("GET",path,null,null).statusCode(),path);
+        for(var path:List.of("/","/app.js","/team.js","/styles.css","/favicon.svg","/actuator/health","/agenda-para-barbearia","/agenda-para-manicure","/privacidade.html","/termos.html"))assertEquals(200,request("GET",path,null,null).statusCode(),path);
         for(var path:List.of("/landing/visao-geral.png","/landing/agenda.png","/landing/reserva.png")){
             var image=request("GET",path,null,null);
             assertEquals(200,image.statusCode(),path);

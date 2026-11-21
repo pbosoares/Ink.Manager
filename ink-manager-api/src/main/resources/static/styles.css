@@ -3733,3 +3733,46 @@ body:has(#workspace:not([hidden])) #login { display:none; }
   #public-landing .legal-page section h2 { font-size:20px; }
   #public-landing .legal-page section p,#public-landing .legal-page section li { font-size:14px; }
 }
+
+/* Páginas de nicho (agenda-para-barbearia.html, agenda-para-manicure.html) e bloco "Para o seu negócio" da home. */
+#public-landing .niche-breadcrumb ol { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0; padding:0; list-style:none; color:var(--cro-muted); font-size:13px; line-height:1.4; }
+#public-landing .niche-breadcrumb li+li::before { margin-right:6px; color:#9AA3B2; content:'›'; }
+#public-landing .niche-breadcrumb a { color:var(--cro-blue); }
+#public-landing .niche-breadcrumb a:hover { text-decoration:underline; }
+#public-landing .niche-tint { background:var(--cro-tint); }
+#public-landing .niche-divided { border-top:1px solid var(--cro-line); }
+#public-landing .niche-body { max-width:760px; }
+#public-landing .niche-body>p { margin:0 0 16px; color:#3F4756; font-size:16px; line-height:1.7; }
+#public-landing .niche-body>p:last-child { margin-bottom:0; }
+#public-landing .niche-body .lp-steps { margin:0 0 20px; padding:0; }
+#public-landing .niche-list { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+#public-landing .niche-list li { position:relative; padding-left:22px; color:#3F4756; font-size:16px; line-height:1.65; }
+#public-landing .niche-list li::before { position:absolute; top:0; left:2px; color:var(--cro-blue); content:'•'; font-weight:800; }
+#public-landing .niche-list strong { color:var(--cro-ink); }
+#public-landing .niche-table-wrap { max-width:760px; margin:24px 0 0; overflow-x:auto; border:1px solid var(--cro-line); border-radius:14px; background:#fff; }
+#public-landing .niche-table { width:100%; border-collapse:collapse; }
+#public-landing .niche-table caption { padding:14px 18px; color:var(--cro-muted); font-size:13px; line-height:1.5; text-align:left; caption-side:top; }
+#public-landing .niche-table th,#public-landing .niche-table td { padding:12px 18px; border:0; border-top:1px solid #EDF0F5; background:transparent; color:#283143; font-size:15px; font-weight:500; letter-spacing:0; line-height:1.45; text-align:left; vertical-align:top; }
+#public-landing .niche-table thead th { background:#F8FAFD; color:#5C6575; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+#public-landing .niche-table tbody th { font-weight:600; }
+#public-landing .niche-table td { color:var(--cro-muted); white-space:nowrap; }
+#public-landing .niche-steps { grid-template-columns:repeat(4,minmax(0,1fr)); }
+#public-landing .niche-steps p { font-size:14px; line-height:1.55; }
+#public-landing .niche-plan-link a,#public-landing .niche-crosslink a { color:var(--cro-blue); text-decoration:underline; text-underline-offset:2px; }
+#public-landing .niche-crosslink { width:min(860px,100%); margin:20px auto 0; color:#3F4756; font-size:15px; line-height:1.6; text-align:center; }
+#public-landing .niche-links { grid-template-columns:repeat(2,minmax(0,1fr)); }
+#public-landing .niche-links .lp-feature { min-height:0; }
+#public-landing .niche-links .niche-link-more { margin-top:auto; padding-top:6px; }
+#public-landing .niche-links .niche-link-more a { color:var(--cro-blue); font-weight:700; }
+#public-landing .niche-links .niche-link-more a:hover { text-decoration:underline; }
+@media(max-width:1050px) { #public-landing .niche-steps { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:900px) { #public-landing .niche-links { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:700px) {
+  #public-landing .niche-hero .lp-hero-preview { width:100%; padding:8px; border-radius:16px; box-shadow:0 18px 40px #171B2A1A; }
+  #public-landing .niche-hero .lp-hero-frame { border-radius:10px; }
+  #public-landing .niche-body>p,#public-landing .niche-list li { font-size:15px; }
+  #public-landing .niche-table caption { padding:12px 14px; }
+  #public-landing .niche-table th,#public-landing .niche-table td { padding:11px 14px; font-size:14px; }
+  #public-landing .niche-steps { grid-template-columns:minmax(0,1fr); }
+  #public-landing .niche-crosslink { font-size:14px; }
+}

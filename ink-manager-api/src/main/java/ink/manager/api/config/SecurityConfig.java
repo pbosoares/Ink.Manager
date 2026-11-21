@@ -87,7 +87,7 @@ public class SecurityConfig {
                 // Despacho interno para /error (404, 405...): sem isso, URL inexistente virava 401.
                 // O corpo do erro nao traz mensagem nem stack (server.error.include-*=never).
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
-                .requestMatchers("/", "/index.html", "/app.js", "/overview.js", "/team.js", "/billing.js", "/simple.js", "/analytics.js", "/agendar.html", "/agendar.js", "/waitlist.js", "/acao-email.html", "/acao-email.js", "/privacidade.html", "/termos.html", "/oferta.html", "/oferta.js", "/styles.css", "/favicon.svg").permitAll()
+                .requestMatchers("/", "/index.html", "/app.js", "/overview.js", "/team.js", "/billing.js", "/simple.js", "/analytics.js", "/agendar.html", "/agendar.js", "/waitlist.js", "/acao-email.html", "/acao-email.js", "/privacidade.html", "/termos.html", "/agenda-para-barbearia", "/agenda-para-barbearia.html", "/agenda-para-manicure", "/agenda-para-manicure.html", "/oferta.html", "/oferta.js", "/styles.css", "/favicon.svg").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/landing/*.png").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/landing/*.svg").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/a/*", "/publico/*", "/publico/*/horarios").permitAll()
