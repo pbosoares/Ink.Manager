@@ -107,7 +107,7 @@ class StudioIntegrationTest {
             assertEquals(200,midia.statusCode(),path);
             assertEquals("max-age=3600, must-revalidate, public",cacheControl(midia),path);
         }
-        for(var path:List.of("/","/index.html","/agendar.html","/acao-email.html","/a/QUALQUERCODIGO")){
+        for(var path:List.of("/","/agendar.html","/acao-email.html","/a/QUALQUERCODIGO")){
             var html=request("GET",path,null,null);
             assertEquals(200,html.statusCode(),path);
             assertTrue(cacheControl(html).contains("no-store"),path+" "+cacheControl(html));
@@ -144,6 +144,53 @@ class StudioIntegrationTest {
         assertEquals(404,autenticado.statusCode(),autenticado.body());
         assertTrue(cacheControl(autenticado).contains("no-store"));
         assertFalse(autenticado.body().contains("Exception"),autenticado.body());
+    }
+    @Test void conteudoEmPortuguesERedirecionamentoDoIndex()throws Exception{
+        var conta=conta("Estudio Idioma");
+        for(var path:List.of("/","/agendar.html","/a/QUALQUERCODIGO","/acao-email.html","/styles.css","/app.js","/landing/agenda.png","/auth/config","/naoexiste","/clientes")){
+            for(var lingua:List.of("","en-US,en;q=0.9")){
+                var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).GET();
+                if(!lingua.isEmpty())b.header("Accept-Language",lingua);
+                var r=client.send(b.build(),HttpResponse.BodyHandlers.ofString());
+                assertEquals("pt-BR",r.headers().firstValue("Content-Language").orElse(""),path+" ["+lingua+"] "+r.statusCode());
+            }
+        }
+        assertEquals("pt-BR",request("GET","/auth/me",null,conta.token()).headers().firstValue("Content-Language").orElse(""));
+        var inicio=request("GET","/",null,null);
+        assertEquals(200,inicio.statusCode());
+        assertTrue(inicio.body().contains("lang=\"pt-BR\""),"/ deve servir o index.html");
+        assertTrue(request("GET","/a/QUALQUERCODIGO",null,null).body().contains("agendar.js"),"/a/{codigo} deve servir o agendar.html");
+        for(var metodo:List.of("GET","HEAD")){
+            var r=request(metodo,"/index.html",null,null);
+            assertEquals(301,r.statusCode(),metodo);
+            assertEquals("/",r.headers().firstValue("Location").orElse(""),metodo);
+            assertTrue(cacheControl(r).contains("no-store"),cacheControl(r));
+        }
+        var comQuery=request("GET","/index.html?utm_source=teste",null,null);
+        assertEquals(301,comQuery.statusCode());
+        assertEquals("/?utm_source=teste",comQuery.headers().firstValue("Location").orElse(""));
+    }
+    @Test void semEndpointDeProtectedResourceMetadata()throws Exception{
+        var conta=conta("Estudio Metadata");
+        for(var path:List.of("/.well-known/oauth-protected-resource","/.well-known/oauth-protected-resource/clientes")){
+            var anonimo=request("GET",path,null,null);
+            assertEquals(404,anonimo.statusCode(),path+" "+anonimo.body());
+            assertFalse(anonimo.body().contains("bearer_methods_supported"),anonimo.body());
+            var autenticado=request("GET",path,null,conta.token());
+            assertEquals(404,autenticado.statusCode(),path+" "+autenticado.body());
+            assertFalse(autenticado.body().contains("bearer_methods_supported"),autenticado.body());
+        }
+        var semToken=request("GET","/clientes",null,null);
+        assertEquals(401,semToken.statusCode());
+        String desafio=semToken.headers().firstValue("WWW-Authenticate").orElse("");
+        assertTrue(desafio.startsWith("Bearer"),desafio);
+        assertFalse(desafio.contains("resource_metadata"),desafio);
+        var tokenInvalido=request("GET","/clientes",null,"token-invalido");
+        assertEquals(401,tokenInvalido.statusCode());
+        String desafioInvalido=tokenInvalido.headers().firstValue("WWW-Authenticate").orElse("");
+        assertFalse(desafioInvalido.contains("resource_metadata"),desafioInvalido);
+        assertTrue(desafioInvalido.startsWith("Bearer error=\"invalid_token\""),desafioInvalido);
+        assertFalse(desafioInvalido.matches(".*(,\\s*,|,\\s*$).*"),desafioInvalido);
     }
     @Test void regraDeRotaInexistenteNaoAbreRotasExistentes()throws Exception{
         var conta=conta("Estudio Bordas");cliente(conta);

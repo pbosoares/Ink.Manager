@@ -73,6 +73,10 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
 
+            // O site e a API sao so em portugues; casa com <html lang="pt-BR">.
+            .headers(headers -> headers.addHeaderWriter(
+                new org.springframework.security.web.header.writers.StaticHeadersWriter("Content-Language", "pt-BR")))
+
             .sessionManagement(session ->
                 session.sessionCreationPolicy(
                     SessionCreationPolicy.STATELESS
@@ -97,14 +101,49 @@ public class SecurityConfig {
                 .anyRequest().access(new RotaInexistenteAuthorizationManager(beans, resourceLoader, webProperties))
             )
 
-            .oauth2ResourceServer(oauth2 ->
-                oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(sessions))
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(sessions))
+                .authenticationEntryPoint(entradaBearerSemMetadata())
             );
 
         http.addFilterBefore(retentionOperatorFilter, BearerTokenAuthenticationFilter.class);
         http.addFilterAfter(manifestoRestauracaoGateFilter, RetentionOperatorFilter.class);
         http.addFilterAfter(new AssinaturaAccessFilter(assinatura), org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
-        return http.build();
+        return semProtectedResourceMetadata(http.build());
+    }
+
+    /**
+     * O resource server do Spring Security 7 publica sempre {@code /.well-known/oauth-protected-resource}
+     * (RFC 9728), sem opcao de desligar. O Marcae nao tem API OAuth para terceiros e o documento saia com
+     * {@code http://} e sem {@code authorization_servers}; removemos o filtro da cadeia e a rota cai no 404.
+     */
+    static org.springframework.security.web.DefaultSecurityFilterChain semProtectedResourceMetadata(
+            org.springframework.security.web.DefaultSecurityFilterChain chain) {
+        java.util.List<jakarta.servlet.Filter> filtros = chain.getFilters().stream()
+            .filter(f -> !(f instanceof org.springframework.security.oauth2.server.resource.web.OAuth2ProtectedResourceMetadataFilter))
+            .toList();
+        return new org.springframework.security.web.DefaultSecurityFilterChain(chain.getRequestMatcher(), filtros);
+    }
+
+    /** 401 com {@code WWW-Authenticate: Bearer}, sem apontar {@code resource_metadata} para o endpoint removido. */
+    static org.springframework.security.web.AuthenticationEntryPoint entradaBearerSemMetadata() {
+        var bearer = new org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint();
+        return (request, response, falha) -> bearer.commence(request,
+            new jakarta.servlet.http.HttpServletResponseWrapper(response) {
+                @Override public void setHeader(String nome, String valor) { super.setHeader(nome, semResourceMetadata(nome, valor)); }
+                @Override public void addHeader(String nome, String valor) { super.addHeader(nome, semResourceMetadata(nome, valor)); }
+            }, falha);
+    }
+
+    static String semResourceMetadata(String nome, String valor) {
+        if (valor == null || !"WWW-Authenticate".equalsIgnoreCase(nome)) {
+            return valor;
+        }
+        String limpo = valor.replaceAll("resource_metadata=\"[^\"]*\"", "")
+            .replaceAll(",\\s*,", ",")
+            .replaceAll("^Bearer[\\s,]*", "Bearer ")
+            .replaceAll("[\\s,]+$", "");
+        return limpo.isBlank() ? "Bearer" : limpo;
     }
 
     @Bean
