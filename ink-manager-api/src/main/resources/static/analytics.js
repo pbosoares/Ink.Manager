@@ -36,7 +36,8 @@
     $('report-absence-change').textContent=`Variação: ${v.valorPotencialFaltas==null?'sem base anterior':money(v.valorPotencialFaltas)}`;
     const mode=$('report-range').value, rows=mode==='week'?data.semanas:data.dias;
     const max=Math.max(1,...rows.map(x=>Number(x.agendamentos)||0));
-    $('report-chart').innerHTML=rows.map((x,i)=>{const label=mode==='week'?`${x.inicio.slice(8)}–${x.fim.slice(8)}`:x.data.slice(8);const value=Number(x.agendamentos)||0,h=value===0?0:Math.round((value/max)*100);return `<div class="report-bar" title="${esc(label)}: ${fmt(value)} agendamentos"><i style="height:${h}%;opacity:${value===0?0:1}"></i><small>${esc(label)}</small></div>`;}).join('');
+    $('report-chart').innerHTML=rows.map((x,i)=>{const label=mode==='week'?`${x.inicio.slice(8)}–${x.fim.slice(8)}`:x.data.slice(8);const value=Number(x.agendamentos)||0,h=value===0?0:Math.round((value/max)*100);return `<div class="report-bar" title="${esc(label)}: ${fmt(value)} agendamentos"><i data-style="height:${h}%;opacity:${value===0?0:1}"></i><small>${esc(label)}</small></div>`;}).join('');
+    $('report-chart').querySelectorAll('[data-style]').forEach(el=>{el.style.cssText=el.dataset.style;el.removeAttribute('data-style');});
     $('report-chart-label').textContent=mode==='week'?'Agendamentos por semana':'Agendamentos por dia';
     $('report-services').innerHTML=data.servicos?.length?`<ol>${data.servicos.map(s=>`<li><span>${esc(s.nome)}</span><b>${fmt(s.agendamentos)}</b><small>${fmt(s.comparecimentos)} comparecimentos · ${fmt(s.faltas)} faltas</small></li>`).join('')}</ol>`:'<p class="muted">Nenhum serviço com reservas neste mês.</p>';
     $('report-comparison-note').textContent=data.comparacaoDisponivel?'Comparação com o mês anterior. Variações de taxa são expressas em pontos percentuais.':'O mês anterior não tem reservas para comparação.';

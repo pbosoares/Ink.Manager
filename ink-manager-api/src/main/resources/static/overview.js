@@ -25,6 +25,9 @@
   const dayLabel = (value) => { const text = new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }); return text.charAt(0).toUpperCase() + text.slice(1); };
   const isoWeekday = (value) => { const weekday = new Date(`${value}T12:00:00`).getDay(); return weekday === 0 ? 7 : weekday; };
   const firstName = (name) => String(name || '').trim().split(/\s+/)[0] || '';
+  // A CSP de produção (style-src 'self') bloqueia atributos style="" vindos do HTML; estilos dinâmicos
+  // são gravados em data-style e aplicados pelo CSSOM, que a política permite.
+  const applyStyles = (root) => root.querySelectorAll('[data-style]').forEach((el) => { el.style.cssText = el.dataset.style; el.removeAttribute('data-style'); });
   const brl = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: Number.isInteger(Number(value)) ? 0 : 2 });
 
   // Em que pé o atendimento está agora. "pending" = falta o proprietário registrar o valor.
@@ -64,7 +67,7 @@
     const open = item.recebimentoConfirmado
       ? `<span class="day-card-who">${who}</span>`
       : `<button type="button" class="day-card-who" data-edit-appointment="${Number(item.id)}" aria-label="Editar marcação de ${escapeHtml(item.cliente?.nome)}, ${fullTime}">${who}</button>`;
-    return `<article class="day-card is-${current.key}${short ? ' is-short' : height < 46 ? ' is-tight' : ''}" style="top:${top}px;height:${height}px" title="${escapeHtml(`${fullTime} · ${item.cliente?.nome || ''} · ${service} · ${current.label}`)}">
+    return `<article class="day-card is-${current.key}${short ? ' is-short' : height < 46 ? ' is-tight' : ''}" data-style="top:${top}px;height:${height}px" title="${escapeHtml(`${fullTime} · ${item.cliente?.nome || ''} · ${service} · ${current.label}`)}">
       <div class="day-card-head"><span class="day-card-time">${short ? clock(start) : fullTime}</span>${action}</div>${open}</article>`;
   }
 
@@ -95,14 +98,14 @@
     const isToday = day === localDate();
     const now = nowMinutes();
     const nowTop = isToday && now >= range.start && now <= range.end ? (now - range.start) * px : null;
-    const nowLine = nowTop === null ? '' : `<div class="day-now" style="top:${nowTop}px" aria-hidden="true"><span>${clock(now)}</span></div>`;
+    const nowLine = nowTop === null ? '' : `<div class="day-now" data-style="top:${nowTop}px" aria-hidden="true"><span>${clock(now)}</span></div>`;
     if (!professionals.some((pro) => pro.id === picked)) {
       picked = (professionals.find((pro) => ids.has(pro.id)) || professionals[0]).id;
     }
     const hours = [];
-    for (let minute = range.start; minute < range.end; minute += 60) hours.push(`<span style="top:${(minute - range.start) * px}px">${clock(minute)}</span>`);
-    hours.push(`<span class="is-last" style="top:${height}px">${clock(range.end)}</span>`);
-    const pill = nowTop === null ? '' : `<b class="day-now-pill" style="top:${nowTop}px">${clock(now)}</b>`;
+    for (let minute = range.start; minute < range.end; minute += 60) hours.push(`<span data-style="top:${(minute - range.start) * px}px">${clock(minute)}</span>`);
+    hours.push(`<span class="is-last" data-style="top:${height}px">${clock(range.end)}</span>`);
+    const pill = nowTop === null ? '' : `<b class="day-now-pill" data-style="top:${nowTop}px">${clock(now)}</b>`;
     const subtitle = (pro, own) => {
       const list = shifts.get(pro.id);
       const hoursText = !pro.ativo ? 'Fora da agenda' : list.length ? `${clock(list[0].start)}–${clock(list[list.length - 1].end)}` : 'Folga';
@@ -113,15 +116,16 @@
     const columns = professionals.map((pro) => {
       const list = shifts.get(pro.id);
       const breaks = list.slice(1).map((shift, index) => ({ start: list[index].end, end: shift.start })).filter((gap) => gap.end > gap.start)
-        .map((gap) => `<div class="day-break" style="top:${(gap.start - range.start) * px + 2}px;height:${(gap.end - gap.start) * px - 4}px">${clock(gap.start)}–${clock(gap.end)} · Intervalo</div>`).join('');
-      return `<section class="day-col${pro.id === picked ? ' is-picked' : ''}" aria-label="Agenda de ${escapeHtml(pro.nome)}" style="height:${height}px">${breaks}${nowLine}${owned(pro).map((item) => card(item, range, compact)).join('')}</section>`;
+        .map((gap) => `<div class="day-break" data-style="top:${(gap.start - range.start) * px + 2}px;height:${(gap.end - gap.start) * px - 4}px">${clock(gap.start)}–${clock(gap.end)} · Intervalo</div>`).join('');
+      return `<section class="day-col${pro.id === picked ? ' is-picked' : ''}" aria-label="Agenda de ${escapeHtml(pro.nome)}" data-style="height:${height}px">${breaks}${nowLine}${owned(pro).map((item) => card(item, range, compact)).join('')}</section>`;
     }).join('');
     const pickedPro = professionals.find((pro) => pro.id === picked);
     const picker = `<label class="pro-picker"><span class="day-avatar" aria-hidden="true">${escapeHtml(initials(pickedPro.nome))}</span><span class="pro-picker-copy"><strong>${escapeHtml(pickedPro.nome)}</strong><small>${escapeHtml(subtitle(pickedPro, owned(pickedPro)))}</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg><select id="pro-picker" aria-label="Profissional exibido">${professionals.map((pro) => `<option value="${Number(pro.id)}"${pro.id === picked ? ' selected' : ''}>${escapeHtml(pro.nome)}</option>`).join('')}</select></label>`;
     const emptyNote = items.length ? '' : `<p class="day-empty">Nenhum atendimento ${isToday ? 'marcado para hoje' : 'neste dia'}.</p>`;
-    target.innerHTML = `${head}${picker}${emptyNote}<div class="day-scroll"><div class="day-grid${compact ? ' is-compact' : ''}" style="--day-cols:${professionals.length};--hour:${hourPx()}px">
+    target.innerHTML = `${head}${picker}${emptyNote}<div class="day-scroll"><div class="day-grid${compact ? ' is-compact' : ''}" data-style="--day-cols:${professionals.length};--hour:${hourPx()}px">
       <div class="day-corner">HORÁRIO</div>${heads}
-      <div class="day-times" style="height:${height}px" aria-hidden="true">${hours.join('')}${pill}</div>${columns}</div></div>`;
+      <div class="day-times" data-style="height:${height}px" aria-hidden="true">${hours.join('')}${pill}</div>${columns}</div></div>`;
+    applyStyles(target);
     // Ao abrir o dia, deixa o horário atual (ou o primeiro atendimento) à vista.
     const key = `${day}|${phone.matches}|${picked}`;
     if (scrolledFor !== key) {
@@ -231,7 +235,7 @@
     const lead = remaining === 1 ? 'Falta um passo rápido.' : `Faltam ${remaining === 2 ? 'dois' : 'três'} passos rápidos.`;
     const nextIndex = steps.findIndex((step) => !step.done);
     const share = setup.link
-      ? `<div class="first-steps-link"><input readonly value="${escapeHtml(setup.link.replace(/^https?:\/\//, ''))}" aria-label="Seu link de reservas"><button type="button" class="secondary" data-copy-booking-link>Copiar link</button><a class="first-steps-whatsapp" href="https://wa.me/?text=${encodeURIComponent(`Agora você pode reservar seu horário por este link: ${setup.link}`)}" target="_blank" rel="noopener noreferrer"><span class="first-steps-wa-extra">Enviar no </span>WhatsApp</a></div>`
+      ? `<div class="first-steps-link"><input readonly value="${escapeHtml(setup.link.replace(/^https?:\/\//, ''))}" aria-label="Seu link de reservas"><button type="button" class="secondary" data-copy-booking-link>Copiar link</button><a class="first-steps-whatsapp" href="https://wa.me/?text=${encodeURIComponent(`Agora você pode reservar seu horário por este link: ${setup.link}`)}" target="_blank" rel="noopener noreferrer"><span class="first-steps-wa-extra">Enviar no&nbsp;</span>WhatsApp</a></div>`
       : '<div class="first-steps-link"><button type="button" class="secondary" data-go="studio">Ver meu link</button></div>';
     const actionFor = (step, index) => {
       if (step.link) return '';
@@ -243,10 +247,11 @@
       : `<span class="first-steps-mark" aria-hidden="true">${index + 1}</span>`;
     target.hidden = false;
     target.innerHTML = `<div class="first-steps-body"><div class="first-steps-head"><span class="eyebrow accent">PRIMEIROS PASSOS</span><h2>Sua agenda está quase pronta para receber reservas.</h2><p>${lead} Depois disso, seus clientes já podem marcar sozinhos.</p></div>
-      <div class="first-steps-progress"><span><i style="width:${Math.round(completed / steps.length * 100)}%"></i></span><small>${completed} de ${steps.length} concluído${completed === 1 ? '' : 's'}</small></div>
+      <div class="first-steps-progress"><span><i data-style="width:${Math.round(completed / steps.length * 100)}%"></i></span><small>${completed} de ${steps.length} concluído${completed === 1 ? '' : 's'}</small></div>
       <ol class="first-steps-list">${steps.map((step, index) => `<li class="${step.done ? 'is-done' : ''}">${mark(step, index)}<div><strong>${step.title}</strong><p>${escapeHtml(step.text)}</p>${!step.done && step.link ? share : ''}</div>${actionFor(step, index)}</li>`).join('')}</ol>
       <p class="first-steps-self">Prefere marcar por conta própria? <button type="button" class="text-button" data-create="appointment">Nova marcação</button></p></div>
       <aside class="first-steps-preview"><div><strong>É assim que seu cliente reserva</strong><p>Pelo celular, sem baixar app nem criar conta.</p></div><img src="/landing/reserva-preview-mobile.svg" alt="Página de reserva do Marcaê no celular: o cliente escolhe serviço, profissional e horário" width="262" height="342" loading="lazy"><p>Prefere marcar por conta própria?<button type="button" class="text-button" data-create="appointment">Criar a primeira marcação</button></p></aside>`;
+    applyStyles(target);
   }
 
   function renderPicker() {
