@@ -90,6 +90,8 @@ public class SecurityConfig {
                 .requestMatchers("/", "/index.html", "/landing.js", "/landing.css", "/app", "/app/", "/app.html", "/app.js", "/overview.js", "/team.js", "/billing.js", "/simple.js", "/analytics.js", "/agendar.html", "/agendar.js", "/waitlist.js", "/acao-email.html", "/acao-email.js", "/privacidade.html", "/termos.html", "/agenda-para-barbearia", "/agenda-para-barbearia.html", "/agenda-para-manicure", "/agenda-para-manicure.html", "/oferta.html", "/oferta.js", "/styles.css", "/favicon.svg").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/landing/*.png").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/landing/*.svg").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/landing/*.webp").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/fonts/*.woff2").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/a/*", "/publico/*", "/publico/*/horarios").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/publico/*/reservas", "/publico/*/lista-espera", "/publico/*/oferta/visualizar", "/publico/*/oferta/aceitar", "/publico/acoes/visualizar", "/publico/acoes").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/auth/login", "/auth/estudios", "/auth/recuperar-senha", "/auth/redefinir-senha").permitAll()

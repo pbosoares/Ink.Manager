@@ -47,6 +47,10 @@ public class StaticCacheConfig implements WebMvcConfigurer {
             .addResourceLocations("classpath:/static/")
             .setCacheControl(MIDIA)
             .setEtagGenerator(etagPorConteudo);
+        registry.addResourceHandler("/fonts/**")
+            .addResourceLocations("classpath:/static/fonts/")
+            .setCacheControl(MIDIA)
+            .setEtagGenerator(etagPorConteudo);
         registry.addResourceHandler("/landing/**")
             .addResourceLocations("classpath:/static/landing/")
             .setCacheControl(MIDIA)

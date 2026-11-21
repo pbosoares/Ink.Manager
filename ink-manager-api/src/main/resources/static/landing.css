@@ -1,5 +1,8 @@
 /* Marcaê — CSS do site público (/, privacidade, termos e páginas de nicho). Gerado a partir do styles.css: só as regras que
    alcançam elementos dessas páginas, na mesma ordem. O CSS do painel e do login fica no styles.css. */
+/* Fontes no próprio domínio (Inter e Inter Tight, licença SIL OFL 1.1), subconjunto latino com acentos do português. */
+@font-face { font-family:'Inter'; font-style:normal; font-weight:400 800; font-display:swap; src:url(/fonts/inter-latin.woff2) format('woff2'); unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family:'Inter Tight'; font-style:normal; font-weight:600 800; font-display:swap; src:url(/fonts/inter-tight-latin.woff2) format('woff2'); unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
 :root {
   --paper:#f4f6fb;
   --ink:#17191f;

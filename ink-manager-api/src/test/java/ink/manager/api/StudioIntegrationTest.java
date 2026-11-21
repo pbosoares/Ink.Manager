@@ -102,7 +102,7 @@ class StudioIntegrationTest {
             assertEquals(304,revalidado.statusCode(),path);
             assertEquals("",revalidado.body(),path);
         }
-        for(var path:List.of("/landing/agenda.png","/landing/login-agenda.svg","/favicon.svg","/robots.txt","/sitemap.xml","/llms.txt")){
+        for(var path:List.of("/landing/agenda.png","/landing/login-agenda.svg","/landing/v3-painel-visao-geral-celular.webp","/landing/v3-reserva-online.webp","/fonts/inter-latin.woff2","/fonts/inter-tight-latin.woff2","/favicon.svg","/robots.txt","/sitemap.xml","/llms.txt")){
             var midia=request("GET",path,null,null);
             assertEquals(200,midia.statusCode(),path);
             assertEquals("max-age=3600, must-revalidate, public",cacheControl(midia),path);
@@ -195,6 +195,27 @@ class StudioIntegrationTest {
             assertTrue(pagina.contains("href=\"/app#login\""),path);
         }
         assertFalse(request("GET","/sitemap.xml",null,null).body().contains("/app"),"o app nao entra no sitemap");
+    }
+    @Test void paginasPublicasSemFontesExternasEHeroLeveNoCelular()throws Exception{
+        for(var path:List.of("/","/agenda-para-barbearia","/agenda-para-manicure","/privacidade.html","/termos.html")){
+            String html=request("GET",path,null,null).body();
+            assertFalse(html.contains("fonts.googleapis.com")||html.contains("fonts.gstatic.com"),path);
+            assertTrue(html.contains("<link rel=\"preload\" href=\"/fonts/inter-latin.woff2\" as=\"font\" type=\"font/woff2\" crossorigin>"),path);
+        }
+        assertFalse(request("GET","/landing.js",null,null).body().contains("fonts.googleapis.com"));
+        assertTrue(request("GET","/landing.css",null,null).body().contains("src:url(/fonts/inter-latin.woff2)"));
+        String home=request("GET","/",null,null).body();
+        assertTrue(home.contains("<script src=\"/landing.js\" defer></script>"),"landing.js nao bloqueia a primeira pintura");
+        assertTrue(home.contains("srcset=\"/landing/v3-painel-visao-geral-celular.webp\" type=\"image/webp\""),"hero do celular em WebP");
+        assertTrue(home.contains("src=\"/landing/v3-reserva-online.webp\" data-animated-src=\"/landing/v3-reserva-online.svg\""),"demonstracao abre parada e anima ao aparecer");
+        for(var fonte:List.of("/fonts/inter-latin.woff2","/fonts/inter-tight-latin.woff2")){
+            var resposta=request("GET",fonte,null,null);
+            assertEquals(200,resposta.statusCode(),fonte);
+            assertEquals("font/woff2",resposta.headers().firstValue("Content-Type").orElse(""),fonte);
+        }
+        var webp=request("GET","/landing/v3-painel-visao-geral-celular.webp",null,null);
+        assertEquals(200,webp.statusCode());
+        assertEquals("image/webp",webp.headers().firstValue("Content-Type").orElse(""));
     }
     @Test void llmsTxtERobotsComContentSignal()throws Exception{
         var llms=request("GET","/llms.txt",null,null);
