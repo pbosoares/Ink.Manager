@@ -1,0 +1,25 @@
+# Marcaê
+
+> O Marcaê é uma agenda online com link de agendamento para salões de beleza, barbearias, manicures e estética no Brasil. O cliente escolhe serviço e horário pelo link, sem criar conta, e o negócio organiza equipe, clientes e recebimentos no mesmo painel. Custa R$ 29,90 por mês, com 14 dias de teste grátis sem cartão de crédito.
+
+## Páginas
+
+- [Página inicial](https://usemarcae.com.br/): o que o Marcaê faz, preço, depoimentos e perguntas frequentes.
+- [Agenda para barbearia](https://usemarcae.com.br/agenda-para-barbearia): agenda de vários barbeiros, expedientes, folgas e reserva pelo link.
+- [Agenda para manicure](https://usemarcae.com.br/agenda-para-manicure): serviços com duração própria, para quem atende sozinha ou em equipe.
+- [Política de privacidade](https://usemarcae.com.br/privacidade.html): dados tratados, LGPD, prazos de retenção e segurança.
+- [Termos de uso](https://usemarcae.com.br/termos.html): assinatura, pagamento, cancelamento e responsabilidades.
+
+## Fatos sobre o produto
+
+- Link de reservas público: o cliente reserva sem criar conta; preço e duração vêm do catálogo do negócio.
+- Agenda por profissional, com expedientes, intervalos e folgas; o sistema impede marcar dois clientes no mesmo horário.
+- Lembretes por e-mail 24 horas e 2 horas antes do atendimento, com links para confirmar, reagendar ou cancelar.
+- Lista de espera: a vaga aberta por um cancelamento é oferecida por e-mail a quem está aguardando.
+- Recebimentos: o responsável confirma o valor recebido e acompanha os totais da semana e do mês. O Marcaê não processa pagamentos dos clientes do negócio.
+- Assinatura: R$ 29,90 por mês. Cartão com renovação automática mensal ou Pix avulso, sem renovação automática. Pagamento pelo Stripe. Cancelamento a qualquer momento.
+- Dados: servidor com o banco de dados no Brasil, conexão HTTPS e cópias de segurança criptografadas.
+
+## Contato
+
+- WhatsApp e e-mail no rodapé de https://usemarcae.com.br/

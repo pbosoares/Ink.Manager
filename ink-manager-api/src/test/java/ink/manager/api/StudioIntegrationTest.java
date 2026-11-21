@@ -102,7 +102,7 @@ class StudioIntegrationTest {
             assertEquals(304,revalidado.statusCode(),path);
             assertEquals("",revalidado.body(),path);
         }
-        for(var path:List.of("/landing/agenda.png","/landing/login-agenda.svg","/favicon.svg","/robots.txt","/sitemap.xml")){
+        for(var path:List.of("/landing/agenda.png","/landing/login-agenda.svg","/favicon.svg","/robots.txt","/sitemap.xml","/llms.txt")){
             var midia=request("GET",path,null,null);
             assertEquals(200,midia.statusCode(),path);
             assertEquals("max-age=3600, must-revalidate, public",cacheControl(midia),path);
@@ -195,6 +195,19 @@ class StudioIntegrationTest {
             assertTrue(pagina.contains("href=\"/app#login\""),path);
         }
         assertFalse(request("GET","/sitemap.xml",null,null).body().contains("/app"),"o app nao entra no sitemap");
+    }
+    @Test void llmsTxtERobotsComContentSignal()throws Exception{
+        var llms=request("GET","/llms.txt",null,null);
+        assertEquals(200,llms.statusCode());
+        String tipo=llms.headers().firstValue("Content-Type").orElse("").toLowerCase();
+        assertTrue(tipo.startsWith("text/plain")&&tipo.contains("charset=utf-8"),tipo);
+        assertTrue(llms.body().startsWith("# Marcaê"),llms.body());
+        assertTrue(llms.body().contains("R$ 29,90"));
+        assertFalse(llms.body().contains("/app"),"o painel nao entra no llms.txt");
+        var robots=request("GET","/robots.txt",null,null);
+        assertEquals(200,robots.statusCode());
+        assertTrue(robots.body().contains("Content-Signal: search=yes, ai-input=yes, ai-train=yes"),robots.body());
+        assertTrue(robots.body().contains("Sitemap: https://usemarcae.com.br/sitemap.xml"),robots.body());
     }
     @Test void semEndpointDeProtectedResourceMetadata()throws Exception{
         var conta=conta("Estudio Metadata");

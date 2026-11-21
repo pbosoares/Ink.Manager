@@ -1,4 +1,7 @@
+# Content-Signal (contentsignals.org): o conteudo publico pode aparecer em buscadores,
+# ser usado como fonte em respostas de IA e no treino de modelos.
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Disallow: /actuator/
 
 Sitemap: https://usemarcae.com.br/sitemap.xml
