@@ -3692,3 +3692,9 @@ body:has(#workspace:not([hidden])) #login { display:none; }
   #public-landing .lp-hero-preview figcaption { display:none; }
   #public-landing .lp-hero-frame { border-radius:28px; }
 }
+/* O painel do hero fica preso ao topo da coluna: a troca da fonte do título não o desloca (CLS). */
+@media (min-width:1181px) {
+  #public-landing .lp-hero-grid { align-items:start; }
+  #public-landing .lp-hero-copy { align-self:center; }
+  #public-landing .lp-hero-preview { align-self:start; margin-top:var(--lp-hero-preview-offset,72px); }
+}

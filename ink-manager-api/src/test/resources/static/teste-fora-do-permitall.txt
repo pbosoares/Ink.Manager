@@ -1,0 +1,1 @@
+arquivo estatico de teste: existe, mas nao esta no permitAll e deve exigir autenticacao
