@@ -168,7 +168,7 @@
   function renderSettings() {
     if (settingsUser === state.user.id) return;
     settingsUser = state.user.id;
-    $('studio-settings').innerHTML = `<section class="settings-section"><h2>Nome do negócio</h2><form id="studio-name-form"><label>Nome exibido no painel e na página de reservas<input name="nome" required maxlength="100"></label><button class="primary">Salvar nome</button><p id="studio-name-message" role="status"></p></form></section><section class="settings-section"><h2>Acessos da equipe</h2><p>A equipe consulta a agenda e marca atendimentos. O responsável configura o negócio, controla acessos e exclui registros.</p><div id="account-list"></div><h3>Novo acesso para a equipe</h3><form id="account-form"><label>Nome<input name="nome" required maxlength="100"></label><label>E-mail<input name="email" type="email" required maxlength="255"></label><label>Senha inicial<input name="senha" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></label><button class="primary">Criar acesso</button><p id="account-message" role="status"></p></form></section><section class="settings-section" id="billing-settings"><h2>Assinatura</h2><div id="billing-content">Carregando assinatura…</div></section>`;
+    $('studio-settings').innerHTML = `<section class="settings-section"><h2>Nome do negócio</h2><form id="studio-name-form"><label>Nome exibido no painel e na página de reservas<input name="nome" required maxlength="100"></label><button class="primary">Salvar nome</button><p id="studio-name-message" role="status"></p></form></section><section class="settings-section"><h2>Acessos da equipe</h2><p>A equipe consulta a agenda e marca atendimentos. O responsável configura o negócio, controla acessos e exclui registros.</p><div id="account-list"></div><h3>Novo acesso para a equipe</h3><form id="account-form"><label>Nome<input name="nome" required maxlength="100"></label><label>E-mail<input name="email" type="email" required maxlength="255"></label><label>Senha inicial<input name="senha" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></label><button class="primary">Criar acesso</button><p id="account-message" role="status"></p></form></section>`;
     $('studio-name-form').elements.nome.value = state.studio.nome;
     $('studio-name-form').onsubmit = async event => {
       event.preventDefault(); const button = event.currentTarget.querySelector('button'); button.disabled = true;
@@ -188,7 +188,7 @@
       try { await api(`/equipe/${button.dataset.account}`,{method:'PUT',body:{ativo:button.dataset.active==='true',version:Number(button.dataset.version)}}); await loadAccounts(); }
       catch (error) { $('account-message').textContent = error.message; button.disabled = false; }
     };
-    loadAccounts(); window.inkBilling?.render();
+    loadAccounts();
   }
   async function loadAccounts() {
     const generation = state.generation, userId = state.user?.id;
