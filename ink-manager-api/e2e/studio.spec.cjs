@@ -57,9 +57,19 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   await page.locator('#auth-submit').click();
   await expect(page.locator('#workspace')).toBeVisible();
   await waitForWorkspace(page);
+  // Assinatura é tela própria: sem Stripe configurado, nenhuma cobrança pode ser iniciada.
+  await openView(page, 'billing');
+  await expect(page.locator('#billing-view')).toBeVisible();
+  await expect(page.locator('#billing-content .bill-badge')).toHaveText('Avaliação gratuita');
+  await expect(page.locator('#billing-submit')).toHaveAttribute('data-billing', 'CARTAO');
+  await expect(page.locator('#billing-submit')).toBeDisabled();
+  await page.locator('#billing-content input[name=bill-method][value=PIX]').check();
+  await expect(page.locator('#billing-submit')).toHaveAttribute('data-billing', 'PIX');
+  await expect(page.locator('#billing-submit')).toHaveText('Pagar mensalidade com Pix');
+  await expect(page.locator('#billing-submit')).toBeDisabled();
+  await expect(page.locator('#studio-view')).toBeHidden();
   await page.locator('.nav-item[data-view=studio]').click();
-  await expect(page.locator('#billing-content [data-billing=CARTAO]')).toBeDisabled();
-  await expect(page.locator('#billing-content [data-billing=PIX]')).toBeDisabled();
+  await expect(page.locator('#billing-settings')).toHaveCount(0);
   await page.locator('#studio-name-form [name=nome]').fill('Estudio Personalizado E2E');
   await page.locator('#studio-name-form button').click();
   await expect(page.locator('#account-name')).toHaveText('Estudio Personalizado E2E');

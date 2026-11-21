@@ -91,6 +91,7 @@ function logout(message = '') {
   window.inkTeam?.close();
   window.inkSimple?.close();
   window.inkAnalytics?.close();
+  window.inkBilling?.close();
   window.inkOverview?.close();
   $('auth-form').reset();
   $('auth-error').textContent = message;
@@ -215,8 +216,8 @@ $('auth-form').addEventListener('submit', async (event) => {
   }
 });
 
-const VIEWS = ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts', 'reports'];
-const OWNER_VIEWS = ['receipts', 'reports'];
+const VIEWS = ['overview', 'agenda', 'clients', 'team', 'studio', 'receipts', 'reports', 'billing'];
+const OWNER_VIEWS = ['receipts', 'reports', 'billing'];
 const ROLE_LABELS = { PROPRIETARIO: 'Responsável', FUNCIONARIO: 'Equipe' };
 const initialsOf = (name) => String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 
@@ -242,8 +243,9 @@ function setView(view) {
     overview: ['VISÃO GERAL', 'Agenda da <span>equipe</span>', 'Atendimentos, confirmações e horários do dia.'],
     agenda: ['TEMPO PARA ATENDER BEM', 'Sua agenda, no lugar.', 'Consulte os horários livres e acompanhe todas as marcações.'],
     team: ['A EQUIPE', 'Cada profissional, sua agenda.', 'Expedientes e folgas compartilhados com a equipe.'],
-    studio: ['SEU ESPAÇO', 'Tudo do seu negócio em um lugar.', 'Serviços, link de reservas, acessos e assinatura no mesmo lugar.'],
+    studio: ['SEU ESPAÇO', 'Tudo do seu negócio em um lugar.', 'Serviços, link de reservas e acessos da equipe no mesmo lugar.'],
     receipts: ['VALORES CONFIRMADOS · SÓ PARA O RESPONSÁVEL', 'Recebimentos, sem complicação.', 'Confirme o atendimento e o valor recebido para acompanhar a semana e o mês.'],
+    billing: ['PLANO MARCAÊ · SÓ PARA O RESPONSÁVEL', 'Sua agenda, sem interrupção.', 'Um plano só, com tudo incluso. Assine em menos de um minuto e cancele quando quiser.'],
     reports: ['CADERNO DO MÊS', 'Relatórios do negócio.', 'Agenda, comparecimento e recebimentos de cada mês.'],
     clients: ['QUEM CONFIA NO SEU TRABALHO', 'Seus clientes, sempre por perto.', 'Contatos e próximos horários de cada cliente.']
   }[view];
@@ -268,7 +270,7 @@ function empty(title, description, action) {
 
 function render() {
   $('main-action').disabled = !state.loaded;
-  $('main-action').hidden = ['team', 'studio', 'receipts', 'reports'].includes(state.view);
+  $('main-action').hidden = ['team', 'studio', 'receipts', 'reports', 'billing'].includes(state.view);
   document.querySelectorAll('.owner-only').forEach((element) => { element.hidden = state.user?.perfil !== 'PROPRIETARIO'; });
   VIEWS.forEach((view) => { $(`${view}-view`).hidden = !state.loaded || state.view !== view; });
   $('workspace').setAttribute('aria-busy', String(state.loading));
@@ -285,6 +287,7 @@ function render() {
   window.inkTeam?.render();
   window.inkSimple?.render();
   window.inkAnalytics?.render();
+  window.inkBilling?.render();
 }
 
 function renderAgenda() {
