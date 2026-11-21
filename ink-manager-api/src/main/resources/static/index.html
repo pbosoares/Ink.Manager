@@ -24,10 +24,9 @@
   <meta name="twitter:image" content="https://usemarcae.com.br/landing/og-marcae.png">
   <meta name="twitter:image:alt" content="Marcaê: agenda online para salões, barbearias e negócios de beleza, com prévia da agenda da equipe no painel.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&amp;family=Inter+Tight:wght@600..800&amp;display=swap"></noscript>
-  <script src="/landing.js"></script>
+  <link rel="preload" href="/fonts/inter-tight-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <script src="/landing.js" defer></script>
   <link rel="stylesheet" href="/landing.css">
   <script type="application/ld+json">
   {
@@ -104,7 +103,7 @@
         </div>
         <figure class="lp-hero-preview">
           <figcaption><span>AGENDA EM FOCO</span><span><i aria-hidden="true"></i> Agenda do Marcaê</span></figcaption>
-          <div class="lp-hero-frame"><picture><source media="(max-width: 700px)" srcset="/landing/v3-painel-visao-geral-celular.svg" width="390" height="844"><img src="/landing/v3-painel-visao-geral.svg" srcset="/landing/v3-painel-visao-geral.svg 1x, /landing/v3-painel-visao-geral-2x.svg 2x" alt="Visão geral do painel Marcaê: agenda do dia da equipe, separada por profissional, com os atendimentos entrando em sequência." width="1440" height="900" fetchpriority="high"></picture></div>
+          <div class="lp-hero-frame"><picture><source media="(max-width: 700px)" srcset="/landing/v3-painel-visao-geral-celular.webp" type="image/webp" width="390" height="844"><img src="/landing/v3-painel-visao-geral.svg" srcset="/landing/v3-painel-visao-geral.svg 1x, /landing/v3-painel-visao-geral-2x.svg 2x" alt="Visão geral do painel Marcaê: agenda do dia da equipe, separada por profissional, com os atendimentos entrando em sequência." width="1440" height="900" fetchpriority="high"></picture></div>
         </figure>
       </div>
     </section>
@@ -122,7 +121,7 @@
           </ol>
         </div>
         <figure class="lp-booking-media">
-          <div class="lp-booking-frame"><img src="/landing/v3-reserva-online.svg" alt="Simulação da página de reserva: o cliente escolhe serviço, profissional, data e horário." width="571" height="346" loading="lazy" decoding="async"></div>
+          <div class="lp-booking-frame"><img src="/landing/v3-reserva-online.webp" data-animated-src="/landing/v3-reserva-online.svg" alt="Simulação da página de reserva: o cliente escolhe serviço, profissional, data e horário." width="571" height="346" loading="lazy" decoding="async"></div>
           <figcaption><strong>1 minuto</strong> é só o tempo que seu cliente leva para fazer um agendamento pelo link.</figcaption>
         </figure>
       </div>
