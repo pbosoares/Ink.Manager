@@ -94,7 +94,7 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/publico/*/reservas", "/publico/*/lista-espera", "/publico/*/oferta/visualizar", "/publico/*/oferta/aceitar", "/publico/acoes/visualizar", "/publico/acoes").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/auth/login", "/auth/estudios", "/auth/recuperar-senha", "/auth/redefinir-senha").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/auth/config", "/actuator/health").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/robots.txt", "/sitemap.xml").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/robots.txt", "/sitemap.xml", "/llms.txt").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/assinatura/webhook", "/assinatura/stripe-webhook").permitAll()
                 .requestMatchers("/internal/retencoes-financeiras/**").permitAll()
                 // Exige autenticacao; so libera (para responder 404) quando nenhum handler atende a URL.

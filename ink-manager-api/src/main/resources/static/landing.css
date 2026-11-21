@@ -365,7 +365,6 @@ html { scroll-behavior:smooth; }
 /* Port fiel dos artboards 04/05 do Paper; regras restritas à landing pública. */
 #public-landing .marketing-header { padding-inline:max(24px,calc((100vw - 1296px)/2)); }
 #public-landing .marketing-nav { order:initial; flex:0 1 auto; justify-content:initial; padding:0; border:0; }
-#public-landing .cro-copy-mobile,
 #public-landing .cro-caption-mobile { display:none; }
 #public-landing .cro-button { min-height:56px; padding-inline:25px; border-radius:14px; box-shadow:0 8px 18px #2456D833; }
 #public-landing .cro-section { padding:74px 0 80px; }
@@ -429,8 +428,6 @@ html { scroll-behavior:smooth; }
   #public-landing .cro-section-heading { margin-bottom:20px; }
   #public-landing .cro-section-heading h2 { margin:8px 0; font-size:29px; line-height:1.08; letter-spacing:-.03em; }
   #public-landing .cro-section-heading p { font-size:13px; line-height:1.55; }
-  #public-landing .cro-copy-desktop { display:none; }
-  #public-landing .cro-copy-mobile { display:inline; }
   #public-landing .cro-business-preview { grid-template-columns:minmax(0,1fr); gap:12px; }
   #public-landing .cro-preview-panel { padding:16px; border-radius:16px; }
   #public-landing .cro-period-totals { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
@@ -674,4 +671,31 @@ html { scroll-behavior:smooth; }
   #public-landing .niche-table th,#public-landing .niche-table td { padding:11px 14px; font-size:14px; }
   #public-landing .niche-steps { grid-template-columns:minmax(0,1fr); }
   #public-landing .niche-crosslink { font-size:14px; }
+}
+
+/* Leitura e toque no celular (auditoria de 20/11): texto corrido em 16px e links/botões com 44px de altura.
+   As prévias ilustrativas do painel mantêm a escala reduzida de propósito. */
+@media(max-width:700px) {
+  body { font-size:16px; }
+  #public-landing .lp-feature p,#public-landing blockquote p,#public-landing .cro-faq-list details p,
+  #public-landing .cro-faq-list summary,#public-landing .cro-final-cta p,#public-landing .cro-payment-options article>span,#public-landing .lp-steps li,#public-landing .cro-guarantees li,
+  #public-landing .cro-section-heading p,#public-landing .cro-plan-main li { font-size:16px; line-height:1.55; }
+  #public-landing .cro-button { font-size:16px; }
+  /* Topo do celular: marca, Entrar e a ação principal; as âncoras de seção seguem no rodapé. */
+  #public-landing .marketing-header .marketing-nav { display:none; }
+  #public-landing .marketing-actions { gap:14px; margin-left:auto; }
+  #public-landing .marketing-header-cta { display:inline-flex; min-height:44px; padding:0 16px; font-size:14px; }
+  #public-landing .cta-wide { display:none; }
+  #public-landing .marketing-nav a,#public-landing .marketing-login { display:inline-flex; align-items:center; min-height:44px; padding-inline:4px; font-size:14px; }
+  #public-landing .marketing-brand { min-height:44px; display:inline-flex; align-items:center; }
+  #public-landing .niche-link-more a { display:inline-flex; align-items:center; min-height:44px; font-size:16px; }
+  #public-landing .marketing-footer nav { gap:0 18px; }
+  #public-landing .marketing-footer nav a,#public-landing .marketing-footer-legal a { display:inline-flex; align-items:center; min-height:44px; font-size:14px; }
+  #public-landing .marketing-footer-tagline,#public-landing .marketing-footer-legal { font-size:14px; }
+  #public-landing .marketing-footer .whatsapp-contact { min-height:44px; }
+  #public-landing .whatsapp-contact span { font-size:14px; }
+}
+@media(max-width:360px) {
+  #public-landing .marketing-actions { gap:10px; }
+  #public-landing .marketing-header-cta { padding:0 12px; }
 }

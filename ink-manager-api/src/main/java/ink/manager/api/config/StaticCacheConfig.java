@@ -43,7 +43,7 @@ public class StaticCacheConfig implements WebMvcConfigurer {
             .addResourceLocations("classpath:/static/")
             .setCacheControl(SCRIPTS_E_ESTILOS)
             .setEtagGenerator(etagPorConteudo);
-        registry.addResourceHandler("/favicon.svg", "/robots.txt", "/sitemap.xml")
+        registry.addResourceHandler("/favicon.svg", "/robots.txt", "/sitemap.xml", "/llms.txt")
             .addResourceLocations("classpath:/static/")
             .setCacheControl(MIDIA)
             .setEtagGenerator(etagPorConteudo);
