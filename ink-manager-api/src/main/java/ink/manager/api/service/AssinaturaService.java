@@ -84,12 +84,12 @@ public class AssinaturaService {
             JsonNode response;
             if(metodo==Metodo.CARTAO){
                 body.put("reason","Marcaê - assinatura mensal");body.put("payer_email",email);body.put("status","pending");
-                body.put("back_url",publicUrl+"/?assinatura=retorno");
+                body.put("back_url",publicUrl+"/app?assinatura=retorno");
                 body.put("auto_recurring",Map.of("frequency",1,"frequency_type","months","transaction_amount",atual.valor(),"currency_id","BRL"));
                 response=gateway.criar("/preapproval",body,id);
             }else{
                 body.put("items",List.of(Map.of("id","ink-manager-mensal","title","Marcaê - mensalidade por Pix","quantity",1,"unit_price",atual.valor(),"currency_id","BRL")));
-                body.put("payer",Map.of("email",email));body.put("back_urls",Map.of("success",publicUrl+"/?assinatura=retorno","pending",publicUrl+"/?assinatura=retorno","failure",publicUrl+"/?assinatura=retorno"));
+                body.put("payer",Map.of("email",email));body.put("back_urls",Map.of("success",publicUrl+"/app?assinatura=retorno","pending",publicUrl+"/app?assinatura=retorno","failure",publicUrl+"/app?assinatura=retorno"));
                 body.put("auto_return","approved");body.put("expires",true);
                 body.put("expiration_date_from",clock.instant().toString());body.put("expiration_date_to",clock.instant().plus(Duration.ofHours(24)).toString());
                 body.put("payment_methods",Map.of("default_payment_method_id","pix","excluded_payment_types",List.of(Map.of("id","credit_card"),Map.of("id","debit_card"),Map.of("id","prepaid_card"),Map.of("id","ticket")),"installments",1));

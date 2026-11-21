@@ -27,7 +27,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&amp;family=Inter+Tight:wght@600..800&amp;display=swap"></noscript>
-  <link rel="stylesheet" href="/styles.css">
+  <script src="/landing.js"></script>
+  <link rel="stylesheet" href="/landing.css">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -75,13 +76,6 @@
     ]
   }
   </script>
-  <script src="/app.js" defer></script>
-  <script src="/overview.js" defer></script>
-  <script src="/team.js" defer></script>
-  <script src="/billing.js" defer></script>
-  <script src="/simple.js" defer></script>
-  <script src="/analytics.js" defer></script>
-  <script src="/waitlist.js" defer></script>
 </head>
 <body>
   <main id="public-landing">
@@ -92,7 +86,7 @@
         <a href="#reserva-online">Como funciona</a>
         <a href="#precos">Preços</a>
       </nav>
-      <div class="marketing-actions"><a class="marketing-login" href="/#login">Entrar</a><a class="marketing-header-cta" href="/#login" data-start-trial>Começar 14 dias grátis</a></div>
+      <div class="marketing-actions"><a class="marketing-login" href="/app#login">Entrar</a><a class="marketing-header-cta" href="/app#cadastro" data-start-trial>Começar 14 dias grátis</a></div>
     </header>
 
     <section class="cro-hero lp-hero" aria-labelledby="landing-title">
@@ -101,7 +95,7 @@
           <span class="lp-pill"><i aria-hidden="true"></i>Agenda online para o seu negócio</span>
           <h1 id="landing-title">Agenda online para salões, barbearias e negócios de beleza</h1>
           <p>O Marcaê é a agenda online com link de agendamento para salões, barbearias, manicures e estética: seus clientes reservam sozinhos e você organiza serviços, profissionais e horários em um só lugar.</p>
-          <a id="landing-trial" class="cro-button lp-hero-cta" href="/#login">Começar 14 dias grátis <span aria-hidden="true">→</span></a>
+          <a id="landing-trial" class="cro-button lp-hero-cta" href="/app#cadastro">Começar 14 dias grátis <span aria-hidden="true">→</span></a>
           <ul class="cro-guarantees">
             <li>Sem cartão de crédito para testar</li>
             <li>Seu cliente reserva sem criar conta</li>
@@ -245,7 +239,7 @@
           <div class="cro-payment-options">
             <article><strong><span class="cro-copy-desktop">Como começa o teste</span><span class="cro-copy-mobile">Seu teste</span></strong><span><span class="cro-copy-desktop">Crie sua conta e teste o Marcaê por 14 dias grátis, sem precisar cadastrar cartão.</span><span class="cro-copy-mobile">Começa quando sua conta é criada e pode ser inferior a 14 dias se parte do prazo já passou.</span></span></article>
             <article><strong>Pix ou cartão</strong><span><span class="cro-copy-desktop">Pix: pagamento mensal avulso, sem renovação automática. Cartão: assinatura mensal recorrente.</span><span class="cro-copy-mobile">Pix é pagamento mensal avulso, sem renovação automática. Cartão é assinatura mensal recorrente.</span></span></article>
-            <a class="cro-button" href="/#login" data-start-trial>Começar 14 dias grátis <span aria-hidden="true">→</span></a>
+            <a class="cro-button" href="/app#cadastro" data-start-trial>Começar 14 dias grátis <span aria-hidden="true">→</span></a>
           </div>
         </article>
       </div>
@@ -272,14 +266,14 @@
     <section class="cro-final-cta" aria-labelledby="final-cta-title">
       <div class="cro-container cro-final-cta-inner">
         <div><h2 id="final-cta-title">Mais tempo para atender bem.</h2><p>Crie sua conta e configure a agenda no seu ritmo.</p></div>
-        <a class="cro-button cro-button-light" href="/#login" data-start-trial>Começar 14 dias grátis <span aria-hidden="true">→</span></a>
+        <a class="cro-button cro-button-light" href="/app#cadastro" data-start-trial>Começar 14 dias grátis <span aria-hidden="true">→</span></a>
       </div>
     </section>
 
     <footer class="marketing-footer">
       <a class="marketing-brand" href="/" aria-label="Marcaê, início"><img src="/favicon.svg" alt="" width="30" height="30"><span>Marcaê</span></a>
       <p class="marketing-footer-tagline">Agenda online para negócios com hora marcada.</p>
-      <nav aria-label="Links do rodapé"><a href="#recursos">Funcionalidades</a><a href="#reserva-online">Como funciona</a><a href="#precos">Preços</a><a href="/#login">Entrar</a><a href="/privacidade.html">Privacidade</a><a href="/termos.html">Termos de uso</a></nav>
+      <nav aria-label="Links do rodapé"><a href="#recursos">Funcionalidades</a><a href="#reserva-online">Como funciona</a><a href="#precos">Preços</a><a href="/app#login">Entrar</a><a href="/privacidade.html">Privacidade</a><a href="/termos.html">Termos de uso</a></nav>
       <a class="whatsapp-contact" href="https://wa.me/5521982877874?text=Ol%C3%A1%21%20Vim%20pelo%20site%20do%20Marca%C3%AA%20e%20gostaria%20de%20saber%20mais." target="_blank" rel="noopener noreferrer" aria-label="Fale com o Marcaê pelo WhatsApp">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2a9.8 9.8 0 0 0-8.4 14.8L2.4 22l5.3-1.1A9.9 9.9 0 1 0 12 2Zm0 17.9a8 8 0 0 1-4.1-1.1l-.3-.2-3.1.7.7-3-.2-.4A8 8 0 1 1 12 19.9Z" fill="currentColor"/><path d="M9 7.6c-.2-.4-.4-.4-.7-.4h-.6c-.2 0-.5.1-.7.4-.2.2-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.8 2.9 4.4 3.9 2.2.9 2.6.7 3.1.7.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.4l-1.7-.8c-.2-.1-.4-.1-.6.2-.2.3-.7.8-.9 1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.2-1.3-.8-.7-1.3-1.6-1.5-1.8-.2-.3 0-.4.1-.6l.4-.5.4-.5c.1-.2.1-.4 0-.5Z" fill="currentColor"/></svg>
         <span>Fale pelo WhatsApp</span>
@@ -289,193 +283,5 @@
       <p class="marketing-footer-legal">Marcaê · Pablo da Costa Soares · Belford Roxo – RJ · <a href="mailto:pablodacostasoares@gmail.com">pablodacostasoares@gmail.com</a></p>
     </footer>
   </main>
-
-  <div id="login" class="login-route">
-    <header class="login-header"><a class="marketing-brand" href="/" aria-label="Marcaê, página inicial"><img src="/favicon.svg" alt="" width="34" height="34"><span>Marcaê</span></a><a href="/" class="login-back">Voltar para o site</a></header>
-    <section id="auth" class="auth-layout" aria-labelledby="auth-title">
-      <div class="auth-art"><div class="auth-message"><span class="marketing-kicker">AGENDA ONLINE PARA QUEM ATENDE</span><h2>Seu trabalho merece uma rotina mais leve.</h2><p>Organize serviços, equipe e horários. Compartilhe seu link para seus clientes reservarem sem criar conta.</p><img src="/landing/login-agenda.svg" alt="Ilustração vetorial de um calendário em azul, símbolo de uma rotina de atendimento organizada." loading="lazy" decoding="async"></div></div>
-      <div class="auth-content"><div class="auth-form-wrap">
-        <span class="eyebrow accent">ACESSO À SUA CONTA</span>
-        <h2 id="auth-title">Bom te ver por aqui.</h2>
-        <p id="auth-description" class="muted">Entre para cuidar da agenda e dos clientes do seu negócio.</p>
-        <div id="landing-offer" class="trial-offer" hidden><span class="eyebrow accent">SEM CARTÃO PARA COMEÇAR</span><p class="trial-price"><strong>Até 14 dias de teste grátis.</strong><span>O prazo pode ser menor se parte da avaliação já tiver sido usada.</span></p><small>Depois: R$ 29,90/mês por Pix avulso ou cartão em assinatura recorrente.</small></div>
-        <form id="auth-form">
-          <label id="name-field" hidden>Seu nome<input name="nome" autocomplete="name" maxlength="100"></label>
-          <label id="studio-name-field" hidden>Nome do seu negócio<input name="nomeEstudio" maxlength="100" autocomplete="organization"></label>
-          <label>E-mail<input name="email" type="email" autocomplete="username" placeholder="voce@seunegocio.com" required></label>
-          <label>Senha<input name="senha" type="password" autocomplete="current-password" required maxlength="72" placeholder="Sua senha"></label>
-          <p id="auth-error" class="form-error" role="alert"></p>
-          <button class="secondary wide" id="auth-submit">Entrar <span aria-hidden="true">→</span></button>
-        </form>
-        <p id="auth-registration" class="auth-toggle" hidden><span id="auth-question">Primeira vez aqui?</span> <button id="toggle-auth" class="text-button">Crie sua conta</button></p>
-        <p id="registration-notice" class="muted">Crie seu negócio e convide sua equipe.</p>
-        <button type="button" id="forgot-password" class="text-button">Esqueci minha senha</button>
-        <div class="fine-print">Acesso reservado à equipe do seu negócio.</div>
-      </div></div>
-    </section>
-  </div>
-
-  <div id="workspace" class="workspace" data-screen="overview" hidden>
-    <aside class="sidebar" id="sidebar">
-      <a href="/" class="panel-brand" aria-label="Marcaê, página inicial"><svg viewBox="0 0 35 32" aria-hidden="true"><path d="M3 27L10.7 7.8Q11.5 5.7 13 7.6L18.4 18.8Q19.4 20.7 21.1 18.8L28 7Q29 5.3 30.1 7.2L33 27"/></svg><span><strong>Marcaê</strong><small>AGENDA DO NEGÓCIO</small></span></a>
-      <span class="nav-label">O NEGÓCIO</span>
-      <nav aria-label="Navegação principal" class="nav-main">
-        <button type="button" data-view="overview" class="nav-item nav-tab active"><svg class="nav-ico nav-ico-desk" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.7 14.3 8 8 14.3 1.7 8 8 1.7Z"/><circle cx="8" cy="8" r="1.4"/></svg><svg class="nav-ico nav-ico-tab" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 7 8 2l6 5M3.7 6.3V13.5h8.6V6.3M6.2 13.5v-4h3.6v4"/></svg><span class="nav-text">Visão geral</span></button>
-        <button type="button" data-view="agenda" class="nav-item nav-tab"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.3" y="3.5" width="11.4" height="10" rx="2"/><path d="M5 2v3M11 2v3M2.5 6.4h11"/></svg><span class="nav-text">Agenda</span></button>
-        <button type="button" data-view="clients" class="nav-item nav-tab"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5"/><path d="M3 13.5c.3-2.4 2.2-3.8 5-3.8s4.7 1.4 5 3.8"/></svg><span class="nav-text">Clientes</span></button>
-        <button type="button" data-view="team" class="nav-item nav-extra"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6" cy="5" r="2"/><circle cx="11.3" cy="6" r="1.6"/><path d="M1.8 13c.2-2.2 1.7-3.5 4.2-3.5s4 1.3 4.2 3.5M9.4 10c2.8-.5 4.4.5 4.8 2.7"/></svg><span class="nav-text">Equipe e horários</span></button>
-        <button type="button" data-view="receipts" class="nav-item nav-tab owner-only"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="3" width="12.4" height="10" rx="2"/><path d="M2 6.2h12M5 10h2"/></svg><span class="nav-text">Recebimentos</span></button>
-        <button type="button" data-view="reports" class="nav-item nav-extra owner-only"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.3 13.5V8.5M6 13.5V4M9.8 13.5V6M13.5 13.5V2.5"/></svg><span class="nav-text">Relatórios</span></button>
-        <button type="button" data-go="studio" data-scroll="billing-settings" class="nav-item nav-extra owner-only"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="3" width="12.4" height="10" rx="2"/><path d="M2 6.2h12M5 10h2"/></svg><span class="nav-text">Assinatura</span></button>
-      </nav>
-      <span class="nav-divider owner-only" aria-hidden="true"></span>
-      <span class="nav-label nav-label-config owner-only">CONFIGURAÇÕES</span>
-        <button type="button" data-view="studio" class="nav-item nav-extra owner-only"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.2 13.8 8 8 13.8 2.2 8 8 2.2Z"/></svg><span class="nav-text">Meu negócio</span></button>
-        <button type="button" id="menu-toggle" class="nav-item nav-menu" aria-expanded="false" aria-controls="sidebar"><svg class="nav-ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M2.5 8h11M2.5 12h11"/></svg><span class="nav-text">Menu</span></button>
-      <div class="sidebar-bottom"><span class="account-avatar" id="account-initial" aria-hidden="true">S</span><span class="account-copy"><strong id="account-name">Seu negócio</strong><small>Conta atual</small></span><button type="button" id="logout" class="account-logout">Sair</button></div>
-    </aside>
-    <main>
-      <header class="topbar"><span class="topbar-label">PAINEL DO NEGÓCIO</span><div class="user-chip"><span class="user-avatar" id="user-initials" aria-hidden="true"></span><span class="user-copy"><strong id="user-name"></strong><small id="user-role"></small></span></div></header>
-      <div class="page-content">
-        <section class="page-heading">
-          <div class="heading-main"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="15" height="13" rx="3"/><path d="M6 2.5v3M14 2.5v3M3 7.5h14M6.5 11h2M11.5 11h2M6.5 14h2"/></svg></span><div class="heading-copy"><span class="eyebrow accent" id="page-kicker"></span><h1 id="page-title"></h1><p class="muted" id="page-description"></p></div></div>
-          <div class="heading-actions">
-            <div class="day-picker" id="day-picker" role="group" aria-label="Escolher dia">
-              <button type="button" class="day-picker-step" data-day-shift="-1" aria-label="Dia anterior">‹</button>
-              <button type="button" class="day-picker-label" id="day-picker-label" aria-label="Escolher data"><span id="day-label"></span><span class="day-picker-caret" aria-hidden="true">⌄</span></button>
-              <input type="date" id="day-input" class="day-picker-input" tabindex="-1" aria-hidden="true">
-              <button type="button" class="day-picker-today" data-day-today>Hoje</button>
-              <button type="button" class="day-picker-step" data-day-shift="1" aria-label="Próximo dia">›</button>
-            </div>
-            <div class="heading-tools owner-only" id="receipts-tools"><label class="period-field"><span class="sr-only">Período de referência</span><input id="receipts-date" type="date" aria-label="Data de referência dos recebimentos"></label><button id="reload-receipts" type="button" class="secondary">Atualizar</button></div>
-            <button class="primary" id="main-action">+ Nova marcação</button>
-          </div>
-        </section>
-        <p id="page-error" class="form-error" role="alert"></p>
-        <div id="loading" class="loading" role="status" hidden>Buscando os dados do negócio…</div>
-        <section id="overview-view">
-          <div class="stats" id="overview-stats">
-            <article><span class="stat-icon" aria-hidden="true">▦</span><div><strong class="stat-title">Atendimentos</strong><small>Nesta data</small></div><b id="stat-today">—</b></article>
-            <article><span class="stat-icon" aria-hidden="true">✓</span><div><strong class="stat-title">A confirmar</strong><small>Agendadas</small></div><b id="stat-upcoming">—</b></article>
-            <article><span class="stat-icon" aria-hidden="true">✓</span><div><strong class="stat-title">Concluídos</strong><small id="stat-done-note">Nesta data</small></div><b id="stat-done">—</b></article>
-            <article class="stat-received owner-only" hidden><span class="stat-icon" aria-hidden="true">▤</span><div><strong class="stat-title">Recebido hoje</strong><small>Valores confirmados hoje</small></div><b id="stat-received">—</b></article>
-          </div>
-          <section id="first-steps" class="panel first-steps" aria-label="Primeiros passos" hidden></section>
-          <section class="panel team-day" aria-label="Agenda por profissional"><div id="today-list"></div></section>
-          <div id="next-up" class="next-up" role="status" aria-live="polite"></div>
-        </section>
-        <section id="agenda-view" hidden>
-          <section class="panel availability-panel" aria-labelledby="availability-title">
-            <div class="panel-head"><div><h2 id="availability-title">Dias e horários livres</h2><p>Consulte a disponibilidade antes de confirmar uma reserva.</p></div><span class="panel-badge">Atualiza a cada 20 segundos</span></div>
-            <div class="toolbar availability-controls">
-              <label>Profissional<select id="availability-professional"></select></label>
-              <label>Mês<input id="availability-month" type="month"></label>
-              <label>Duração (min)<input id="availability-duration" type="number" min="1" max="720" value="60"></label>
-              <button id="availability-load" class="secondary">Consultar</button>
-            </div>
-            <p id="availability-error" role="alert"></p>
-            <div id="availability-days" class="availability-days"></div>
-            <div id="availability-slots" class="availability-slots" aria-live="polite"></div>
-            <small class="panel-note">O horário só fica reservado depois que você salva a marcação.</small>
-          </section>
-          <section class="panel agenda-list-panel list-panel" aria-labelledby="agenda-book-title">
-            <div class="section-title"><div><h2 id="agenda-book-title">Livro de marcações</h2><p>Todas as marcações, com busca e filtros <span id="agenda-count"></span></p></div><button type="button" id="agenda-collapse" class="collapse-toggle" aria-expanded="true" aria-controls="agenda-book-body" aria-label="Recolher livro de marcações">−</button></div>
-            <div id="agenda-book-body">
-              <div class="toolbar agenda-filters" role="group" aria-label="Filtros da agenda">
-                <label class="search">Buscar marcação<input id="agenda-search" type="search" placeholder="Cliente, serviço ou descrição"></label>
-                <label>Data<input id="agenda-date" type="date"></label>
-                <label>Profissional<select id="agenda-professional"><option value="">Todos</option></select></label>
-                <label>Status / recebimento<select id="agenda-status"><option value="">Todos</option><option value="AGENDADA">Agendada</option><option value="CONFIRMADA">Confirmada</option><option value="CONCLUIDA">Concluída</option><option value="CANCELADA">Cancelada</option><option value="PENDENTE_RECEBIMENTO">Pendente de recebimento</option></select></label>
-                <button id="clear-filters" type="button" class="secondary">Limpar</button>
-              </div>
-              <div id="agenda-list"></div>
-            </div>
-          </section>
-        </section>
-        <section id="clients-view" hidden>
-          <label class="search-bar"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span class="sr-only">Buscar cliente</span><input id="client-search" type="search" placeholder="Buscar cliente por nome, telefone ou Instagram"></label>
-          <section class="panel list-panel" aria-labelledby="clients-title"><div class="section-title"><div><h2 id="clients-title">Clientes</h2><p>Contatos e próximo atendimento de cada cliente</p></div><span id="client-count" class="list-count"></span></div><div id="client-list"></div></section>
-        </section>
-<section id="team-view" hidden><div class="section-title"><h2>Profissionais</h2><button id="new-professional" class="primary owner-only">+ Novo profissional</button></div><p>Configure os expedientes e bloqueie folgas sem perder o histórico.</p><div id="professional-list"></div></section>
-<section id="studio-view" hidden>
-<section id="simple-services" class="settings-section owner-only">
-  <h2>Serviços e link de reservas</h2>
-  <p>Cadastre nome, preço e duração dos serviços e configure o expediente em Equipe e horários. Depois, copie seu link.</p>
-  <div class="service-setup">
-    <form id="service-form">
-      <h3 id="service-form-title">Novo serviço</h3>
-      <fieldset id="service-fields"><legend class="sr-only">Dados do serviço</legend>
-        <label>Nome do serviço<input name="nome" required maxlength="100" placeholder="Ex.: corte, manicure, sessão ou design"></label>
-        <div class="form-row"><label>Preço (R$)<input name="preco" type="number" inputmode="decimal" min="0" max="9999999999.99" step="0.01" required></label><label>Duração (minutos)<input name="duracaoMinutos" type="number" min="1" max="720" step="1" required></label></div>
-        <label class="checkbox-label"><input name="ativo" type="checkbox" checked> Disponível para novas reservas</label>
-        <p class="muted">Desmarque para arquivar. O serviço deixará de aparecer no link; atendimentos anteriores são preservados.</p>
-        <div class="service-controls"><button id="service-save" class="primary">Salvar serviço</button><button id="service-reset" type="button" class="secondary">Limpar formulário</button></div>
-      </fieldset>
-      <p id="service-message" class="form-error" role="status"></p>
-    </form>
-    <section class="service-catalog" aria-label="Seu catálogo">
-      <div class="service-catalog-head">
-        <div><h3>Seu catálogo</h3><p>Serviços cadastrados para o seu negócio.</p></div>
-        <button id="reload-services" type="button" class="text-button">Recarregar serviços</button>
-      </div>
-      <div id="service-list"></div>
-    </section>
-  </div>
-  <section class="service-link-panel" aria-label="Link de reservas">
-    <div class="service-link-copy"><span class="eyebrow accent">LINK DE RESERVAS</span><h3>Seu link fixo</h3><p>Compartilhe com seus clientes. Ele continua o mesmo se você mudar o nome do negócio.</p></div>
-    <div class="service-link-controls">
-      <label>Link fixo<input id="public-link" type="url" readonly></label>
-      <div class="link-controls"><button id="copy-public-link" type="button" class="secondary" disabled>Copiar link</button><a id="open-public-link" class="text-button" target="_blank" rel="noopener noreferrer" hidden>Abrir página de reservas</a></div>
-      <p id="public-link-error" role="status"></p>
-    </div>
-  </section>
-</section>
-<section id="schedule-config" class="settings-section owner-only" aria-labelledby="schedule-config-title"><h2 id="schedule-config-title">Regras de agendamento</h2><p>Defina a antecedência mínima e o limite de reservas abertas por e-mail.</p><form id="schedule-config-form"><div class="form-row"><label>Antecedência mínima (minutos)<input name="antecedenciaMinimaMinutos" type="number" min="0" max="43200" step="1" required></label><label>Reservas abertas por e-mail<input name="limiteAgendamentosPorEmail" type="number" min="1" max="50" step="1" required></label></div><p>Fuso horário do negócio: <strong id="schedule-timezone">Consultando…</strong></p><button type="submit" class="primary">Salvar regras</button><p id="schedule-config-message" role="status"></p></form></section><section id="waitlist-management" class="settings-section owner-only" hidden aria-labelledby="waitlist-management-title">
-  <div class="section-title"><div><h2 id="waitlist-management-title">Lista de espera</h2><p class="muted">Clientes aguardando vaga e a situação de cada pedido.</p></div><button id="waitlist-reload" type="button" class="secondary">Atualizar lista</button></div>
-  <p id="waitlist-management-loading" role="status" hidden>Consultando a lista…</p><p id="waitlist-management-error" class="form-error" role="alert"></p>
-  <div id="waitlist-management-list" aria-live="polite"></div>
-</section><div id="studio-settings"></div></section>
-<section id="reports-view" hidden>
-          <section id="monthly-report" class="settings-section owner-only" hidden aria-labelledby="report-title">
-            <div class="section-title"><div><span class="eyebrow accent">CADERNO DO MÊS</span><h2 id="report-title">Agenda e comparecimento</h2></div><div class="toolbar"><label>Mês<input id="report-month" type="month"></label><button id="report-reload" type="button" class="secondary">Atualizar</button></div></div>
-            <p id="report-loading" role="status" hidden>Consultando o relatório…</p><p id="report-error" class="form-error" role="alert"></p>
-            <div id="report-data" hidden><p id="report-timezone" class="muted"></p><p id="report-comparison-note" class="muted"></p>
-              <div id="report-kpis" class="report-kpis"></div>
-              <div class="report-summary-grid"><article><span>TAXA DE COMPARECIMENTO</span><strong id="report-rate"></strong><small id="report-denominator"></small><small id="report-rate-variation"></small></article><article><span>RECEBIDO E CONFIRMADO</span><strong id="report-received"></strong><small id="report-received-change"></small></article><article><span>VALOR POTENCIAL DE FALTAS</span><strong id="report-absence-potential"></strong><small>Estimativa pelos preços previstos; não recebida e sem comprovação de perda.</small><small id="report-absence-change"></small></article></div>
-              <section class="report-chart-wrap"><div class="section-title"><h3 id="report-chart-label">Agendamentos por dia</h3><label>Visualizar<select id="report-range"><option value="day">Dia</option><option value="week">Semana</option></select></label></div><div id="report-chart" class="report-chart" role="img" aria-label="Agendamentos por dia"></div></section>
-              <section class="report-ranking"><h3>Serviços mais agendados</h3><div id="report-services"></div></section><section class="report-ranking"><h3>Histórico recente de faltas</h3><div id="absence-history"></div></section>
-            </div>
-          </section>
-</section>
-<section id="receipts-view" hidden aria-label="Recebimentos confirmados">
-  <p id="receipts-error" class="form-error" role="alert"></p><p id="receipts-loading" role="status" hidden>Consultando recebimentos…</p>
-  <div id="receipts-data" hidden>
-    <div class="receipt-totals"><article><div><strong>Recebido nesta semana</strong><small>Somente valores confirmados · <span id="receipts-week-period"></span></small></div><b id="receipts-week">—</b></article><article><div><strong>Recebido neste mês</strong><small>Somente valores confirmados · <span id="receipts-month-period"></span></small></div><b id="receipts-month">—</b></article><aside class="receipt-zone"><span>FUSO DO NEGÓCIO</span><p id="receipts-timezone"></p></aside></div>
-    <section class="panel list-panel" aria-labelledby="receipts-list-title"><div class="section-title"><div><h2 id="receipts-list-title">Recebimentos confirmados</h2><p>Valores informados e confirmados no período</p></div><span id="receipts-count" class="list-count is-accent"></span></div><div id="receipts-list"></div></section>
-  </div>
-</section>
-      </div>
-    </main>
-  </div>
-
-  <dialog id="editor" aria-labelledby="editor-title"><form id="editor-form"><div class="dialog-heading"><div><span class="eyebrow accent">LIVRO DO NEGÓCIO</span><h2 id="editor-title"></h2></div><button type="button" class="icon-button" id="close-editor" aria-label="Fechar formulário">×</button></div><div id="editor-fields"></div><p id="editor-error" class="form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="secondary" id="cancel-editor">Cancelar</button><button class="primary" id="save-editor">Salvar</button></div></form></dialog>
-  <dialog id="confirmation" aria-labelledby="confirmation-title" aria-describedby="confirmation-description"><div class="dialog-heading"><h2 id="confirmation-title">Excluir registro?</h2></div><p id="confirmation-description"></p><p id="delete-error" class="form-error" role="alert"></p><div class="dialog-actions"><button id="cancel-delete" class="secondary">Manter registro</button><button id="confirm-delete" class="primary">Excluir</button></div></dialog>
-
-<dialog id="receipt-dialog" aria-labelledby="receipt-title" aria-describedby="receipt-description">
-  <form id="receipt-form"><h2 id="receipt-title">Confirmar atendimento e recebimento</h2><p id="receipt-description"></p>
-    <fieldset id="receipt-fields"><legend class="sr-only">Valor recebido</legend>
-      <label>Valor recebido (R$)<input name="valor" type="number" inputmode="decimal" min="0" max="9999999999.99" step="0.01" required></label>
-      <p>Informe o valor efetivamente recebido, mesmo que seja diferente do preço previsto.</p>
-      <p id="receipt-completion-note">Ao confirmar, o atendimento será concluído e o valor entrará nos totais pela data desta confirmação. Depois, este registro não poderá ser alterado ou excluído.</p>
-      <p>O Marcaê não processa pagamentos. Aqui você só registra o valor recebido.</p>
-      <button id="receipt-save" class="primary">Confirmar atendimento e recebimento</button>
-    </fieldset>
-    <p id="receipt-error" class="form-error" role="alert"></p>
-    <div class="dialog-actions"><button id="receipt-close" type="button" class="secondary">Voltar</button></div>
-  </form>
-</dialog>
-
-  <div id="toast" class="toast" role="status" hidden></div>
-  <script>document.getElementById('landing-year').textContent = new Date().getFullYear();</script>
 </body>
 </html>

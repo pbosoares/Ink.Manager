@@ -92,7 +92,7 @@ class StudioIntegrationTest {
 
     String cacheControl(HttpResponse<?> response){return response.headers().firstValue("Cache-Control").orElse("");}
     @Test void cacheDoEstaticoPublicoENoStoreNaApi()throws Exception{
-        for(var path:List.of("/styles.css","/app.js","/agendar.js")){
+        for(var path:List.of("/styles.css","/app.js","/agendar.js","/landing.css","/landing.js")){
             var asset=request("GET",path,null,null);
             assertEquals(200,asset.statusCode(),path);
             assertEquals("no-cache, public",cacheControl(asset),path);
@@ -107,7 +107,7 @@ class StudioIntegrationTest {
             assertEquals(200,midia.statusCode(),path);
             assertEquals("max-age=3600, must-revalidate, public",cacheControl(midia),path);
         }
-        for(var path:List.of("/","/agendar.html","/acao-email.html","/a/QUALQUERCODIGO")){
+        for(var path:List.of("/","/app","/app.html","/agendar.html","/acao-email.html","/a/QUALQUERCODIGO")){
             var html=request("GET",path,null,null);
             assertEquals(200,html.statusCode(),path);
             assertTrue(cacheControl(html).contains("no-store"),path+" "+cacheControl(html));
@@ -147,7 +147,7 @@ class StudioIntegrationTest {
     }
     @Test void conteudoEmPortuguesERedirecionamentoDoIndex()throws Exception{
         var conta=conta("Estudio Idioma");
-        for(var path:List.of("/","/agendar.html","/a/QUALQUERCODIGO","/acao-email.html","/styles.css","/app.js","/landing/agenda.png","/auth/config","/naoexiste","/clientes")){
+        for(var path:List.of("/","/app","/agendar.html","/a/QUALQUERCODIGO","/acao-email.html","/styles.css","/app.js","/landing.css","/landing/agenda.png","/auth/config","/naoexiste","/clientes")){
             for(var lingua:List.of("","en-US,en;q=0.9")){
                 var b=HttpRequest.newBuilder(URI.create("http://localhost:"+port+path)).GET();
                 if(!lingua.isEmpty())b.header("Accept-Language",lingua);
@@ -169,6 +169,32 @@ class StudioIntegrationTest {
         var comQuery=request("GET","/index.html?utm_source=teste",null,null);
         assertEquals(301,comQuery.statusCode());
         assertEquals("/?utm_source=teste",comQuery.headers().firstValue("Location").orElse(""));
+    }
+    @Test void landingPublicaSeparadaDoPainelEmApp()throws Exception{
+        var landing=request("GET","/",null,null).body();
+        assertTrue(landing.contains("/landing.css")&&landing.contains("/landing.js"),"a landing usa o CSS e o JS proprios");
+        for(var doPainel:List.of("/styles.css","/app.js","/overview.js","/team.js","/billing.js","/simple.js","/analytics.js","/waitlist.js","id=\"workspace\"","id=\"auth\"","<dialog","noindex","href=\"/#login\""))
+            assertFalse(landing.contains(doPainel),"a landing nao deve carregar o painel: "+doPainel);
+        assertEquals(1,landing.split("<h1",-1).length-1,"a landing tem um unico h1");
+        assertTrue(landing.contains("href=\"/app#login\"")&&landing.contains("href=\"/app#cadastro\""),"Entrar e o teste gratis levam ao app");
+        for(var path:List.of("/app","/app/","/app.html")){
+            var app=request("GET",path,null,null);
+            assertEquals(200,app.statusCode(),path);
+            assertTrue(app.body().contains("<meta name=\"robots\" content=\"noindex,nofollow\">"),path);
+            for(var item:List.of("/styles.css","/app.js","/overview.js","/team.js","/billing.js","/simple.js","/analytics.js","/waitlist.js","id=\"workspace\"","id=\"auth\""))
+                assertTrue(app.body().contains(item),path+" deve servir o painel: "+item);
+            assertFalse(app.body().contains("public-landing"),path);
+            assertFalse(app.body().contains("<script>"),path+" sem script inline (CSP)");
+        }
+        assertFalse(landing.contains("<script>"),"landing sem script inline (CSP)");
+        for(var path:List.of("/privacidade.html","/termos.html","/agenda-para-barbearia","/agenda-para-manicure")){
+            var pagina=request("GET",path,null,null).body();
+            assertTrue(pagina.contains("href=\"/landing.css\""),path+" usa o CSS da landing");
+            assertFalse(pagina.contains("/styles.css"),path+" nao carrega o CSS do painel");
+            assertFalse(pagina.contains("href=\"/#login\""),path+" aponta Entrar/teste gratis para /app");
+            assertTrue(pagina.contains("href=\"/app#login\""),path);
+        }
+        assertFalse(request("GET","/sitemap.xml",null,null).body().contains("/app"),"o app nao entra no sitemap");
     }
     @Test void semEndpointDeProtectedResourceMetadata()throws Exception{
         var conta=conta("Estudio Metadata");
@@ -223,7 +249,7 @@ class StudioIntegrationTest {
         assertTrue(divergencias.isEmpty(),String.join("\n",divergencias));
     }
     @Test void cadastroAutonomoEArquivosPublicos()throws Exception{
-        for(var path:List.of("/","/app.js","/team.js","/styles.css","/favicon.svg","/actuator/health","/agenda-para-barbearia","/agenda-para-manicure","/privacidade.html","/termos.html"))assertEquals(200,request("GET",path,null,null).statusCode(),path);
+        for(var path:List.of("/","/app","/app.html","/landing.js","/landing.css","/app.js","/team.js","/styles.css","/favicon.svg","/actuator/health","/agenda-para-barbearia","/agenda-para-manicure","/privacidade.html","/termos.html"))assertEquals(200,request("GET",path,null,null).statusCode(),path);
         for(var path:List.of("/landing/visao-geral.png","/landing/agenda.png","/landing/reserva.png")){
             var image=request("GET",path,null,null);
             assertEquals(200,image.statusCode(),path);
@@ -322,6 +348,7 @@ class StudioIntegrationTest {
         var conta=conta("Estudio");when(emailSender.disponivel()).thenReturn(true);
         assertEquals(200,request("POST","/auth/recuperar-senha",stringify(Map.of("email",conta.email())),null).statusCode());
         var link=org.mockito.ArgumentCaptor.forClass(String.class);verify(emailSender).enviar(eq(conta.email()),link.capture());
+        assertTrue(link.getValue().contains("/app#redefinir="),link.getValue());
         String token=link.getValue().split("redefinir=")[1];
         assertNotEquals(token,jdbc.queryForObject("SELECT token_hash FROM recuperacoes_senha",String.class));
         String body=stringify(Map.of("token",token,"senha","NovaSenhaTeste123"));

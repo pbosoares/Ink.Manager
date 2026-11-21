@@ -52,8 +52,8 @@ public class StripeGateway {
             form.put("payment_intent_data[metadata][checkout_id]",checkoutId);
             form.put("payment_intent_data[metadata][studio_id]",Long.toString(estudioId));
         }
-        form.put("success_url",publicUrl+"/?assinatura=retorno&session_id={CHECKOUT_SESSION_ID}");
-        form.put("cancel_url",publicUrl+"/?assinatura=cancelada");
+        form.put("success_url",publicUrl+"/app?assinatura=retorno&session_id={CHECKOUT_SESSION_ID}");
+        form.put("cancel_url",publicUrl+"/app?assinatura=cancelada");
         return chamar("POST","/v1/checkout/sessions",form,checkoutId);
     }
     public JsonNode checkout(String sessionId){return chamar("GET","/v1/checkout/sessions/"+id(sessionId),Map.of(),null);}

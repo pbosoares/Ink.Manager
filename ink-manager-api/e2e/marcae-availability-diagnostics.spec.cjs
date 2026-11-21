@@ -128,7 +128,7 @@ test('diagnostico focado da disponibilidade: primeiro GET e repeticao', async ({
   }
   if (!professional) throw new Error('Synthetic fixture could not create professional ID 2');
 
-  await page.goto('/#login');
+  await page.goto('/app#login');
   await expect(page.locator('#auth-form')).toBeVisible();
   await page.locator('#auth-form [name=email]').fill(email);
   await page.locator('#auth-form [name=senha]').fill(password);

@@ -33,7 +33,7 @@ public class RecuperacaoSenhaService {
         recuperacoes.deleteByUsuarioId(usuario.getId());recuperacoes.flush();
         byte[] random=new byte[32];new SecureRandom().nextBytes(random);String token=HexFormat.of().formatHex(random);
         recuperacoes.saveAndFlush(new RecuperacaoSenha(hash(token),usuario,LocalDateTime.now(clock).plusMinutes(30)));
-        try{email.enviar(usuario.getEmail(),publicUrl.replaceAll("/+$","")+"/#redefinir="+token);}
+        try{email.enviar(usuario.getEmail(),publicUrl.replaceAll("/+$","")+"/app#redefinir="+token);}
         catch(org.springframework.mail.MailException error){throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Nao foi possivel enviar o e-mail. Tente novamente mais tarde.");}
     }
     public void redefinir(String token,String senha){

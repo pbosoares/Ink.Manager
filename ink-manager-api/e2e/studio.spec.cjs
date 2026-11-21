@@ -47,7 +47,7 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   recordWorkspaceFailures(page);
   page.on('pageerror', (error) => errors.push(error.message));
   await page.bringToFront();
-  await page.goto('/#login');
+  await page.goto('/app#login');
   await page.screenshot({ path: 'target/validation-login.png', fullPage: true });
   await page.locator('#toggle-auth').click();
   await page.locator('#auth-form [name=nome]').fill('Equipe E2E');
@@ -123,7 +123,7 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   try {
     const staffPage = await staffContext.newPage();
     await staffPage.bringToFront();
-    await staffPage.goto('/#login');
+    await staffPage.goto('/app#login');
     await staffPage.locator('#auth-form [name=email]').fill(staffEmail);
     await staffPage.locator('#auth-form [name=senha]').fill('SenhaTeste123');
     await staffPage.locator('#auth-submit').click();
@@ -159,5 +159,31 @@ test('cadastro, cliente recorrente, edicao, persistencia e nova sessao', async (
   await page.locator('#auth-submit').click();
   await waitForWorkspace(page);
   cleanupToken = await page.evaluate(() => sessionStorage.getItem('ink.token'));
+  expect(errors).toEqual([]);
+});
+test('landing separada do painel: CTAs e links antigos levam ao app', async ({ page }) => {
+  const errors = [];
+  const assets = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('request', (request) => { if (/\.(css|js)$/.test(new URL(request.url()).pathname)) assets.push(new URL(request.url()).pathname); });
+  await page.goto('/');
+  await expect(page.locator('#landing-title')).toBeVisible();
+  await expect(page.locator('#workspace, #auth')).toHaveCount(0);
+  expect(assets.sort()).toEqual(['/landing.css', '/landing.js']);
+  await page.locator('#landing-trial').click();
+  await expect(page).toHaveURL(/\/app#cadastro$/);
+  await expect(page.locator('#auth-form [name=nomeEstudio]')).toBeVisible();
+  await expect(page.locator('#auth-form [name=nomeEstudio]')).toBeFocused();
+  await page.goto('/');
+  await page.locator('.marketing-login').click();
+  await expect(page).toHaveURL(/\/app#login$/);
+  await expect(page.locator('#auth-form [name=email]')).toBeVisible();
+  await expect(page.locator('#auth-form [name=nomeEstudio]')).toBeHidden();
+  // Links antigos (favoritos, e-mails) que apontavam para a landing.
+  await page.goto('/#login');
+  await expect(page).toHaveURL(/\/app#login$/);
+  await expect(page.locator('#auth-form')).toBeVisible();
+  await page.goto('/app');
+  await expect(page.locator('#auth-form')).toBeVisible();
   expect(errors).toEqual([]);
 });
