@@ -3676,3 +3676,19 @@ body:has(#workspace:not([hidden])) #login { display:none; }
   #workspace .search-bar { height:50px; }
 }
 @media (prefers-reduced-motion:reduce) { #workspace .nav-item { transition:none; } }
+
+/* Hero com o painel completo (20/11/2026): painel ao lado do texto, nítido (1x/2x) e versão de celular. */
+#public-landing .lp-hero-grid { grid-template-columns:510px minmax(0,1fr); gap:48px; }
+#public-landing .lp-hero-preview { padding:10px; border-radius:22px; }
+#public-landing .lp-hero-preview figcaption { padding:4px 6px 10px; }
+#public-landing .lp-hero-frame { border-radius:12px; }
+#public-landing .lp-hero-frame picture,#public-landing .lp-hero-frame img { display:block; width:100%; height:auto; }
+@media (max-width:1180px) {
+  #public-landing .lp-hero-grid { grid-template-columns:minmax(0,1fr); gap:40px; }
+  #public-landing .lp-hero-preview { max-width:none; }
+}
+@media (max-width:700px) {
+  #public-landing .lp-hero-preview { width:min(100%,340px); margin:0 auto; padding:10px; border-radius:36px; box-shadow:0 24px 60px #171B2A24; }
+  #public-landing .lp-hero-preview figcaption { display:none; }
+  #public-landing .lp-hero-frame { border-radius:28px; }
+}
