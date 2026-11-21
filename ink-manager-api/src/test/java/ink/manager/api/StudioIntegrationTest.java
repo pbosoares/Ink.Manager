@@ -145,6 +145,36 @@ class StudioIntegrationTest {
         assertTrue(cacheControl(autenticado).contains("no-store"));
         assertFalse(autenticado.body().contains("Exception"),autenticado.body());
     }
+    @Test void regraDeRotaInexistenteNaoAbreRotasExistentes()throws Exception{
+        var conta=conta("Estudio Bordas");cliente(conta);
+        var divergencias=new ArrayList<String>();
+        java.util.function.BiConsumer<String,HttpResponse<String>> espera404SemDado=(rotulo,r)->{
+            if(r.statusCode()!=404)divergencias.add(rotulo+" -> "+r.statusCode()+" (esperado 404)");
+            for(var proibido:List.of("Exception","at ink.","Maria","21999999999","@example.com","Estudio Bordas"))
+                if(r.body().contains(proibido))divergencias.add(rotulo+" vazou '"+proibido+"': "+r.body());
+        };
+        for(var metodo:List.of("PUT","HEAD","OPTIONS")){
+            var r=request(metodo,"/clientes",metodo.equals("PUT")?"{}":null,null);
+            if(r.statusCode()!=401)divergencias.add(metodo+" /clientes -> "+r.statusCode()+" (esperado 401)");
+        }
+        var erro=request("GET","/error",null,null);
+        if(erro.statusCode()!=401)divergencias.add("GET /error -> "+erro.statusCode()+" (esperado 401): "+erro.body());
+        // Sem MARCAE_RETENTION_OPERATOR_TOKEN configurado, o RetentionOperatorFilter responde 503.
+        for(var metodo:List.of("GET","POST")){
+            var r=request(metodo,"/internal/retencoes-financeiras/qualquer",metodo.equals("POST")?"{}":null,null);
+            if(r.statusCode()!=503)divergencias.add(metodo+" /internal/retencoes-financeiras/qualquer -> "+r.statusCode()+" (esperado 503): "+r.body());
+            var comToken=request(metodo,"/internal/retencoes-financeiras/qualquer",metodo.equals("POST")?"{}":null,conta.token());
+            if(comToken.statusCode()!=503)divergencias.add(metodo+" /internal/... com JWT de estudio -> "+comToken.statusCode()+" (esperado 503)");
+        }
+        for(var path:List.of("/clientes/","/CLIENTES")){
+            espera404SemDado.accept("GET "+path+" anonimo",request("GET",path,null,null));
+            espera404SemDado.accept("GET "+path+" autenticado",request("GET",path,null,conta.token()));
+        }
+        espera404SemDado.accept("POST /clientes-x anonimo",request("POST","/clientes-x","{\"nome\":\"X\"}",null));
+        var estatico=request("GET","/teste-fora-do-permitall.txt",null,null);
+        if(estatico.statusCode()!=401)divergencias.add("GET /teste-fora-do-permitall.txt -> "+estatico.statusCode()+" (esperado 401): "+estatico.body());
+        assertTrue(divergencias.isEmpty(),String.join("\n",divergencias));
+    }
     @Test void cadastroAutonomoEArquivosPublicos()throws Exception{
         for(var path:List.of("/","/app.js","/team.js","/styles.css","/favicon.svg","/actuator/health"))assertEquals(200,request("GET",path,null,null).statusCode(),path);
         for(var path:List.of("/landing/visao-geral.png","/landing/agenda.png","/landing/reserva.png")){
