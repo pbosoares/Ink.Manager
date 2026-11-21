@@ -31,16 +31,48 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Marcaê",
-    "applicationCategory": "BusinessApplication",
-    "operatingSystem": "Web",
-    "description": "Agenda online e agendamento para salões, barbearias, estética e profissionais com hora marcada.",
-    "offers": {
-      "@type": "Offer",
-      "price": "29.90",
-      "priceCurrency": "BRL"
-    }
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://usemarcae.com.br/#organizacao",
+        "name": "Marcaê",
+        "url": "https://usemarcae.com.br/",
+        "logo": "https://usemarcae.com.br/favicon.svg",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "customer support",
+          "telephone": "+55-21-98287-7874",
+          "availableLanguage": "pt-BR"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://usemarcae.com.br/#site",
+        "name": "Marcaê",
+        "url": "https://usemarcae.com.br/",
+        "inLanguage": "pt-BR",
+        "publisher": { "@id": "https://usemarcae.com.br/#organizacao" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://usemarcae.com.br/#app",
+        "name": "Marcaê",
+        "url": "https://usemarcae.com.br/",
+        "image": "https://usemarcae.com.br/landing/og-marcae.png",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "pt-BR",
+        "description": "Agenda online e link de agendamento para salões, barbearias, manicures e estética. Teste grátis por 14 dias, sem cartão de crédito.",
+        "publisher": { "@id": "https://usemarcae.com.br/#organizacao" },
+        "offers": {
+          "@type": "Offer",
+          "price": "29.90",
+          "priceCurrency": "BRL",
+          "availability": "https://schema.org/InStock",
+          "url": "https://usemarcae.com.br/#precos"
+        }
+      }
+    ]
   }
   </script>
   <script src="/app.js" defer></script>
@@ -68,7 +100,7 @@
         <div class="lp-hero-copy">
           <span class="lp-pill"><i aria-hidden="true"></i>Agenda online para o seu negócio</span>
           <h1 id="landing-title">Agenda online para salões, barbearias e negócios de beleza</h1>
-          <p>Receba reservas pelo seu link e organize serviços, profissionais e horários em um só lugar.</p>
+          <p>O Marcaê é a agenda online com link de agendamento para salões, barbearias, manicures e estética: seus clientes reservam sozinhos e você organiza serviços, profissionais e horários em um só lugar.</p>
           <a id="landing-trial" class="cro-button lp-hero-cta" href="/#login">Começar 14 dias grátis <span aria-hidden="true">→</span></a>
           <ul class="cro-guarantees">
             <li>Sem cartão de crédito para testar</li>
@@ -183,7 +215,7 @@
       <div class="cro-container">
         <div class="cro-section-heading cro-centered-heading">
           <span class="cro-kicker">PREÇO SEM SURPRESA</span>
-          <h2 id="pricing-title">Comece grátis. Continue no seu ritmo.</h2>
+          <h2 id="pricing-title">14 dias grátis, sem cartão. Depois, R$ 29,90/mês.</h2>
         </div>
         <article class="cro-pricing-card">
           <div class="cro-plan-main">
