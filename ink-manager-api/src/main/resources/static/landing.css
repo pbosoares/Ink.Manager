@@ -702,3 +702,7 @@ html { scroll-behavior:smooth; }
   #public-landing .marketing-actions { gap:10px; }
   #public-landing .marketing-header-cta { padding:0 12px; }
 }
+
+/* Seções abaixo da dobra só são montadas quando chegam perto da tela (menos estilo/layout no carregamento).
+   contain-intrinsic-size com "auto" guarda a altura real depois da primeira vez, então âncoras e rolagem não pulam. */
+#public-landing > section:not(.cro-hero) { content-visibility:auto; contain-intrinsic-size:auto 720px; }

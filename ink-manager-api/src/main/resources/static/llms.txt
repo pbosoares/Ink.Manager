@@ -7,6 +7,7 @@
 - [Página inicial](https://usemarcae.com.br/): o que o Marcaê faz, preço, depoimentos e perguntas frequentes.
 - [Agenda para barbearia](https://usemarcae.com.br/agenda-para-barbearia): agenda de vários barbeiros, expedientes, folgas e reserva pelo link.
 - [Agenda para manicure](https://usemarcae.com.br/agenda-para-manicure): serviços com duração própria, para quem atende sozinha ou em equipe.
+- [Agenda para salão de beleza](https://usemarcae.com.br/agenda-para-salao-de-beleza): cabelo, unhas e estética na mesma agenda, cada serviço com a sua duração.
 - [Política de privacidade](https://usemarcae.com.br/privacidade.html): dados tratados, LGPD, prazos de retenção e segurança.
 - [Termos de uso](https://usemarcae.com.br/termos.html): assinatura, pagamento, cancelamento e responsabilidades.
 

@@ -15,4 +15,9 @@ public class ContentPageController {
     public String manicure() {
         return "forward:/agenda-para-manicure.html";
     }
+
+    @GetMapping("/agenda-para-salao-de-beleza")
+    public String salaoDeBeleza() {
+        return "forward:/agenda-para-salao-de-beleza.html";
+    }
 }
