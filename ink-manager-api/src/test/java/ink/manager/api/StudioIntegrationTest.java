@@ -102,7 +102,7 @@ class StudioIntegrationTest {
             assertEquals(304,revalidado.statusCode(),path);
             assertEquals("",revalidado.body(),path);
         }
-        for(var path:List.of("/landing/agenda.png","/landing/login-agenda.svg","/landing/v3-painel-visao-geral-celular.webp","/landing/v3-reserva-online.webp","/fonts/inter-latin.woff2","/fonts/inter-tight-latin.woff2","/favicon.svg","/robots.txt","/sitemap.xml","/llms.txt")){
+        for(var path:List.of("/landing/agenda.png","/landing/login-agenda.svg","/landing/v3-painel-visao-geral-celular.webp","/landing/v3-reserva-online.webp","/landing/nicho-salao.webp","/landing/nicho-salao-2x.webp","/landing/nicho-salao-celular.webp","/landing/nicho-barbearia.webp","/landing/nicho-manicure-2x.webp","/fonts/inter-latin.woff2","/fonts/inter-tight-latin.woff2","/favicon.svg","/robots.txt","/sitemap.xml","/llms.txt")){
             var midia=request("GET",path,null,null);
             assertEquals(200,midia.statusCode(),path);
             assertEquals("max-age=3600, must-revalidate, public",cacheControl(midia),path);
@@ -187,7 +187,7 @@ class StudioIntegrationTest {
             assertFalse(app.body().contains("<script>"),path+" sem script inline (CSP)");
         }
         assertFalse(landing.contains("<script>"),"landing sem script inline (CSP)");
-        for(var path:List.of("/privacidade.html","/termos.html","/agenda-para-barbearia","/agenda-para-manicure")){
+        for(var path:List.of("/privacidade.html","/termos.html","/agenda-para-barbearia","/agenda-para-manicure","/agenda-para-salao-de-beleza")){
             var pagina=request("GET",path,null,null).body();
             assertTrue(pagina.contains("href=\"/landing.css\""),path+" usa o CSS da landing");
             assertFalse(pagina.contains("/styles.css"),path+" nao carrega o CSS do painel");
@@ -197,7 +197,7 @@ class StudioIntegrationTest {
         assertFalse(request("GET","/sitemap.xml",null,null).body().contains("/app"),"o app nao entra no sitemap");
     }
     @Test void paginasPublicasSemFontesExternasEHeroLeveNoCelular()throws Exception{
-        for(var path:List.of("/","/agenda-para-barbearia","/agenda-para-manicure","/privacidade.html","/termos.html")){
+        for(var path:List.of("/","/agenda-para-barbearia","/agenda-para-manicure","/agenda-para-salao-de-beleza","/privacidade.html","/termos.html")){
             String html=request("GET",path,null,null).body();
             assertFalse(html.contains("fonts.googleapis.com")||html.contains("fonts.gstatic.com"),path);
             assertTrue(html.contains("<link rel=\"preload\" href=\"/fonts/inter-latin.woff2\" as=\"font\" type=\"font/woff2\" crossorigin>"),path);
@@ -216,6 +216,19 @@ class StudioIntegrationTest {
         var webp=request("GET","/landing/v3-painel-visao-geral-celular.webp",null,null);
         assertEquals(200,webp.statusCode());
         assertEquals("image/webp",webp.headers().firstValue("Content-Type").orElse(""));
+    }
+    @Test void paginaDeSalaoDeBelezaIndexavel()throws Exception{
+        var pagina=request("GET","/agenda-para-salao-de-beleza",null,null);
+        assertEquals(200,pagina.statusCode());
+        String html=pagina.body();
+        assertTrue(html.contains("<link rel=\"canonical\" href=\"https://usemarcae.com.br/agenda-para-salao-de-beleza\">"));
+        assertTrue(html.contains("<title>Agenda para salão de beleza com link de agendamento | Marcaê</title>"));
+        assertTrue(html.contains("<h1 id=\"niche-title\">"));
+        assertFalse(html.contains("noindex"));
+        assertTrue(html.contains("srcset=\"/landing/nicho-salao-celular.webp\""),"imagem leve no celular");
+        assertTrue(request("GET","/sitemap.xml",null,null).body().contains("<loc>https://usemarcae.com.br/agenda-para-salao-de-beleza</loc>"));
+        assertTrue(request("GET","/llms.txt",null,null).body().contains("https://usemarcae.com.br/agenda-para-salao-de-beleza"));
+        assertTrue(request("GET","/",null,null).body().contains("href=\"/agenda-para-salao-de-beleza\""),"a home leva a pagina de salao");
     }
     @Test void llmsTxtERobotsComContentSignal()throws Exception{
         var llms=request("GET","/llms.txt",null,null);
