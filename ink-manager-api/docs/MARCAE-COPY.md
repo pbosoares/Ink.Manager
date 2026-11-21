@@ -182,3 +182,12 @@ Regras do painel:
 | Disponibilidade sem dados | Escolha profissional, mês e uma duração entre 1 e 720 minutos. |
 
 Decisões do dono em 20/11/2026: apoio de "Recebido hoje" = "Valores confirmados hoje" (evita sugerir que o Marcaê processa pagamento); título de Meu negócio = "Tudo do seu negócio em um lugar."; selo de atendimento que passou do horário sem conclusão = "Passou sem registro". Mantidos: kicker "TEMPO PARA ATENDER BEM" e o tom informal ("quem já te chama no WhatsApp").
+
+## Páginas de nicho — aceitas em 21/11/2026
+
+Páginas públicas `/agenda-para-barbearia` e `/agenda-para-manicure` (HTML estático, endereço limpo via `ContentPageController`).
+
+- Barbearia: H1 "Agenda online para barbearia: cada cadeira com seu horário"; destaque para várias cadeiras e equipe; H2 "Sábado e horário de pico com hora marcada"; CTA final "Seu link de agendamento pronto para o próximo sábado."
+- Manicure: H1 "Agenda online para manicure e nail designer"; destaque para a duração de cada serviço; H2 "Clientes e manutenções no histórico"; CTA final "Na próxima "tem horário?", mande o seu link."
+- Home: seção "Veja o Marcaê na rotina do seu negócio." com links para as duas páginas.
+- Regras: sem prometer redução de faltas ("Lembrete antes do horário e registro de faltas"; "Lembretes, desmarcações e horários vagos"); lembretes só por e-mail (24 h e 2 h), WhatsApp apenas pelo botão manual; sem app nativo; o Marcaê não cobra o cliente final; plano único de R$ 29,90 para qualquer tamanho de equipe; tabelas de serviços são "tempos de exemplo"; sem depoimentos nas páginas de nicho.
